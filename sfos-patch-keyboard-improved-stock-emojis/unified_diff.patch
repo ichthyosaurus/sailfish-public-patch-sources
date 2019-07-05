@@ -1,0 +1,87 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml b/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
+index 3580703..5fe1bec 100644
+--- a/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
++++ b/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
+@@ -33,12 +33,13 @@ import ".."
+ 
+ KeyboardLayout {
+     splitSupported: true
++    capsLockSupported: false
+ 
+     KeyboardRow {
+         CharacterKey { caption: "☺" }
+         CharacterKey { caption: "😉" }
+         CharacterKey { caption: "😊" }
+-        CharacterKey { caption: "😎" }
++        CharacterKey { caption: "😌"; captionShifted: "😎"; }
+         CharacterKey { caption: "😃" }
+         CharacterKey { caption: "😄" }
+         CharacterKey { caption: "😆" }
+@@ -47,12 +48,27 @@ KeyboardLayout {
+         CharacterKey { caption: "😂" }
+     }
+ 
++    KeyboardRow {
++        splitIndex: 5
++
++        CharacterKey { caption: "🙊" }
++        CharacterKey { caption: "🙉" }
++        CharacterKey { caption: "🙈" }
++        CharacterKey { caption: "🤗" }
++        CharacterKey { caption: "😱" }
++        CharacterKey { caption: "🤔" }
++        CharacterKey { caption: "🙄" }
++        CharacterKey { caption: "🐐" }
++        CharacterKey { caption: "😪" }
++        CharacterKey { caption: "😳" }
++    }
++
+     KeyboardRow {
+         splitIndex: 5
+ 
+         CharacterKey { caption: "😮" }
+         CharacterKey { caption: "😐" }
+-        CharacterKey { caption: "😛" }
++        FittedCharacterKey { caption: "😴"; captionShifted: "😛"; }
+         CharacterKey { caption: "😜" }
+         CharacterKey { caption: "😕" }
+         CharacterKey { caption: "😞" }
+@@ -65,16 +81,17 @@ KeyboardLayout {
+     KeyboardRow {
+         splitIndex: 5
+ 
+-        FittedCharacterKey { caption: "😴" }
+-        CharacterKey { caption: "😙" }
+-        CharacterKey { caption: "😘" }
++        ShiftKey {}
++
++        CharacterKey { caption: "😘"; captionShifted: "😙"; }
+         CharacterKey { caption: "😍" }
+-        CharacterKey { caption: "💋" }
+-        CharacterKey { caption: "❤" }
++        CharacterKey { caption: "❤"; captionShifted: "💋"; }
+         CharacterKey { caption: "👍" }
+         CharacterKey { caption: "💪" }
+         CharacterKey { caption: "👏" }
+         CharacterKey { caption: "👋" }
++
++        BackspaceKey {}
+     }
+ 
+     KeyboardRow {
+@@ -87,13 +104,14 @@ KeyboardLayout {
+ 
+             onClicked: canvas.switchToPreviousCharacterLayout()
+         }
++
+         SpacebarKey {}
+         SpacebarKey {
+             active: splitActive
+             languageLabel: ""
+         }
++
+         EnterKey {}
+-        BackspaceKey {}
+     }
+ }
+ 

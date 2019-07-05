@@ -1,0 +1,173 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/EmojiHybridKey.qml b/usr/share/maliit/plugins/com/jolla/EmojiHybridKey.qml
+new file mode 100644
+index 0000000..9fe16b2
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/EmojiHybridKey.qml
+@@ -0,0 +1,39 @@
++/*
++ * part of: Swiss German Keyboard Layout
++ * Copyright (c) 2019  Mirian Margiani
++*/
++
++import QtQuick 2.6
++import Sailfish.Silica 1.0
++import com.jolla.keyboard 1.0
++
++CharacterKey {
++    id: characterKey
++
++    property bool expandingKey: true
++    property real _normalOpacity: 0.17
++    property real _pressedOpacity: 0.6
++    property string captionEmoji: "☺"
++    property bool _beSwitcher: attributes.inSymView ? true : false
++
++    symView: ""
++    symView2: ""
++    showPopper: _beSwitcher ? false : true
++    showHighlight: showPopper
++    separator: _beSwitcher ? SeparatorState.HiddenSeparator : SeparatorState.AutomaticSeparator
++    keyText: _beSwitcher ? captionEmoji : (attributes.isShifted ? captionShifted : caption)
++    text: _beSwitcher ? "" : keyText
++
++    Rectangle {
++        id: background
++        visible: _beSwitcher ? true : false
++        color: parent.pressed ? Theme.highlightBackgroundColor : Theme.primaryColor
++        opacity: parent.pressed ? _pressedOpacity : _normalOpacity
++        radius: geometry.keyRadius
++        anchors { fill: parent; topMargin: Theme.paddingMedium; bottomMargin: Theme.paddingMedium; }
++    }
++
++    onClicked: {
++        if (_beSwitcher) canvas.switchToPreviousCharacterLayout();
++    }
++}
+diff --git a/usr/share/maliit/plugins/com/jolla/LayoutRow.qml b/usr/share/maliit/plugins/com/jolla/LayoutRow.qml
+index 14d95b4..64b7b72 100644
+--- a/usr/share/maliit/plugins/com/jolla/LayoutRow.qml
++++ b/usr/share/maliit/plugins/com/jolla/LayoutRow.qml
+@@ -324,6 +324,16 @@ Item {
+         updateLoaders([layoutIndex, left, right])
+     }
+ 
++    function switchToEmojisLayout() {
++        for (var index = 0; index < canvas.layoutModel.count; index++) {
++            var layout = canvas.layoutModel.get(index)
++            if (layout.name === "text_input_emojis") {
++                switchLayout(index)
++                return
++            }
++        }
++    }
++
+     function switchToPreviousCharacterLayout() {
+         if (previousLayout.length > 0) {
+             for (var index = 0; index < canvas.layoutModel.count; index++) {
+@@ -337,7 +347,7 @@ Item {
+ 
+         for (index = 0; index < canvas.layoutModel.count; index++) {
+             layout = canvas.layoutModel.get(index)
+-            if (layout.enabled && layout.type !== "emojis") {
++            if (layout.enabled && layout.name !== "text_input_emojis") {
+                 switchLayout(index)
+                 return
+             }
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/ch.qml b/usr/share/maliit/plugins/com/jolla/layouts/ch.qml
+new file mode 100644
+index 0000000..11e3bb6
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/layouts/ch.qml
+@@ -0,0 +1,73 @@
++/*
++ * Swiss German Keyboard Layout
++ * Copyright (c) 2018       Gabriel Margiani
++ *               2018-2019  Mirian Margiani
++*/
++
++import QtQuick 2.0
++import ".."
++
++KeyboardLayout {
++    splitSupported: true
++
++    KeyboardRow {
++        CharacterKey { caption: "1"; captionShifted: "+";  symView: "1"; symView2: "€"; accents: "1+-*/"; accentsShifted: "+-*/1"}
++        CharacterKey { caption: "2"; captionShifted: "\""; symView: "2"; symView2: "£"; accents: "\"„2“'´@"; accentsShifted: "„“\"'´@2" }
++        CharacterKey { caption: "3"; captionShifted: "*";  symView: "3"; symView2: "$"; accents: "3*#§"; accentsShifted: "*#§3"}
++        CharacterKey { caption: "4"; captionShifted: "~";  symView: "4"; symView2: "¥"; accents: "4~`^"; accentsShifted: "`^~4"}
++        CharacterKey { caption: "5"; captionShifted: "%";  symView: "5"; symView2: "₹"; accents: "5%·×÷‰‱"; accentsShifted: "%·×÷5‰‱" }
++        CharacterKey { caption: "6"; captionShifted: "_";  symView: "6"; symView2: "¤"; accents: "6&$€_"; accentsShifted: "&$€6_" }
++        CharacterKey { caption: "7"; captionShifted: "/";  symView: "7"; symView2: " "; accents: "7/|\\"; accentsShifted: "/|\\7" }
++        CharacterKey { caption: "8"; captionShifted: "(";  symView: "8"; symView2: " "; accents: "8([{<"; accentsShifted: "([{<8" }
++        CharacterKey { caption: "9"; captionShifted: ")";  symView: "9"; symView2: "["; accents: "9)]}>"; accentsShifted: ")]}>9" }
++        CharacterKey { caption: "0"; captionShifted: "=";  symView: "0"; symView2: "]"; accents: "0=-_"; accentsShifted: "=-_0" }
++  FittedCharacterKey { caption: "?"; captionShifted: "!";  symView: "%"; symView2: "‰"; accents: "?!:;="; accentsShifted: "=!:;?" }
++    }
++
++    KeyboardRow {
++  FittedCharacterKey { caption: "q"; captionShifted: "Q"; symView: ":)"; symView2: "☺"; accents: "qQ"; accentsShifted: "qQ" }
++  FittedCharacterKey { caption: "w"; captionShifted: "W"; symView: ";)"; symView2: "😉"; accents: "wW"; accentsShifted: "wW"  }
++  FittedCharacterKey { caption: "e"; captionShifted: "E"; symView: ":/"; symView2: "😕"; accents: "èeéëê€E"; accentsShifted: "ÈeEÉÊË€" }
++  FittedCharacterKey { caption: "r"; captionShifted: "R"; symView: ":("; symView2: "😭"; accents: "rR"; accentsShifted: "rR"  }
++  FittedCharacterKey { caption: "t"; captionShifted: "T"; symView: "<3"; symView2: "❤"; accents: "tT"; accentsShifted: "tT"  }
++        CharacterKey { caption: "z"; captionShifted: "Z"; symView: "^"; symView2: "😌"; accents: "zZ"; accentsShifted: "zZ"  }
++        CharacterKey { caption: "u"; captionShifted: "U"; symView: "<"; symView2: "🙉"; accents: "üùUuúû"; accentsShifted: "ÜÙuUÚÛ" }
++        CharacterKey { caption: "i"; captionShifted: "I"; symView: ">"; symView2: "🙈"; accents: "îïIiìí"; accentsShifted: "ÎÏiIÌÍ" }
++        CharacterKey { caption: "o"; captionShifted: "O"; symView: "-"; symView2: "😱"; accents: "öòóôõOoø"; accentsShifted: "ÖÒÓÔÕoOØ" }
++        CharacterKey { caption: "p"; captionShifted: "P"; symView: "~"; symView2: "😂"; accents: "pP"; accentsShifted: "pP"  }
++  FittedCharacterKey { caption: "ü"; captionShifted: "Ü"; symView: " "; symView2: "🤗"; accents: "èêÜü"; accentsShifted: "ÈÊüÜ" }
++    }
++
++    KeyboardRow {
++        CharacterKey { caption: "a"; captionShifted: "A"; symView: "*"; symView2: "`"; accents: "aAäàáãâåæ"; accentsShifted: "AaÄÀÁÃÂÅÆ"}
++        CharacterKey { caption: "s"; captionShifted: "S"; symView: "#"; symView2: " "; accents: "sSßş$"; accentsShifted: "SsŞ$" }
++        CharacterKey { caption: "d"; captionShifted: "D"; symView: "+"; symView2: "|"; accents: "dDð"; accentsShifted: "DdÐ" }
++        CharacterKey { caption: "f"; captionShifted: "F"; symView: "_"; symView2: "-"; accents: "fF"; accentsShifted: "fF"  }
++        CharacterKey { caption: "g"; captionShifted: "G"; symView: "="; symView2: "§"; accents: "gGğ"; accentsShifted: "GgĞ" }
++        CharacterKey { caption: "h"; captionShifted: "H"; symView: "("; symView2: "{"; accents: "hH"; accentsShifted: "hH"  }
++        CharacterKey { caption: "j"; captionShifted: "J"; symView: ")"; symView2: "}"; accents: "jJ"; accentsShifted: "jJ"  }
++        CharacterKey { caption: "k"; captionShifted: "K"; symView: "\""; symView2: "°"; accents: "kK"; accentsShifted: "kK"  }
++        CharacterKey { caption: "l"; captionShifted: "L"; symView: "@"; symView2: "·"; accents: "lL"; accentsShifted: "lL"  }
++        CharacterKey { caption: "ö"; captionShifted: "Ö"; symView: "!"; symView2: "¡"; accents: "éêÖö"; accentsShifted: "éêÖö"}
++        CharacterKey { caption: "ä"; captionShifted: "Ä"; symView: "?"; symView2: "¿"; accents: "àâÄä"; accentsShifted: "àâÄä"}
++    }
++
++    KeyboardRow {
++        splitIndex: 5
++
++        ShiftKey {}
++
++      EmojiHybridKey { caption: "y"; captionShifted: "Y"; accents: "ýyY¥"; accentsShifted: "ÝYy¥"; }
++        CharacterKey { caption: "x"; captionShifted: "X"; symView: "&"; symView2: " "; accents: "xX"; accentsShifted: "xX"  }
++        CharacterKey { caption: "c"; captionShifted: "C"; symView: "/"; symView2: "÷"; accents: "Ccç"; accentsShifted: "cCÇ" }
++        CharacterKey { caption: "v"; captionShifted: "V"; symView: "„"; symView2: "\\"; accents: "vV"; accentsShifted: "vV"  }
++        CharacterKey { caption: "b"; captionShifted: "B"; symView: "“"; symView2: "'"; accents: "bB"; accentsShifted: "bB"  }
++        CharacterKey { caption: "n"; captionShifted: "N"; symView: "”"; symView2: "×"; accents: "Nnñ"; accentsShifted: "nNÑ" }
++        CharacterKey { caption: "m"; captionShifted: "M"; symView: ";"; symView2: "«"; accents: "Mm"; accentsShifted: "mM"  }
++        CharacterKey { caption: ":"; captionShifted: "-"; symView: ":"; symView2: "»"; accents: "./'|;:-_~"; accentsShifted: "./'|;:-_~"  }
++
++        BackspaceKey {}
++    }
++
++    SpacebarRow {}
++}
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/layouts_de_ch.conf b/usr/share/maliit/plugins/com/jolla/layouts/layouts_de_ch.conf
+new file mode 100644
+index 0000000..92dc6c8
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/layouts/layouts_de_ch.conf
+@@ -0,0 +1,4 @@
++[ch.qml]
++name=Deutsch (CH)
++languageCode=DE
++handler=Xt9InputHandler.qml
+diff --git a/usr/share/maliit/plugins/com/jolla/qmldir b/usr/share/maliit/plugins/com/jolla/qmldir
+index 89a9bd5..b30351f 100644
+--- a/usr/share/maliit/plugins/com/jolla/qmldir
++++ b/usr/share/maliit/plugins/com/jolla/qmldir
+@@ -41,3 +41,4 @@ HwrLayout 1.0 HwrLayout.qml
+ StrokeLayout 1.0 StrokeLayout.qml
+ KeyboardBackground 1.0 KeyboardBackground.qml
+ SmallCharacterKey 1.0 SmallCharacterKey.qml
++EmojiHybridKey 1.0 EmojiHybridKey.qml

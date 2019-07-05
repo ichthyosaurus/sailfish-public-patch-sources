@@ -1,0 +1,72 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- harbour-fraliit-common >= 0.1.0
+
+Prefix: /usr/share
+DisplayName: Apostrophe key for fravaccaro's arrow keyboards
+PackageName: sfos-patch-keyboard-apostrophe-key-fraliit
+Category: Keyboard
+Keywords:
+- Patch
+- Keyboard
+- arrow
+
+Maintainer: ichthyosaurus
+Summary: Patch adding an apostrophe key next to the comma key in the space bar row.
+Description:
+- Patch adding an apostrophe key next to the comma key in the space bar row.
+-
+- This patch is only for fravaccaro's keyboards with extra arrow keys next to
+- the space bar (for example <a href="https://openrepos.net/content/fravaccaro/qwerty-french-keyboard-arrows-and-numbers">Fran&ccedil;aisQ</a>).
+- A patch for keyboards using Jolla's stock keyboard base use
+- <a href="https://openrepos.net/content/ichthyosaurus/patch-apostrophe-key-all-keyboards">this patch</a>.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-apostrophe-key-fravaccaros-arrow-keyboards
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- harbour-fraliit-common >= 0.1.0
+
+# Conflicts:
+# - sfos-patch-keyboard-wider-spacebar
+
+# Obsoletes:
+# - the-other-old-name
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch

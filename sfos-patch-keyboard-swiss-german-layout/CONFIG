@@ -1,0 +1,100 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.7.1
+
+Prefix: /usr/share
+DisplayName: Swiss German keyboard layout
+PackageName: sfos-patch-keyboard-swiss-german-layout
+Category: Keyboard
+Keywords:
+- Patch
+- Keyboard
+- Keyboard layout
+- layout
+- Swiss German
+
+Maintainer: ichthyosaurus
+Summary: Patch adding a new Swiss German keyboard layout.
+Description:
+- This patch adds a new Swiss German keyboard layout.
+-
+- Many special characters are available if you long-press a key.
+-
+- The new layout includes an extra row of keys. Therefore I recommend installing
+- the <a href="https://openrepos.net/content/ichthyosaurus/patch-smaller-keyboard">smaller keyboard patch</a>
+- which reduces the default height of the keyboard so it does not take as much
+- space on the screen.
+-
+- Switching between keyboards may become slower because of the extra row.
+- This cannot be changed unless the other keyboards add another row too. You
+- can install the <a href="https://openrepos.net/content/ichthyosaurus/patch-improved-stock-emoji-keyboard">improved emojis patch</a>
+- to add an extra row to the stock emojis keyboard.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-swiss-german-keyboard-layout
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.7.1
+
+# Conflicts:
+# - my-conflicting-package = 0.0.1
+# - the-old-name
+#
+# Obsoletes:
+# - the-other-old-name
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+- screenshot-3.png
+- screenshot-4.png
+- screenshot-5.png
+
+CompatibleVersions:
+- 2.1.0.11
+- 2.1.1.12
+- 2.1.1.23
+- 2.1.1.24
+- 2.1.1.26
+- 2.1.2.3
+- 2.1.3.3
+- 2.1.3.5
+- 2.1.3.7
+- 2.1.4.13
+- 2.1.4.14
+- 2.1.4.15
+- 2.2.0.29
+- 2.2.1.18
+- 2.2.1.19
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch

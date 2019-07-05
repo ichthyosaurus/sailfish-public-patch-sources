@@ -1,0 +1,36 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod.qml b/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod.qml
+index e29a520..64a5708 100644
+--- a/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod.qml
++++ b/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod.qml
+@@ -10,6 +10,13 @@ KeyboardRow {
+ 
+     SymbolKeyMod {}
+     ContextAwareCommaKeyMod {}
++    CharacterKey {
++        caption: "'"
++        captionShifted: "'"
++        implicitWidth: punctuationKeyWidth
++        fixedWidth: !splitActive
++        separator: SeparatorState.HiddenSeparator
++    }
+     CustomArrowKeyMod { direction: "left" }
+     SpacebarKey {}
+     SpacebarKey {
+diff --git a/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod_noarrow.qml b/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod_noarrow.qml
+index b079b02..dec0203 100644
+--- a/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod_noarrow.qml
++++ b/usr/share/maliit/plugins/com/jolla/fraliit/SpacebarRowMod_noarrow.qml
+@@ -10,6 +10,13 @@ KeyboardRow {
+ 
+     SymbolKeyMod {}
+     ContextAwareCommaKeyMod {}
++    CharacterKey {
++        caption: "'"
++        captionShifted: "'"
++        implicitWidth: punctuationKeyWidth
++        fixedWidth: !splitActive
++        separator: SeparatorState.HiddenSeparator
++    }
+     SpacebarKey {}
+     SpacebarKey {
+         active: splitActive

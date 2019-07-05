@@ -1,0 +1,15 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/PhoneNumberLayoutPortrait.qml b/usr/share/maliit/plugins/com/jolla/PhoneNumberLayoutPortrait.qml
+index a5aea53..7a11891 100644
+--- a/usr/share/maliit/plugins/com/jolla/PhoneNumberLayoutPortrait.qml
++++ b/usr/share/maliit/plugins/com/jolla/PhoneNumberLayoutPortrait.qml
+@@ -67,8 +67,8 @@ KeyboardLayout {
+         }
+         CharacterKey {
+             key: Qt.Key_Multi_key
+-            text: "*p"
+-            caption: "*p"
++            text: " *p"
++            caption: "␣*p"
+             height: geometry.keyHeightPortrait
+             width: main.width / 4
+             showPopper: false

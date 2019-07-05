@@ -1,0 +1,38 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml b/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml
+index 1577c1b..c34aca2 100644
+--- a/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml
++++ b/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml
+@@ -33,8 +33,15 @@ import com.jolla.keyboard 1.0
+ KeyboardRow {
+     splitIndex: 3
+ 
+-    SymbolKey {}
++    SymbolKey { beBig: false }
+     ContextAwareCommaKey {}
++    CharacterKey {
++        caption: "'"
++        captionShifted: "'"
++        implicitWidth: punctuationKeyWidth
++        fixedWidth: !splitActive
++        separator: SeparatorState.HiddenSeparator
++    }
+     SpacebarKey {}
+     SpacebarKey {
+         active: splitActive
+diff --git a/usr/share/maliit/plugins/com/jolla/SymbolKey.qml b/usr/share/maliit/plugins/com/jolla/SymbolKey.qml
+index 16762a0..67e6fa9 100644
+--- a/usr/share/maliit/plugins/com/jolla/SymbolKey.qml
++++ b/usr/share/maliit/plugins/com/jolla/SymbolKey.qml
+@@ -36,10 +36,11 @@ FunctionKey {
+ 
+     property int _charactersWhenPressed
+     property bool _quickPicking
++    property bool beBig: true
+     property string symbolCaption: "ABC"
+ 
+     caption: attributes.inSymView ? symbolCaption : "?123"
+-    implicitWidth: functionKeyWidth
++    implicitWidth: beBig ? functionKeyWidth : punctuationKeyWidth
+     keyType: KeyType.SymbolKey
+ 
+     onPressedChanged: {

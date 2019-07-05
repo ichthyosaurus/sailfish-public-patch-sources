@@ -1,0 +1,60 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Description, Screenshots, CompatibleVersions,
+#             Changelog, Requires, Keywords
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.7.1
+
+Prefix: /usr/share
+DisplayName: Smaller keyboard
+PackageName: sfos-patch-keyboard-smaller-keyboard
+Category: Keyboard
+Keywords:
+- Patch
+- keyboard
+- size
+
+Maintainer: ichthyosaurus
+Summary: Patch reducing height of the keyboard
+Description:
+- Simply reduces the default keyboard height, so you can see more of the screen while typing.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-smaller-keyboard
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.7.1
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch

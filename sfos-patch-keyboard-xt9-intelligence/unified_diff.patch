@@ -1,0 +1,41 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml b/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
+index e87fb01..76829dd 100644
+--- a/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
++++ b/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
+@@ -362,16 +362,33 @@ InputHandler {
+                     commit(preedit + pressedKey.text)
+                 } else {
+                     if (candidateSpaceIndex > 0 && candidateSpaceIndex === MInputMethodQuick.cursorPosition
+-                            && ",.?!".indexOf(pressedKey.text) >= 0
++                            && ",.?!;:)“”»".indexOf(pressedKey.text) >= 0
+                             && MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 1) === " ") {
+-                        if (thread.language === "FR" && "?!".indexOf(pressedKey.text) >= 0) {
+-                            // follow French grammar rules for ? and !
++                        if (thread.language === "FR" && "?!:;»".indexOf(pressedKey.text) >= 0) {
++                            // follow French grammar rules
+                             MInputMethodQuick.sendCommit(pressedKey.text + " ")
+                         } else {
+                             // replace automatically added space from candidate clicking
+                             MInputMethodQuick.sendCommit(pressedKey.text + " ", -1, 1)
+                         }
+                         preedit = ""
++                    } else if (thread.language === "DE"
++                               && ".".indexOf(pressedKey.text) >= 0
++                               && MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 2) === "."
++                               && MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 1) === " ") {
++                        MInputMethodQuick.sendCommit(" ..", -2, 2)
++                        preedit = ""
++                    } else if (thread.language === "FR"
++                               && "«".indexOf(pressedKey.text) >= 0
++                               && MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 1) === " ") {
++                        // follow French grammar rules
++                        MInputMethodQuick.sendCommit(pressedKey.text + " ")
++                        preedit = ""
++                    } else if (   ")".indexOf(pressedKey.text) >= 0
++                               && ";:".indexOf(MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 2)) >= 0
++                               && MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 1) === " ") {
++                        MInputMethodQuick.sendCommit(" " + MInputMethodQuick.surroundingText.charAt(MInputMethodQuick.cursorPosition - 2) + ")", -2, 2)
++                        preedit = ""
+                     } else {
+                         commit(pressedKey.text)
+                     }

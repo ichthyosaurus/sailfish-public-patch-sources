@@ -1,0 +1,22 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/lockscreen/LockItem.qml b/usr/share/lipstick-jolla-home-qt5/lockscreen/LockItem.qml
+index d1147d2..eed579c 100644
+--- a/usr/share/lipstick-jolla-home-qt5/lockscreen/LockItem.qml
++++ b/usr/share/lipstick-jolla-home-qt5/lockscreen/LockItem.qml
+@@ -223,7 +223,7 @@ SilicaFlickable {
+             ]
+         }
+ 
+-        WeatherIndicatorLoader {
++        /*WeatherIndicatorLoader {
+             anchors {
+                 top: clock.bottom
+                 horizontalCenter: clock.horizontalCenter
+@@ -231,7 +231,7 @@ SilicaFlickable {
+             opacity: clock.opacity
+             temperatureFontPixelSize: clock.weekdayFont.pixelSize
+             active: Lipstick.compositor.lockScreenLayer.active
+-        }
++        }*/
+ 
+         MprisPlayerControls {
+             id: mpris

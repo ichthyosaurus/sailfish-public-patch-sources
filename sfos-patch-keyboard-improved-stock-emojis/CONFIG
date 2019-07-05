@@ -1,0 +1,72 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.7.1
+
+Prefix: /usr/share
+DisplayName: Improved stock emoji keyboard
+PackageName: sfos-patch-keyboard-improved-stock-emojis
+Category: Keyboard
+Keywords:
+- Patch
+- Keyboard
+- emoji
+
+Maintainer: ichthyosaurus
+Summary: Patch adding more emojis to the stock emoji keyboard layout
+Description:
+- This patch adds more emoji characters to the stock emoji keyboard layout.
+- In its current state, a new line is added and a second page is available.
+- The second page ("shift") will be filled with new emojis as needed.
+-
+- If you want a certain emoji to be included, feel free to ask in the comments.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-improved-stock-emoji-keyboard
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.7.1
+
+# Conflicts:
+# - my-conflicting-package = 0.0.1
+# - the-old-name
+#
+# Obsoletes:
+# - the-other-old-name
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch

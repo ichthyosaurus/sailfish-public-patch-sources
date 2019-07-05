@@ -1,0 +1,60 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Description, Screenshots, CompatibleVersions,
+#             Changelog, Requires, Keywords
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-notes
+
+Prefix: /usr/share
+DisplayName: Timestamped sections in stock Notes app
+PackageName: sfos-patch-notes-sections
+Category: Others
+Keywords:
+- Patch
+- Notes
+- Organizer
+
+Maintainer: ichthyosaurus
+Summary: Patch adding an option to the pulley menu for inserting timestamped sections to keep order.
+Description:
+- Add an option to the stock Notes app pulley menu for inserting timestamped sections to keep order.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-timestamped-sections-stock-notes-app
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 2
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-notes
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch

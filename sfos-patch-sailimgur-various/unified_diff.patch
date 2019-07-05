@@ -1,0 +1,1647 @@
+diff --git a/usr/share/harbour-sailimgur/qml/components/imgur.js b/usr/share/harbour-sailimgur/qml/components/imgur.js
+index b8163ed..93e5885 100644
+--- a/usr/share/harbour-sailimgur/qml/components/imgur.js
++++ b/usr/share/harbour-sailimgur/qml/components/imgur.js
+@@ -458,21 +458,8 @@ function fillAlbumImagesModel(output, model) {
+     var link_original;
+ 
+     if (output.link) {
+-        //console.debug("link=" + output.link);
+-        link = IMGUR_IMG_URL;
+         link_original = output.link;
+-        if (parseInt(output.width) > 640) {
+-            // if image isn't gif then get the smaller one
+-            var ext = getExt(output.link);
+-            if (ext === "gif" || ext === "GIF") {
+-                link = output.link;
+-            } else {
+-                link += output.id+"l."+ext; // l=640x640 aspec
+-            }
+-        } else {
+-            link = output.link;
+-        }
+-
++        link = output.link;
+     }
+ 
+     var imageData = {
+diff --git a/usr/share/harbour-sailimgur/qml/pages/ActionBar.qml b/usr/share/harbour-sailimgur/qml/pages/ActionBar.qml
+index fe8305e..89496a3 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/ActionBar.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/ActionBar.qml
+@@ -6,6 +6,7 @@ Item {
+     anchors { left: parent.left; right: parent.right; }
+     z: 1;
+     visible: true;
++
+     height: toolbar.height  + galleryMode.height;
+ 
+     property bool shown: true;
+@@ -76,7 +77,6 @@ Item {
+             }
+ 
+         function setAnchors() {
+-            //console.debug("toolbar.setAnchors");
+             if (settings.toolbarBottom) {
+                 anchors.top = undefined;
+                 anchors.bottom = toolbar.top;
+diff --git a/usr/share/harbour-sailimgur/qml/pages/AlbumInfoColumn.qml b/usr/share/harbour-sailimgur/qml/pages/AlbumInfoColumn.qml
+index f0b970e..7f5775a 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/AlbumInfoColumn.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/AlbumInfoColumn.qml
+@@ -119,19 +119,10 @@ Item {
+         id: actionButtons;
+         anchors.horizontalCenter: parent.horizontalCenter;
+         width: childrenRect.width;
+-        height: constant.iconSizelarge
+-        spacing: Theme.paddingLarge * 2;
+-
+-//        IconButton {
+-//            id: dislikeButton;
+-//            enabled: loggedIn;
+-//            icon.width: constant.iconSizeSmall;
+-//            icon.height: icon.width;
+-//            icon.source: constant.iconDislike + "?" + ((galleryContentModel.vote === "down") ? "red" : constant.iconDefaultColor)
+-//            onClicked: {
+-//                internal.galleryVote("down");
+-//            }
+-//        }
++        height: constant.iconSizeMedium
++        spacing: 2*Theme.paddingLarge;
++
++        visible: loggedIn
+ 
+         Rectangle {
+             id: dislikeRect;
+@@ -155,20 +146,9 @@ Item {
+             }
+         }
+ 
+-//        IconButton {
+-//            id: likeButton;
+-//            enabled: loggedIn;
+-//            icon.width: constant.iconSizeMedium;
+-//            icon.height: icon.width;
+-//            icon.source: constant.iconLike + "?" + ((galleryContentModel.vote === "up") ? "green" : constant.iconDefaultColor)
+-//            onClicked: {
+-//                internal.galleryVote("up");
+-//            }
+-//        }
+-
+         Rectangle {
+             id: likeRect;
+-            width: constant.iconSizeLarge
++            width: constant.iconSizeMedium
+             height: width
+             anchors.verticalCenter: parent.verticalCenter
+ 
+@@ -179,7 +159,7 @@ Item {
+                 id: likeButton;
+                 anchors.centerIn: parent;
+                 enabled: loggedIn;
+-                icon.width: constant.iconSizeLarge
++                icon.width: constant.iconSizeMedium
+                 icon.height: icon.width
+                 icon.source: constant.iconLike;
+                 onClicked: {
+@@ -188,17 +168,6 @@ Item {
+             }
+         }
+ 
+-//        IconButton {
+-//            id: favoriteButton;
+-//            enabled: loggedIn;
+-//            icon.width: constant.iconSizeSmall;
+-//            icon.height: icon.width;
+-//            icon.source: constant.iconFavorite + "?" + ((galleryContentModel.favorite) ? "green" : constant.iconDefaultColor)
+-//            onClicked: {
+-//                internal.galleryFavorite(is_album);
+-//            }
+-//        }
+-
+         Rectangle {
+             id: favRect;
+             width: constant.iconSizeMedium
+diff --git a/usr/share/harbour-sailimgur/qml/pages/CommentDelegate.qml b/usr/share/harbour-sailimgur/qml/pages/CommentDelegate.qml
+index 6aff8b4..4e2e754 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/CommentDelegate.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/CommentDelegate.qml
+@@ -37,10 +37,14 @@ Item {
+         MouseArea {
+             anchors.fill: parent;
+             onClicked: {
+-                if (commentActionButtons.visible) {
+-                    commentActionButtons.visible = false;
++                if (loggedIn) {
++                    if (commentActionButtons.visible) {
++                        commentActionButtons.visible = false;
++                    } else {
++                        commentActionButtons.visible = true;
++                    }
+                 } else {
+-                    commentActionButtons.visible = true;
++                    commentActionButtons.visible = false;
+                 }
+             }
+         }
+@@ -57,29 +61,28 @@ Item {
+                 anchors { left: parent.left; right: parent.right; }
+                 height: commentPoints.height
+ 
++                property var fontSize: constant.fontSizeIgnore
++
+                 Label {
+                     id: commentAuthor;
+                     anchors { left: parent.left; }
+                     wrapMode: Text.Wrap;
+                     text: author;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeXSmall : constant.fontSizeXXSmall;
++                    font.pixelSize: parent.fontSize
+                 }
+ 
+                 Label {
+                     id: commentPoints;
+                     anchors { left: commentAuthor.right; }
+                     text: ", " + points + "p";
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeXSmall : constant.fontSizeXXSmall;
++                    font.pixelSize: parent.fontSize
+                 }
+ 
+                 Label {
+                     id: commentDatetime;
+                     anchors { left: commentPoints.right; leftMargin: constant.paddingSmall; right: parent.right; }
+                     text: ", " + datetime;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeXSmall : constant.fontSizeXXSmall;
++                    font.pixelSize: parent.fontSize
+                     elide: Text.ElideRight;
+                 }
+             }
+@@ -89,16 +92,17 @@ Item {
+                 anchors { left: parent.left; right: parent.right; }
+                 wrapMode: Text.Wrap;
+                 text: comment;
+-                font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                    ? constant.fontSizeSmall : constant.fontSizeXSmall;
++
++                font.pixelSize: constant.fontSizeNormal
++
+                 height: commentText.paintedHeight;
+                 textFormat: Text.StyledText;
+                 linkColor: Theme.highlightColor;
+                 onLinkActivated: {
+                     contextLink = link;
+                     contextMenu = commentContextMenu.createObject(commentListView);
+-                    contextMenu.show(commentDelegate);
+-                    contextMenu.anchors.left = depthRow.right
++                    contextMenu.open(commentDelegate);
++                    contextMenu.x = depthRow.x + depthRow.width
+                 }
+             }
+ 
+diff --git a/usr/share/harbour-sailimgur/qml/pages/Constant.qml b/usr/share/harbour-sailimgur/qml/pages/Constant.qml
+index a9879b5..d7dbce1 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/Constant.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/Constant.qml
+@@ -56,6 +56,12 @@ QtObject {
+     property int fontSizeXLarge : Theme.fontSizeExtraLarge;
+     property int fontSizeXXLarge : Theme.fontSizeHuge;
+ 
++    property var fontSizeHeader: Theme.fontSizeLarge
++    property var fontSizeTitle: Theme.fontSizeLarge
++    property var fontSizeNormal: Theme.fontSizeMedium
++    property var fontSizeMeta: Theme.fontSizeSmall
++    property var fontSizeIgnore: Theme.fontSizeExtraSmall
++
+     // icons
+     property string iconDislike : "image://theme/icon-m-down";
+     property string iconLike : "image://theme/icon-m-up";
+@@ -66,7 +72,9 @@ QtObject {
+     property string iconRight: "image://theme/icon-m-right";
+     property string iconLeft: "image://theme/icon-m-left";
+     property string iconPlay: "image://theme/icon-m-play";
+-    property string iconSave: "image://theme/icon-m-download";
++    property string iconSave: "image://theme/icon-m-cloud-download";
++    property string iconSaveDone: "image://theme/icon-m-image";
++    property string iconSaving: "image://theme/icon-m-sync";
+     property string iconInfo: "image://theme/icon-m-about";
+     property string iconBrowser: "image://theme/icon-m-region";
+     property string iconClipboard: "image://theme/icon-m-clipboard";
+diff --git a/usr/share/harbour-sailimgur/qml/pages/GalleryContentDelegate.qml b/usr/share/harbour-sailimgur/qml/pages/GalleryContentDelegate.qml
+index 8c62acc..3423373 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/GalleryContentDelegate.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/GalleryContentDelegate.qml
+@@ -28,7 +28,7 @@ Item {
+ 
+             if (animated === false) {
+                 imageLoader.active = true;
+-            } else if (type === "image/gif" && (mp4 !== "") && settings.useVideoLoader === true) {
++            } else if ((type === "image/gif" || (mp4 !== "")) && settings.useVideoLoader === true) {
+                 // If gifv video is under maxGifSize, use animatedImage (smoother)
+                 if (size && size.indexOf("MiB") > -1) {
+                     var sizeNo = size.replace(" MiB", "");
+@@ -47,37 +47,15 @@ Item {
+         internal.activateLoader();
+     }
+ 
+-    MouseArea {
+-        enabled: drawer.open;
+-        anchors.fill: galleryContainer;
+-        onClicked: {
+-            drawer.open = false;
+-        }
+-    }
+-
+     Column {
+         id: galleryContainer;
+         anchors.left: parent.left; anchors.right: parent.right;
+         height: childrenRect.height;
+-        //height: drawer.height + imageDescText.height + indexLabel.height + Theme.paddingSmall;
+ 
+         Drawer {
+-            id: drawer;
+-
+             anchors.left: parent.left; anchors.right: parent.right;
+-            dock: page.isPortrait ? Dock.Left : Dock.Bottom;
+             height: imageColumn.height;
+-            backgroundSize: parent.width / 5;
+-
+-            background: Item {
+-                id: drawerContextMenu;
+-                anchors.left: parent.left; anchors.right: parent.right;
+-                height: childrenRect.height;
+-
+-                ImageButtons {
+-                    id: imageButtons;
+-                }
+-            }
++            background: Item { }
+ 
+             foreground: Column {
+                 id: imageColumn;
+@@ -85,16 +63,13 @@ Item {
+                 height: imageTitleText.height + ((imageLoader.active) ? imageLoader.height : videoLoader.height);
+                 spacing: constant.paddingSmall;
+ 
+-                enabled: !drawer.opened;
+-
+                 Label {
+                     id: imageTitleText;
+                     anchors.leftMargin: constant.paddingSmall;
+                     anchors.rightMargin: constant.paddingSmall;
+                     wrapMode: Text.Wrap;
+                     text: title;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeSmall : constant.fontSizeXSmall;
++                    font.pixelSize: constant.fontSizeNormal
+                     color: constant.colorHighlight;
+                     anchors { left: parent.left; right: parent.right; }
+                     visible: (title && is_album) ? true : false;
+@@ -107,8 +82,8 @@ Item {
+                     visible: active;
+                     asynchronous: true;
+ 
+-                    width: Math.min(vWidth, parent.width);
+-                    height: (active) ? vHeight : 0;
++                    width: Screen.width
++                    height: (active) ? videoComponent.height : 0;
+ 
+                     anchors.horizontalCenter: parent.horizontalCenter;
+ 
+@@ -122,7 +97,7 @@ Item {
+                     visible: active;
+                     asynchronous: true;
+ 
+-                    width: Math.min(vWidth, parent.width);
++                    width: Screen.width
+                     height: (active) ? imageComponent.height : 0;
+ 
+                     anchors.horizontalCenter: parent.horizontalCenter;
+@@ -132,24 +107,30 @@ Item {
+             }
+         } // Drawer
+ 
++        ImageButtons { }
++
+         Label {
+             id: imageDescText;
+             wrapMode: Text.Wrap;
+             text: description;
+-            font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                ? constant.fontSizeSmall : constant.fontSizeXSmall;
+-            anchors { left: parent.left; right: parent.right; }
+-            anchors.leftMargin: constant.paddingSmall;
+-            anchors.rightMargin: constant.paddingSmall;
++            font.pixelSize: constant.fontSizeNormal
++
++            anchors {
++                left: parent.left
++                right: parent.right
++                leftMargin: constant.paddingSmall;
++                rightMargin: constant.paddingSmall;
++            }
++
+             visible: (description) ? true : false;
+             elide: Text.ElideRight;
+             textFormat: Text.StyledText;
+             linkColor: Theme.highlightColor;
++
+             onLinkActivated: {
+-                //console.log("Link clicked! " + link);
+                 contextLink = link;
+                 contextMenu = commentContextMenu.createObject(galleryContainer);
+-                contextMenu.show(galleryContentDelegate);
++                contextMenu.open(galleryContentDelegate);
+             }
+         }
+     }
+diff --git a/usr/share/harbour-sailimgur/qml/pages/GalleryContentPage.qml b/usr/share/harbour-sailimgur/qml/pages/GalleryContentPage.qml
+index 6fd2e18..b27f4f7 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/GalleryContentPage.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/GalleryContentPage.qml
+@@ -35,7 +35,7 @@ Page {
+         }
+     }
+ 
+-    onLoad: {     
++    onLoad: {
+         //console.log("galleryContentPage.onLoad: total=" + galleryContentModel.count + ", currentIndex=" + currentIndex);
+ 
+         is_reddit = (settings.mode === constant.mode_reddit);
+@@ -198,11 +198,11 @@ Page {
+                 anchors.rightMargin: constant.paddingSmall;
+ 
+                 wrapMode: Text.Wrap;
+-                font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                    ? constant.fontSizeLarge : constant.fontSizeMedium;
++                font.pixelSize: constant.fontSizeTitle
+                 color: constant.colorHighlight;
+                 text: galleryContentModel.title;
+             }
++
+             Label {
+                 id: descText;
+                 anchors { left: parent.left; right: parent.right; }
+@@ -210,8 +210,7 @@ Page {
+                 anchors.rightMargin: constant.paddingSmall;
+ 
+                 wrapMode: Text.Wrap;
+-                font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                    ? constant.fontSizeMedium : constant.fontSizeSmall;
++                font.pixelSize: constant.fontSizeNormal
+                 color: constant.colorHighlight;
+                 text: galleryContentModel.description;
+                 visible: is_gallery == false;
+@@ -221,24 +220,13 @@ Page {
+                 id: galleryContentColumn;
+                 anchors { left: parent.left; right: parent.right; }
+ 
+-                height: (showMoreItem.visible || showPrevItem.visible ) ? albumListView.height + showMoreButton.height + showPrevButton.height : albumListView.height;
++                height: (topNavRow.visible) ? albumListView.height + topNavRow.height + bottomNavRow.height : albumListView.height;
+                 width: parent.width;
+ 
+-                Item {
+-                    id: showPrevItem;
+-                    width: parent.width;
+-                    height: visible ? showPrevButton.height + 2 * constant.paddingSmall : 0;
+-                    visible: galleryContentModel.prev > 0;
+-
+-                    Button {
+-                        id: showPrevButton;
+-                        anchors.centerIn: parent;
+-                        enabled: galleryContentModel.prev > 0;
+-                        text: qsTr("show previous (" + galleryContentModel.prev + " remaining)");
+-                        onClicked: {
+-                            galleryContentModel.getPrevImages();
+-                        }
+-                    }
++                GalleryLoadingNavigation {
++                    id: topNavRow
++                    model: galleryContentModel
++                    anchors.horizontalCenter: parent.horizontalCenter
+                 }
+ 
+                 Flow {
+@@ -262,110 +250,116 @@ Page {
+                     }
+                 }
+ 
+-                Item {
+-                    id: showMoreItem;
+-                    width: parent.width;
+-                    height: visible ? showMoreButton.height + 2 * constant.paddingSmall : 0;
+-                    visible: galleryContentModel.left > 0;
+-
+-                    Button {
+-                        id: showMoreButton;
+-                        anchors.centerIn: parent;
+-                        enabled: galleryContentModel.left > 0;
+-                        text: qsTr("show more (" + galleryContentModel.total + " total, " + galleryContentModel.left + " remaining)");
+-                        onClicked: {
+-                            if (settings.useGalleryPage) {
+-                                pageStack.push(Qt.resolvedUrl("GalleryItemPage.qml"));
+-                            } else {
+-                                galleryContentModel.getNextImages();
+-                            }
+-                        }
+-                    }
++                GalleryLoadingNavigation {
++                    id: bottomNavRow
++                    model: galleryContentModel
++                    anchors.horizontalCenter: parent.horizontalCenter
+                 }
+             } // galleryContentColumn
+ 
+             Item {
+-                id: pointColumn;
+-                anchors.topMargin: constant.paddingMedium;
+-                anchors { left: parent.left; right: parent.right; leftMargin: constant.paddingMedium; }
+-                height: scoreText.height + scoreBars.height + infoText.height + ((writeCommentField.visible) ? writeCommentField.height : 0);
++                id: pointsColumn;
+ 
+-                Label {
+-                    id: scoreText;
+-                    anchors { left: parent.left; }
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeXSmall : constant.fontSizeXXSmall;
+-                    text: galleryContentModel.score + " points";
+-                    color: constant.colorHighlight;
++                anchors {
++                    left: parent.left
++                    right: parent.right
++                    leftMargin: constant.paddingMedium
++                    topMargin: constant.paddingMedium
+                 }
+ 
+-                ListItem {
+-                    id: scoreBars;
+-                    anchors { left: parent.left; }
+-                    height: childrenRect.height;
++                height: childrenRect.height
+ 
+-                    Rectangle {
+-                        id: scoreUps;
+-                        anchors { left: parent.left; }
+-                        anchors.verticalCenter: parent.verticalCenter;
+-                        width: 100 * (galleryContentModel.upsPercent/100);
+-                        height: 10;
+-                        color: "green";
++                Row {
++                    id: scoreRow
++                    spacing: Theme.paddingMedium
++
++                    Row {
++                        id: scoreBars;
++                        anchors.verticalCenter: parent.verticalCenter
++
++                        height: 10
++                        spacing: 0
++
++                        Rectangle {
++                            id: scoreUps;
++                            width: 100 * (galleryContentModel.upsPercent/100);
++                            height: parent.height;
++                            color: "green";
++                        }
++
++                        Rectangle {
++                            id: scoreDowns;
++                            width: 100 * (galleryContentModel.downsPercent/100);
++                            height: parent.height;
++                            color: "red";
++                        }
+                     }
+ 
+-                    Rectangle {
+-                        id: scoreDowns;
+-                        anchors.verticalCenter: parent.verticalCenter;
+-                        anchors { left: scoreUps.right; }
+-                        width: 100 * (galleryContentModel.downsPercent/100);
+-                        height: 10;
+-                        color: "red";
++                    Label {
++                        id: scoreText;
++                        font.pixelSize: constant.fontSizeMeta
++                        text: galleryContentModel.score + " points"
++                        color: constant.colorHighlight
+                     }
++                }
+ 
+-                    IconButton {
+-                        id: replyButton;
+-                        anchors { right: parent.right; rightMargin: constant.paddingMedium; }
+-                        anchors.verticalCenter: parent.verticalCenter;
+-                        enabled: loggedIn;
+-                        //width: 48;
+-                        //height: 48;
+-                        icon.width: Theme.itemSizeExtraSmall;
+-                        icon.height: Theme.itemSizeExtraSmall;
+-                        icon.source: constant.iconComments;
+-                        onClicked: {
+-                            if (writeCommentField.visible) {
+-                                writeCommentField.visible = false;
+-                            } else {
+-                                writeCommentField.visible = true;
+-                            }
++                IconButton {
++                    id: replyButton;
++
++                    anchors {
++                        right: parent.right
++                        top: parent.top
++                    }
++
++                    enabled: loggedIn
++                    visible: loggedIn
++
++                    icon.width: Theme.itemSizeSmall
++                    icon.height: Theme.itemSizeSmall
++                    icon.source: constant.iconComments;
++
++                    onClicked: {
++                        if (writeCommentField.visible) {
++                            writeCommentField.visible = false;
++                        } else {
++                            writeCommentField.visible = true;
+                         }
+                     }
+                 }
+ 
+                 Label {
+                     id: infoText;
+-                    anchors { top: scoreBars.bottom; left: parent.left; leftMargin: constant.paddingMedium; }
++
++                    anchors {
++                        top: scoreRow.bottom
++                        left: parent.left
++                        margins: Theme.paddingSmall
++                    }
++
+                     wrapMode: Text.Wrap;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeXSmall : constant.fontSizeXXSmall;
++                    font.pixelSize: constant.fontSizeIgnore
+                     color: constant.colorHighlight;
+                     text: galleryContentModel.info;
+                 }
+ 
+                 TextArea {
+                     id: writeCommentField;
+-                    anchors { top: infoText.bottom; left: parent.left; right: parent.right; }
+-                    anchors.topMargin: constant.paddingMedium;
++
++                    anchors {
++                        top: infoText.bottom
++                        left: parent.left
++                        right: parent.right
++                        margins: Theme.paddingMedium
++                    }
++
+                     visible: false;
+                     placeholderText: qsTr("Write comment");
+ 
+                     EnterKey.enabled: text.trim().length > 0;
+                     EnterKey.iconSource: "image://theme/icon-m-enter-accept";
+                     EnterKey.onClicked: {
+-                        //console.log("Comment: " + text);
+                         Imgur.commentCreation(imgur_id, text, null,
+                               function (data) {
+-                                  //console.log("data: " + JSON.stringify(data));
+                                   infoBanner.showText(qsTr("Comment sent!"));
+                                   visible = false;
+                                   text = "";
+@@ -439,13 +433,13 @@ Page {
+                         }
+                     }
+ 
+-// Doesn't seem to work anymore sfos >= 1.1.9.28
+-//                    onMovementEnded: {
+-//                        console.log("onMovementEnded, atYEnd=", atYEnd)
+-//                        if(atYEnd) {
+-//                            commentsModel.getNextComments();
+-//                        }
+-//                    }
++                    // // Doesn't seem to work anymore (sfos >= 1.1.9.28)
++                    // onMovementEnded: {
++                    //     console.log("onMovementEnded, atYEnd=", atYEnd)
++                    //     if(atYEnd) {
++                    //         commentsModel.getNextComments();
++                    //     }
++                    // }
+                 }
+ 
+                 Item {
+@@ -496,8 +490,7 @@ Page {
+                     id: datetimeText;
+                     width: parent.width / 2;
+                     wrapMode: Text.Wrap;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeSmall : constant.fontSizeXSmall;
++                    font.pixelSize: constant.fontSizeMeta
+                     color: constant.colorHighlight;
+                     text: galleryContentModel.datetime;
+                 }
+@@ -505,8 +498,7 @@ Page {
+                     id: viewsText;
+                     width: parent.width / 2;
+                     wrapMode: Text.Wrap;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeSmall : constant.fontSizeXSmall;
++                    font.pixelSize: constant.fontSizeMeta
+                     color: constant.colorHighlight;
+                     text: qsTr("views") + ": " + galleryContentModel.views;
+                 }
+diff --git a/usr/share/harbour-sailimgur/qml/pages/GalleryLoadingNavigation.qml b/usr/share/harbour-sailimgur/qml/pages/GalleryLoadingNavigation.qml
+new file mode 100644
+index 0000000..11f34e6
+--- /dev/null
++++ b/usr/share/harbour-sailimgur/qml/pages/GalleryLoadingNavigation.qml
+@@ -0,0 +1,39 @@
++import QtQuick 2.0
++import Sailfish.Silica 1.0
++import "../components/imgur.js" as Imgur
++
++Row {
++    property var model
++    spacing: 0
++
++    width: parent.width
++    height: prevButton.height + 2*Theme.paddingSmall
++
++    visible: (prevButton.enabled || nextButton.enabled) && model.total > 1
++
++    Button {
++        id: prevButton
++        width: parent.width/2
++        enabled: model.prev > 0
++        text: enabled ? qsTr(String("previous (%1 left)").arg(model.prev ? model.prev : 0)) : "previous"
++
++        onClicked: {
++            model.getPrevImages();
++        }
++    }
++
++    Button {
++        id: nextButton
++        width: parent.width/2
++        enabled: model.left > 0
++        text: enabled ? qsTr(String("next (%2/%1 left)").arg(model.total ? model.total : 0).arg(model.left ? model.left : 0)) : "next"
++
++        onClicked: {
++            if (settings.useGalleryPage) {
++                pageStack.push(Qt.resolvedUrl("GalleryItemPage.qml"));
++            } else {
++                model.getNextImages();
++            }
++        }
++    }
++}
+diff --git a/usr/share/harbour-sailimgur/qml/pages/GalleryMode.qml b/usr/share/harbour-sailimgur/qml/pages/GalleryMode.qml
+index 91a0553..5f3429f 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/GalleryMode.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/GalleryMode.qml
+@@ -2,10 +2,13 @@ import QtQuick 2.0
+ import Sailfish.Silica 1.0
+ 
+ Row {
+-    id: root;
+-    anchors { left: parent.left; right: parent.right; }
+-    width: parent.width;
+-    height: childrenRect.height;
++    anchors {
++        left: parent.left
++        right: parent.right
++    }
++
++    height: childrenRect.height + Theme.horizontalPageMargin
++    spacing: Theme.paddingSmall
+ 
+     Connections {
+         target: mp;
+@@ -14,8 +17,6 @@ Row {
+         }
+     }
+ 
+-    spacing: Theme.paddingSmall;
+-
+     Connections {
+         target: settings;
+ 
+@@ -48,8 +49,7 @@ Row {
+                     settings.mode === constant.mode_albums ? qsTr("Your albums") : (
+                             settings.mode === constant.mode_images) ? qsTr("Your images") : ""
+                     );
+-        font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                            ? constant.fontSizeLarge : constant.fontSizeMedium
++        font.pixelSize: constant.fontSizeTitle
+         color: constant.colorHighlight;
+         wrapMode: Text.WrapAtWordBoundaryOrAnywhere;
+         visible: (settings.mode === constant.mode_favorites || settings.mode === constant.mode_albums || settings.mode === constant.mode_images);
+diff --git a/usr/share/harbour-sailimgur/qml/pages/GalleryNavigation.qml b/usr/share/harbour-sailimgur/qml/pages/GalleryNavigation.qml
+index a9d01d9..245fa68 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/GalleryNavigation.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/GalleryNavigation.qml
+@@ -4,11 +4,17 @@ import "../components/imgur.js" as Imgur
+ 
+ Item {
+     id: navBg;
++
++    anchors {
++        bottom: parent.bottom;
++        bottomMargin: constant.paddingSmall
++    }
++
+     width: parent.width;
+-    anchors { bottom: parent.bottom; }
+-    anchors.bottomMargin: constant.paddingSmall
+     height: constant.iconSizeMedium + constant.paddingSmall
++
+     z: 2;
++
+     visible: galleryModel.count > 1 || page > 0;
+ 
+     function previous() {
+@@ -48,35 +54,34 @@ Item {
+         prevEnabled = true;
+     }
+ 
+-    ListItem {
+-        id: navigationItem;
++    IconButton {
++        id: prevButton;
++        visible: prevEnabled;
++        enabled: prevEnabled;
++        icon.width: constant.iconSizeLarge;
++        icon.height: icon.width;
++        anchors { left: parent.left; leftMargin: constant.paddingMedium; }
+ 
+-        IconButton {
+-            id: prevButton;
+-            visible: prevEnabled;
+-            enabled: prevEnabled;
+-            icon.width: constant.iconSizeMedium;
+-            icon.height: icon.width;
+-            anchors { left: parent.left; leftMargin: constant.paddingMedium; }
++        icon.source: constant.iconLeft;
+ 
+-            icon.source: constant.iconLeft;
+-            onClicked: {
+-                previous();
+-            }
++        onClicked: {
++            flickable.scrollToTop();
++            previous();
+         }
++    }
+ 
+-        IconButton {
+-            id: nextButton;
+-            visible: is_gallery || (!is_gallery && currentIndex < galleryModel.count -1);
+-            icon.width: constant.iconSizeMedium;
+-            icon.height: icon.width;
+-            anchors { right: parent.right; rightMargin: constant.paddingMedium; }
++    IconButton {
++        id: nextButton;
++        visible: is_gallery || (!is_gallery && currentIndex < galleryModel.count -1);
++        icon.width: constant.iconSizeLarge;
++        icon.height: icon.width;
++        anchors { right: parent.right; rightMargin: constant.paddingMedium; }
+ 
+-            icon.source: constant.iconRight;
+-            onClicked: {
+-                next();
+-            }
+-        }
++        icon.source: constant.iconRight;
+ 
+-    } // navigationItem
++        onClicked: {
++            flickable.scrollToTop();
++            next();
++        }
++    }
+ }
+diff --git a/usr/share/harbour-sailimgur/qml/pages/ImageButtons.qml b/usr/share/harbour-sailimgur/qml/pages/ImageButtons.qml
+index e6ce263..a6f8f64 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/ImageButtons.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/ImageButtons.qml
+@@ -1,11 +1,18 @@
+ import QtQuick 2.0
+ import Sailfish.Silica 1.0
+ 
+-ListItem {
+-    id: container;
++Row {
++    property var iconSize: Theme.itemSizeSmall
+ 
+-    height: childrenRect.height + constant.paddingMedium;
+-    anchors.horizontalCenter: parent.horizontalCenter;
++    height: iconSize + 2*Theme.paddingMedium
++
++    anchors {
++        horizontalCenter: parent.horizontalCenter
++        bottomMargin: Theme.paddingMedium
++        topMargin: Theme.paddingMedium
++    }
++
++    spacing: Theme.paddingLarge
+ 
+     Component.onCompleted: {
+         sailimgurMgr.saveImageSucceeded.connect(internal.saveImageSucceeded);
+@@ -13,13 +20,13 @@ ListItem {
+     }
+ 
+     IconButton {
+-        id: saveButton;
+-        anchors { left: parent.left; }
+-        //anchors.horizontalCenter: parent.horizontalCenter;
+-        anchors.rightMargin: Theme.paddingLarge;
+-        icon.width: Theme.itemSizeExtraSmall;
+-        icon.height: Theme.itemSizeExtraSmall;
+-        icon.source: constant.iconSave;
++        id: dlIcon
++        icon.width: parent.iconSize
++        icon.height: parent.iconSize
++        icon.source: constant.iconSave
++
++        visible: !savingInProgress
++
+         onClicked: {
+             savingInProgress = true;
+             if (type === "image/gif" && size && size.indexOf("MiB") > -1) {
+@@ -36,14 +43,18 @@ ListItem {
+     }
+ 
+     IconButton {
+-        id: browserButton;
+-        anchors { left: saveButton.right; }
+-        //anchors.horizontalCenter: parent.horizontalCenter;
+-        anchors.leftMargin: Theme.paddingLarge;
+-        anchors.rightMargin: Theme.paddingLarge;
+-        icon.width: Theme.itemSizeExtraSmall;
+-        icon.height: Theme.itemSizeExtraSmall;
++        icon.width: parent.iconSize
++        icon.height: parent.iconSize
++        icon.source: constant.iconSaving
++
++        visible: savingInProgress
++    }
++
++    IconButton {
++        icon.width: parent.iconSize
++        icon.height: parent.iconSize
+         icon.source: constant.iconBrowser;
++
+         onClicked: {
+             //Qt.openUrlExternally(link);
+             //infoBanner.showText(qsTr("Launching browser."));
+@@ -55,14 +66,10 @@ ListItem {
+     }
+ 
+     IconButton {
+-        id: clipboardButton;
+-        anchors { left: browserButton.right; }
+-        //anchors.horizontalCenter: parent.horizontalCenter;
+-        anchors.leftMargin: Theme.paddingLarge;
+-        anchors.rightMargin: Theme.paddingLarge;
+-        icon.width: Theme.itemSizeExtraSmall;
+-        icon.height: Theme.itemSizeExtraSmall;
++        icon.width: parent.iconSize
++        icon.height: parent.iconSize
+         icon.source: constant.iconClipboard;
++
+         onClicked: {
+             Clipboard.text = link_original;
+             infoBanner.showText(qsTr("Image link " + Clipboard.text + " copied to clipboard."));
+@@ -70,14 +77,10 @@ ListItem {
+     }
+ 
+     IconButton {
+-        id: infoButton;
+-        anchors { left: clipboardButton.right; }
+-        //anchors.horizontalCenter: parent.horizontalCenter;
+-        anchors.leftMargin: Theme.paddingLarge;
+-        anchors.rightMargin: Theme.paddingLarge;
+-        icon.width: Theme.itemSizeExtraSmall;
+-        icon.height: Theme.itemSizeExtraSmall;
++        icon.width: parent.iconSize
++        icon.height: parent.iconSize
+         icon.source: constant.iconInfo;
++
+         onClicked: {
+             //console.debug(JSON.stringify(galleryContentModel));
+             var props = {
+@@ -103,18 +106,21 @@ ListItem {
+         id: internal;
+ 
+         function saveImageSucceeded(name) {
+-            //var msg = qsTr("Image saved as %1").arg(name);
+             if (infoBanner) {
+                 infoBanner.showText("Image saved as " + name);
+             }
+             savingInProgress = false;
++
++            dlIcon.icon.source = constant.iconSaveDone
+         }
++
+         function errorImageExists(name) {
+-            //var msg = qsTr("Image already saved as %1").arg(name);
+             if (infoBanner) {
+                 infoBanner.showText("Image already saved as " + name);
+             }
+             savingInProgress = false;
++
++            dlIcon.icon.source = constant.iconSaveDone
+         }
+     }
+ 
+diff --git a/usr/share/harbour-sailimgur/qml/pages/ImageComponent.qml b/usr/share/harbour-sailimgur/qml/pages/ImageComponent.qml
+index c28cf82..adea408 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/ImageComponent.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/ImageComponent.qml
+@@ -3,25 +3,31 @@ import Sailfish.Silica 1.0
+ 
+ Component {
+     BackgroundItem {
+-        id: root;
+-        anchors { left: parent.left; right: parent.right; }
++        id: root
+ 
+-        height: image.height;
++        clip: true
++        height: Math.max(image.height, 3*loadingImageIndicator.height)
++        width: Screen.width
+ 
+         property int start_x;
+         property int start_y;
+ 
+-        property bool isTablet: Screen.sizeCategory >= Screen.Large;
+-
+         AnimatedImage {
+-            id: image;
+-            anchors { left: parent.left; right: parent.right; }
++            id: image
++
++            anchors {
++                horizontalCenter: parent.horizontalCenter
++            }
++
+             asynchronous: true;
+ 
++            source: link_original;
++
+             fillMode: Image.PreserveAspectFit;
+-            source: (deviceOrientation === Orientation.Landscape || deviceOrientation === Orientation.LandscapeInverted || isTablet) ? link_original : link;
+-            width: parent.width;
+-            playing: settings.autoplayAnim;
++            width: Screen.width
++            height: sourceSize.height * (Screen.width / sourceSize.width)
++
++            playing: settings.playImages;
+             paused: false;
+             onStatusChanged: playing;
+             smooth: false;
+@@ -31,12 +37,18 @@ Component {
+ 
+                 property real minScale: 1.0
+                 property real maxScale: 3.0
++                property real curScale: 1.0
+ 
+                 anchors.fill: parent
++
+                 enabled: image.status === Image.Ready
++
+                 pinch.target: image
+-                pinch.minimumScale: minScale * 0.5 // This is to create "bounce back effect"
+-                pinch.maximumScale: maxScale * 1.5 // when over zoomed
++                pinch.minimumScale: minScale * 0.7 // This is to create "bounce back effect"
++                pinch.maximumScale: maxScale * 1.4 // when over zoomed
++                pinch.dragAxis: Pinch.XAndYAxis
++                pinch.maximumRotation: 0
++                pinch.minimumRotation: 0
+ 
+                 onPinchFinished: {
+                     if (image.scale < pinchArea.minScale) {
+@@ -47,6 +59,8 @@ Component {
+                         bounceBackAnimation.to = pinchArea.maxScale
+                         bounceBackAnimation.start()
+                     }
++
++                    curScale = pinch.scale < 1.0 ? 1.0 : pinch.scale;
+                 }
+ 
+                 NumberAnimation {
+@@ -86,18 +100,13 @@ Component {
+             internal.clickPlay();
+         }
+ 
+-        onPressAndHold: {
+-            imageColumn.height = (imageColumn.height < drawerContextMenu.height) ? drawerContextMenu.height : imageColumn.height;
+-            drawer.open = true;
+-        }
+-
+         onPressed: {
+             start_x = mouseX;
+             start_y = mouseY;
+         }
+ 
+         onPositionChanged: {
+-            if (!isSlideshow) {
++            if (!isSlideshow && pinchArea.curScale == 1.0) {
+                 var x_diff = mouseX - start_x;
+                 var y_diff = mouseY - start_y;
+ 
+diff --git a/usr/share/harbour-sailimgur/qml/pages/ImageContextMenu.qml b/usr/share/harbour-sailimgur/qml/pages/ImageContextMenu.qml
+index 1806a79..e08f490 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/ImageContextMenu.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/ImageContextMenu.qml
+@@ -6,27 +6,25 @@ ContextMenu {
+     property var url;
+ 
+     Label {
+-        id: linkLabel;
+-        anchors { left: parent.left; right: parent.right;
+-            leftMargin: constant.paddingSmall;
+-            rightMargin: constant.paddingSmall;
+-        }
+-        font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                            ? constant.fontSizeSmall : constant.fontSizeXSmall;
+-        color: constant.colorHighlight;
+-        wrapMode: Text.Wrap;
+-        elide: Text.ElideRight;
+-        text: url;
++        font.pixelSize: constant.fontSizeSmall
++        x: parent.x + Theme.paddingSmall
++
++        color: constant.colorHighlight
++        wrapMode: Text.Wrap
++        elide: Text.ElideRight
++        text: url
+     }
++
+     Separator {
+-        anchors { left: parent.left; right: parent.right; }
++        anchors {
++            left: parent.left
++            right: parent.right
++        }
++
+         color: constant.colorSecondary;
+     }
+ 
+     MenuItem {
+-        anchors { left: parent.left; right: parent.right; }
+-        font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                            ? constant.fontSizeSmall : constant.fontSizeXSmall;
+         text: qsTr("Open link in browser");
+         onClicked: {
+             var props = {
+@@ -37,19 +35,15 @@ ContextMenu {
+             //infoBanner.showText(qsTr("Launching browser."));
+         }
+     }
++
+     MenuItem {
+-        anchors { left: parent.left; right: parent.right; }
+-        font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                            ? constant.fontSizeSmall : constant.fontSizeXSmall;
+         text: qsTr("Open in external browser");
+         onClicked: {
+             Qt.openUrlExternally(url);
+         }
+     }
++
+     MenuItem {
+-        anchors { left: parent.left; right: parent.right; }
+-        font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                            ? constant.fontSizeSmall : constant.fontSizeXSmall;
+         text: qsTr("Copy link to clipboard");
+         onClicked: {
+             Clipboard.text = url;
+diff --git a/usr/share/harbour-sailimgur/qml/pages/ImageInfoPage.qml b/usr/share/harbour-sailimgur/qml/pages/ImageInfoPage.qml
+index 7308f76..81878f4 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/ImageInfoPage.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/ImageInfoPage.qml
+@@ -33,194 +33,69 @@ Page {
+ 
+         Column {
+             id: contentArea;
+-            anchors { top: header.bottom; left: parent.left; right: parent.right; }
++
++            anchors {
++                top: header.bottom
++                left: parent.left
++                right: parent.right
++                margins: Theme.horizontalPageMargin
++            }
++
++            property var fontSize: constant.fontSizeNormal
++
+             height: childrenRect.height;
+             spacing: constant.paddingMedium;
+ 
+             anchors { left: parent.left; right: parent.right; }
+             anchors { leftMargin: constant.paddingMedium; rightMargin: constant.paddingMedium; }
+ 
+-            Row {
+-                Label {
+-                    text: qsTr('Id: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.image_id;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
++            DetailItem {
++                label: qsTr('Id')
++                value: root.image_id
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Width: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
+-
+-                Label {
+-                    text: root.image_width;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
++            DetailItem {
++                label: qsTr('Width')
++                value: root.image_width
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Height: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
+-
+-                Label {
+-                    text: root.image_height;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
++            DetailItem {
++                label: qsTr('Height')
++                value: root.image_height
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Type: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.type;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('Type')
++                value: root.type
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Size: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
+-
+-                Label {
+-                    text: root.size;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
++            DetailItem {
++                label: qsTr('Size')
++                value: root.size
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Views: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
+-
+-                Label {
+-                    text: root.views;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                }
++            DetailItem {
++                label: qsTr('Views')
++                value: root.views
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Bandwidth: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.bandwith;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('Bandwidth')
++                value: root.bandwith
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Section: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.section;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('Section')
++                value: root.section
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Animated: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.animated;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('Animated')
++                value: root.animated
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('NSFW: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.nsfw;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('NSFW')
++                value: root.nsfw
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Upvotes: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.ups;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('Upvotes')
++                value: root.ups
+             }
+-
+-            Row {
+-                Label {
+-                    text: qsTr('Downvotes: ');
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
+-
+-                Label {
+-                    text: root.downs;
+-                    font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                        ? constant.fontSizeMedium : constant.fontSizeSmall;
+-                    wrapMode: Text.WrapAnywhere;
+-                }
++            DetailItem {
++                label: qsTr('Downvotes')
++                value: root.downs
+             }
+         }
+ 
+diff --git a/usr/share/harbour-sailimgur/qml/pages/Settings.qml b/usr/share/harbour-sailimgur/qml/pages/Settings.qml
+index d588489..dc23fdd 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/Settings.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/Settings.qml
+@@ -14,7 +14,7 @@ QtObject {
+     property int albumImagesLimit: 3;
+     property bool showComments: false;
+     property bool showNsfw: false;
+-    property bool playImages: false;
++    property bool playImages: false; // play anim gifs automatically?
+     property bool toolbarBottom: false;
+     property bool toolbarHidden: true;
+     property bool useGalleryPage: false;
+@@ -34,7 +34,6 @@ QtObject {
+     property string window : "day"; // day | week | month | year | all
+     property string redditSub : "earthporn";
+     property bool showViral : false; // true | false
+-    property bool autoplayAnim: true; // play anim gifs automatically?
+ 
+     property string installedVersion: ""; // which version user currently has?
+ 
+diff --git a/usr/share/harbour-sailimgur/qml/pages/Toolbar.qml b/usr/share/harbour-sailimgur/qml/pages/Toolbar.qml
+index 569f30a..7885329 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/Toolbar.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/Toolbar.qml
+@@ -1,39 +1,45 @@
+ import QtQuick 2.0
+ import Sailfish.Silica 1.0
+ 
+-Item {
+-    id: root;
++Column {
++    id: root
+ 
+-    signal searchChanged();
+-
+-    signal uploadClicked();
++    signal searchChanged()
++    signal uploadClicked()
+ 
+     property alias searchVisible: searchPanel.visible;
+ 
+-    anchors { left: parent.left; right: parent.right; }
+-    anchors.leftMargin: Theme.paddingSmall;
+-    anchors.rightMargin: Theme.paddingSmall;
+-    width: parent.width;
+-    height: actionList.height + constant.paddingMedium + (searchPanel.visible ? searchPanel.height : 0);
++    anchors {
++        left: parent.left
++        right: parent.right
++        top: parent.top
++        margins: Theme.horizontalPageMargin
++    }
++
++    spacing: Theme.paddingMedium
++    height: actionList.height + (searchVisible ? searchPanel.height : 0) + Theme.horizontalPageMargin
++
++    Item {
++        id: actionList
++
++        anchors {
++            left: parent.left
++            right: parent.right
++        }
+ 
+-    ListItem {
+-        id: actionList;
+-        height: childrenRect.height + constant.paddingMedium;
+-        anchors.top: parent.top;
+-        anchors.topMargin: constant.paddingMedium;
++        width: parent.width
++        height: leftRow.height > rightRow.height ? leftRow.height : rightRow.height
+ 
+         IconButton {
+-            id: logoButton;
+-            anchors { left: parent.left; }
+-            anchors.rightMargin: Screen.sizeCategory >= Screen.Large
+-                                                ? constant.paddingLarge : constant.paddingMedium;
++            id: leftRow
++            anchors { left: parent.left }
++
+             icon.width: constant.iconSizeLarge;
+             icon.height: icon.width;
+             icon.source: constant.iconLogo;
+             opacity: 0.9;
+ 
+             onClicked: {
+-                //console.debug("logo button clicked!");
+                 settings.mode = constant.mode_main;
+                 settings.saveSetting("mode", settings.mode);
+                 modeChanged("main");
+@@ -47,78 +53,55 @@ Item {
+             }
+         }
+ 
+-        /*
+-        Label {
+-            id: nameLabel;
+-            anchors { left: logoButton.right; }
+-            anchors.leftMargin: Theme.paddingMedium;
+-            anchors.verticalCenter: parent.verticalCenter;
+-            //width: parent.width / 2;
+-            text: "Sailimgur";
+-            font.pixelSize: Screen.sizeCategory >= Screen.Large
+-                                ? constant.fontSizeLarge : constant.fontSizeMedium;
+-            color: constant.colorHighlight;
+-        }
+-        */
++        Row {
++            id: rightRow
++            spacing: Theme.paddingMedium
++            anchors.right: parent.right
+ 
+-        IconButton {
+-            id: searchButton;
+-            anchors { right: accountButton.left; }
+-            anchors.rightMargin: Screen.sizeCategory >= Screen.Large
+-                                    ? constant.paddingExtraLarge : constant.paddingMedium;
+-            icon.width: constant.iconSizeLarge;
+-            icon.height: icon.width;
+-            icon.source: constant.iconSearch;
+-            onClicked: {
+-                //console.debug("search button clicked!");
+-                if (searchPanel.visible === true) {
+-                    searchPanel.visible = false;
+-                    searchChanged();
+-                } else {
+-                    searchPanel.visible = true;
+-                    searchChanged();
++            IconButton {
++                icon.width: constant.iconSizeLarge;
++                icon.height: icon.width;
++                icon.source: constant.iconSearch;
++                onClicked: {
++                    if (searchPanel.visible) {
++                        searchPanel.visible = false;
++                        searchChanged();
++                    } else {
++                        searchPanel.visible = true;
++                        searchChanged();
++                    }
+                 }
+             }
+-        }
+ 
+-        IconButton {
+-            id: accountButton;
+-            anchors { right: uploadButton.left; }
+-            anchors.rightMargin: Screen.sizeCategory >= Screen.Large
+-                                    ? constant.paddingExtraLarge : constant.paddingMedium;
+-            anchors.verticalCenter: parent.verticalCenter;
+-            icon.width: constant.iconSizeLarge;
+-            icon.height: icon.width;
+-            icon.source: constant.iconPerson;
+-            onClicked: {
+-                //console.debug("account button clicked!");
+-                if (loggedIn === false) {
+-                    pageStack.push(signInPage);
+-                } else {
+-                    pageStack.push(accountPage);
+-                    accountPage.load();
++            IconButton {
++                icon.width: constant.iconSizeLarge;
++                icon.height: icon.width;
++                icon.source: constant.iconPerson;
++                onClicked: {
++                    if (loggedIn === false) {
++                        pageStack.push(signInPage);
++                    } else {
++                        pageStack.push(accountPage);
++                        accountPage.load();
++                    }
+                 }
+             }
+-        }
+ 
+-        IconButton {
+-            id: uploadButton;
+-            anchors { right: parent.right; }
+-            anchors.verticalCenter: parent.verticalCenter;
+-            icon.width: constant.iconSizeLarge;
+-            icon.height: icon.width;
+-            icon.source: constant.iconUpload;
+-            onClicked: {
+-                //console.debug("upload button clicked!")
+-                pageStack.push(uploadPage);
+-                uploadPage.load();
++            IconButton {
++                icon.width: constant.iconSizeLarge;
++                icon.height: icon.width;
++                icon.source: constant.iconUpload;
++                onClicked: {
++                    pageStack.push(uploadPage);
++                    uploadPage.load();
++                }
+             }
+         }
+     }
+ 
+     SearchPanel {
+         id: searchPanel;
+-        anchors { top: actionList.bottom; left: parent.left; right: parent.right; }
++        width: parent.width
+         visible: false;
+     }
+ }
+diff --git a/usr/share/harbour-sailimgur/qml/pages/UploadedDelegate.qml b/usr/share/harbour-sailimgur/qml/pages/UploadedDelegate.qml
+index d88c3da..e9b1e74 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/UploadedDelegate.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/UploadedDelegate.qml
+@@ -48,7 +48,7 @@ Item {
+             wrapMode: Text.Wrap;
+             onLinkActivated: {
+                 contextMenu = uploadedContextMenu.createObject(parent_item);
+-                contextMenu.show(uploadedDelegate);
++                contextMenu.open(uploadedDelegate);
+             }
+             text: Utils.replaceURLWithHTMLLinks(item_link);
+         }
+diff --git a/usr/share/harbour-sailimgur/qml/pages/VideoComponent.qml b/usr/share/harbour-sailimgur/qml/pages/VideoComponent.qml
+index 2c91cd1..296e492 100644
+--- a/usr/share/harbour-sailimgur/qml/pages/VideoComponent.qml
++++ b/usr/share/harbour-sailimgur/qml/pages/VideoComponent.qml
+@@ -3,12 +3,12 @@ import Sailfish.Silica 1.0
+ import QtMultimedia 5.0
+ 
+ Component {
+-
+     BackgroundItem {
+         id: root;
+         anchors { left: parent.left; right: parent.right; }
+ 
+-        height: (video) ? video.height : 0;
++        height: Math.max(((video) ? video.height : 0), image.height, 3*loadingVideoIndicator.height)
++        width: Screen.width
+ 
+         property int start_x;
+         property int start_y;
+@@ -36,20 +36,24 @@ Component {
+ 
+         Image {
+             id: image;
+-            anchors { left: parent.left; right: parent.right; }
+             asynchronous: true;
+ 
+             fillMode: Image.PreserveAspectFit;
+-            source: (deviceOrientation === Orientation.Landscape || deviceOrientation === Orientation.LandscapeInverted) ? link_original : link;
++            source: link_original;
++
+             width: parent.width;
++            height: sourceSize.height * (Screen.width / sourceSize.width)
++
+             visible: (mediaPlayer) ? mediaPlayer.playbackState == MediaPlayer.StoppedState : true;
+         }
+ 
+         VideoOutput {
+             id: video;
+-            anchors { left: parent.left; right: parent.right; }
+-            width: parent.orientation === Orientation.Portrait ? Screen.width : Screen.height;
+-            fillMode: VideoOutput.PreserveAspectFit;
++
++            width: image.width
++            height: image.height
++
++            fillMode: VideoOutput.PreserveAspectFit
+ 
+             source: MediaPlayer {
+                 id: mediaPlayer;
+@@ -80,11 +84,6 @@ Component {
+             internal.clickPlay();
+         }
+ 
+-        onPressAndHold: {
+-            imageColumn.height = (imageColumn.height < drawerContextMenu.height) ? drawerContextMenu.height : imageColumn.height;
+-            drawer.open = true;
+-        }
+-
+         onPressed: {
+             start_x = mouseX;
+             start_y = mouseY;

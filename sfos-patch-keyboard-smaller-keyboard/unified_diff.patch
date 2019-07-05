@@ -1,0 +1,24 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml b/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
+index 4cdd00d..6f560ec 100644
+--- a/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
++++ b/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
+@@ -13,8 +13,8 @@ QtObject {
+     property int keyboardWidthLandscape: screen.height
+     property int keyboardWidthPortrait: screen.width
+ 
+-    property int keyHeightLandscape: isLargeScreen ? keyHeightPortrait : 58*verticalScale
+-    property int keyHeightPortrait: 80*verticalScale
++    property int keyHeightLandscape: isLargeScreen ? keyHeightPortrait : 50*verticalScale
++    property int keyHeightPortrait: 70*verticalScale
+     property int keyRadius: 4*scaleRatio
+ 
+     property int functionKeyWidthLandscape: 145*scaleRatio
+@@ -35,7 +35,7 @@ QtObject {
+ 
+     property int middleBarWidth: keyboardWidthLandscape / 4
+ 
+-    property int popperHeight: isLargeScreen ? 99*scaleRatio : 120*scaleRatio
++    property int popperHeight: isLargeScreen ? 80*scaleRatio : 100*scaleRatio
+     property int popperWidth: isLargeScreen ? 66*scaleRatio : 80*scaleRatio
+     property int popperRadius: 10*scaleRatio
+     property int popperFontSize: 56*scaleRatio

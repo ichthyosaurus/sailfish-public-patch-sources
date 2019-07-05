@@ -1,0 +1,57 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Description, Screenshots, CompatibleVersions,
+#             Changelog, Requires, Keywords
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- lipstick-jolla-home-qt5
+
+Prefix: /usr/share
+DisplayName: Remove lockscreen weather info
+PackageName: sfos-patch-rm-lockscreen-weather
+Category: Homescreen
+Keywords:
+- Patch
+- lockscreen
+- weather
+- forecast
+- Weather Forecast
+
+Maintainer: ichthyosaurus
+Summary: Patch removing the weather info item from the lockscreen.
+Description:
+- Patch removing the weather info item from the lockscreen.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-remove-lockscreen-weather-info
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- lipstick-jolla-home-qt5
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch

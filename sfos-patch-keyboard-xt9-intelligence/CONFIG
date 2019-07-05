@@ -1,0 +1,73 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Description, Screenshots, CompatibleVersions,
+#             Changelog, Requires, Keywords
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.7.1
+- jolla-xt9
+
+Prefix: /usr/share
+DisplayName: Improved XT9 punctuation handling
+PackageName: sfos-patch-keyboard-xt9-intelligence
+Category: Keyboard
+Maintainer: ichthyosaurus
+Summary: Improve handling of special characters in text prediction
+Description:
+- Improve handling of special characters with XT9 (predictive text input).
+- The patch adds special rules for braces, typographical quotation marks, colons,
+- ellipsis ("..."), etc. Some extra rules are added for nuances of the French and German grammar rules.
+-
+- The stock XT9's handling of special characters leaves quite a lot to be wished for.
+- This patch tries to improve it a little bit but it is still far from perfect.
+- For example, I didn't find a way (yet?) to automatically add closing braces and place the cursor in between.
+
+Keywords:
+- Patch
+- XT9
+- completion
+- text prediction
+- predictive
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-xt9-improved-punctuation-handling
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.7.1
+- jolla-xt9 >= 0.5.9
+
+Obsoletes:
+- sfos-patch-keyboard-patch-xt9-intelligence
+
+# Screenshots:
+# -
+
+CompatibleVersions:
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- So Jun 30: fix package name to be the same in all locations
+- Sa Jun 29: initial public release
+
+# kate: syntax SailfishOS Patch

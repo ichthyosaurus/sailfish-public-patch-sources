@@ -1,0 +1,26 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/EnterKey.qml b/usr/share/maliit/plugins/com/jolla/EnterKey.qml
+index 2def23f..94a9399 100644
+--- a/usr/share/maliit/plugins/com/jolla/EnterKey.qml
++++ b/usr/share/maliit/plugins/com/jolla/EnterKey.qml
+@@ -37,7 +37,7 @@ FunctionKey {
+     caption: !chineseOverride ? MInputMethodQuick.actionKeyOverride.label : "输入" // <= "enter"
+     key: Qt.Key_Return
+     enabled: !chineseOverride ? MInputMethodQuick.actionKeyOverride.enabled : true
+-    implicitWidth: functionKeyWidth
++    implicitWidth: functionKeyWidth * 0.7
+ 
+     background.opacity: pressed ? 0.6
+                                 : MInputMethodQuick.actionKeyOverride.highlighted ? 0.4 : 0.17
+diff --git a/usr/share/maliit/plugins/com/jolla/SymbolKey.qml b/usr/share/maliit/plugins/com/jolla/SymbolKey.qml
+index 16762a0..1679b3b 100644
+--- a/usr/share/maliit/plugins/com/jolla/SymbolKey.qml
++++ b/usr/share/maliit/plugins/com/jolla/SymbolKey.qml
+@@ -39,7 +39,7 @@ FunctionKey {
+     property string symbolCaption: "ABC"
+ 
+     caption: attributes.inSymView ? symbolCaption : "?123"
+-    implicitWidth: functionKeyWidth
++    implicitWidth: functionKeyWidth * 0.7
+     keyType: KeyType.SymbolKey
+ 
+     onPressedChanged: {

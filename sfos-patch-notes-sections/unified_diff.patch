@@ -1,0 +1,51 @@
+diff --git a/usr/share/jolla-notes/pages/NotePage.qml b/usr/share/jolla-notes/pages/NotePage.qml
+index 15c99e4..b1dba57 100644
+--- a/usr/share/jolla-notes/pages/NotePage.qml
++++ b/usr/share/jolla-notes/pages/NotePage.qml
+@@ -274,6 +274,46 @@ Page {
+                     }
+                 }
+             }
++            MenuItem {
++                id: addSection
++                enabled: true
++                text: "Add timestamped section"
++
++                Component.onCompleted: {
++                    var loc = Qt.locale()
++                    if (loc && loc.name.indexOf("de_") !== -1) text = "Datierten Abschnitt einfügen";
++                }
++
++                onClicked: {
++                    var loc = Qt.locale()
++                    var d, t, mShort, mLong;
++                    var s = ":\n\n--------------------\n"
++
++                    console.log(loc, loc.name, loc.name.indexOf("de_"))
++
++                    if (loc && loc.name.indexOf("de_") !== -1) {
++                        d = Qt.formatDateTime(new Date(), "ddd, d. M. yyyy")
++                        t = Qt.formatDateTime(new Date(), ", H:mm ") + "Uhr"
++                        mShort = /^[a-zA-Z]+\.?, \d+\. \d+\. \d+:\n/
++                        mLong  = /^[a-zA-Z]+\.?, \d+\. \d+\. \d+, \d+:\d+ Uhr:\n/
++                    } else {
++                        d = Qt.formatDateTime(new Date(), "ddd, yyyy-MM-dd")
++                        t = Qt.formatDateTime(new Date(), ", HH:mm")
++                        mShort = /^[a-zA-Z]+\.?, \d+-\d+-\d+:\n/
++                        mLong  = /^[a-zA-Z]+\.?, \d+-\d+-\d+, \d+:\d+:\n/
++                    }
++
++                    var heading = textArea.text.match(/^.*?:[ ]*\n/)
++                    if (heading && !heading[0].match(mLong) && !heading[0].match(mShort)) {
++                        t = ((heading == "TODO:\n" || heading == "Todo:\n") ? "" : t)
++                        textArea.text = textArea.text.replace(heading, heading + d + t + s)
++                    } else if (textArea.text.match(/\nTODO$/i) || textArea.text.match(/#TODO$/i)) {
++                        textArea.text = d + s + textArea.text
++                    } else {
++                        textArea.text = d + t + s + textArea.text
++                    }
++                }
++            }
+         }
+ 
+         Column {

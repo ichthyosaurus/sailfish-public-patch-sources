@@ -1,0 +1,63 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.7.1
+
+Prefix: /usr/share
+DisplayName: Wider Spacebar (for SailfishOS 3)
+PackageName: sfos-patch-keyboard-wider-spacebar
+Category: Keyboard
+Keywords:
+- Patch
+- Keyboard
+
+Maintainer: ichthyosaurus
+Summary: Patch to increase spacebar size in Jolla keyboard for SailfishOS 3
+Description:
+- Improves keyboard usability by increasing the size of spacebar in Jolla keyboard
+-
+- (This is an updated version of the same patch for SailfishOS 2 by toxip.)
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-wider-spacebar-sailfishos-3
+# DonationsLink: https://example.org/donations
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.7.1
+
+Conflicts:
+- sfos-patch-keyboard-apostrophe-key
+
+# Obsoletes:
+# - the-other-old-name
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+
+Changelog:
+- initial public release
+
+# kate: syntax SailfishOS Patch
