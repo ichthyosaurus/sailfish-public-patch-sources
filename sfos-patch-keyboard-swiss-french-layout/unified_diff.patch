@@ -1,0 +1,106 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_fr_ch.qml b/usr/share/maliit/plugins/com/jolla/layouts/custom_fr_ch.qml
+new file mode 100644
+index 0000000..2ed5557
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/layouts/custom_fr_ch.qml
+@@ -0,0 +1,90 @@
++// No copyright (C)... Enjoy! (Dec. 2015)
++// Comments: Jordi Bossy <jordi.bossy@romandie.com>
++
++import QtQuick 2.0
++import com.jolla.keyboard 1.0
++import ".."
++
++KeyboardLayout {
++    splitSupported: true
++
++    KeyboardRow {
++        CharacterKey { caption: "q"; captionShifted: "Q"; symView: "1"; symView2: "€" }
++        CharacterKey { caption: "w"; captionShifted: "W"; symView: "2"; symView2: "£" }
++        CharacterKey { caption: "e"; captionShifted: "E"; symView: "3"; symView2: "$"; accents: "eéèêë€"; accentsShifted: "EÉÈÊË€" }
++        CharacterKey { caption: "r"; captionShifted: "R"; symView: "4"; symView2: "¥" }
++        CharacterKey { caption: "t"; captionShifted: "T"; symView: "5"; symView2: "₹" }
++        CharacterKey { caption: "z"; captionShifted: "Z"; symView: "6"; symView2: "%" }
++        CharacterKey { caption: "u"; captionShifted: "U"; symView: "7"; symView2: "<"; accents: "uûùúü"; accentsShifted: "UÛÙÚÜ" }
++        CharacterKey { caption: "i"; captionShifted: "I"; symView: "8"; symView2: ">"; accents: "iìíîï"; accentsShifted: "IÌÍÎÏ" }
++        CharacterKey { caption: "o"; captionShifted: "O"; symView: "9"; symView2: "["; accents: "oöòóœô"; accentsShifted: "OÖÒÓŒÔ" }
++        CharacterKey { caption: "p"; captionShifted: "P"; symView: "0"; symView2: "]" }
++    }
++
++    KeyboardRow {
++        CharacterKey { caption: "a"; captionShifted: "A"; symView: "*"; symView2: "`"; accents: "aàâäáãå"; accentsShifted: "AÀÂÄÁÃÅ" }
++        CharacterKey { caption: "s"; captionShifted: "S"; symView: "#"; symView2: "^"; accents: "sß"; accentsShifted: "Sß" }
++        CharacterKey { caption: "d"; captionShifted: "D"; symView: "+"; symView2: "|" }
++        CharacterKey { caption: "f"; captionShifted: "F"; symView: "-"; symView2: "_" }
++        CharacterKey { caption: "g"; captionShifted: "G"; symView: "="; symView2: "§" }
++        CharacterKey { caption: "h"; captionShifted: "H"; symView: "("; symView2: "{" }
++        CharacterKey { caption: "j"; captionShifted: "J"; symView: ")"; symView2: "}" }
++        CharacterKey { caption: "k"; captionShifted: "K"; symView: "~"; symView2: "°" }
++        CharacterKey { caption: "l"; captionShifted: "L"; symView: "!"; symView2: "¡" }
++        CharacterKey { caption: "?"; captionShifted: "!"; symView: "?"; symView2: "¿"; accents: "!"  }
++    }
++
++    KeyboardRow {
++        splitIndex: 5
++        ShiftKey {}
++
++        CharacterKey { caption: "y"; captionShifted: "Y"; symView: "@"; symView2: "«"; accents: "yý¥"; accentsShifted: "YÝ¥" }
++        CharacterKey { caption: "x"; captionShifted: "X"; symView: "&"; symView2: "»" }
++        CharacterKey { caption: "c"; captionShifted: "C"; symView: "/"; symView2: "÷"; accents: "cç"; accentsShifted: "CÇ" }
++        CharacterKey { caption: "v"; captionShifted: "V"; symView: "\\"; symView2: "“" }
++        CharacterKey { caption: "b"; captionShifted: "B"; symView: "\""; symView2: "”" }
++        CharacterKey { caption: "n"; captionShifted: "N"; symView: ";"; symView2: "„"; accents: "nñ"; accentsShifted: "NÑ" }
++        CharacterKey { caption: "m"; captionShifted: "M"; symView: ":"; symView2: "·" }
++
++        BackspaceKey {}
++    }
++
++    KeyboardRow {
++        splitIndex: 4
++
++        SymbolKey {
++            implicitWidth: symbolKeyWidthNarrow
++        }
++        CharacterKey {
++            caption: "'"
++            captionShifted: "\""
++            accents: "\""
++            accentsShifted: "\""
++            symView: "_"
++            symView2: "-"
++            implicitWidth: punctuationKeyWidthNarrow
++            fixedWidth: !splitActive
++        }
++        CharacterKey {
++            caption: ","
++            captionShifted: ","
++            implicitWidth: punctuationKeyWidthNarrow
++            fixedWidth: !splitActive
++        }
++        SpacebarKey {}
++        SpacebarKey {
++            active: splitActive
++            languageLabel: ""
++        }
++        CharacterKey {
++            caption: "."
++            captionShifted: "."
++            accents: "()/-:;@"
++            accentsShifted: "()/-:;@"
++            implicitWidth: punctuationKeyWidthNarrow
++            fixedWidth: !splitActive
++            separator: SeparatorState.HiddenSeparator
++        }
++        EnterKey {}
++    }
++}
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_fr_ch.conf b/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_fr_ch.conf
+new file mode 100644
+index 0000000..e3e6cee
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_fr_ch.conf
+@@ -0,0 +1,4 @@
++[custom_fr_ch.qml]
++name=Français (Suisse)
++languageCode=FR
++handler=Xt9InputHandler.qml
