@@ -73,11 +73,11 @@ index 14d95b4..64b7b72 100644
                  switchLayout(index)
                  return
              }
-diff --git a/usr/share/maliit/plugins/com/jolla/layouts/ch.qml b/usr/share/maliit/plugins/com/jolla/layouts/ch.qml
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_de_ch.qml b/usr/share/maliit/plugins/com/jolla/layouts/custom_de_ch.qml
 new file mode 100644
 index 0000000..11e3bb6
 --- /dev/null
-+++ b/usr/share/maliit/plugins/com/jolla/layouts/ch.qml
++++ b/usr/share/maliit/plugins/com/jolla/layouts/custom_de_ch.qml
 @@ -0,0 +1,73 @@
 +/*
 + * Swiss German Keyboard Layout
@@ -152,14 +152,14 @@ index 0000000..11e3bb6
 +
 +    SpacebarRow {}
 +}
-diff --git a/usr/share/maliit/plugins/com/jolla/layouts/layouts_de_ch.conf b/usr/share/maliit/plugins/com/jolla/layouts/layouts_de_ch.conf
+diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_de_ch.conf b/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_de_ch.conf
 new file mode 100644
-index 0000000..92dc6c8
+index 0000000..c2cdad1
 --- /dev/null
-+++ b/usr/share/maliit/plugins/com/jolla/layouts/layouts_de_ch.conf
++++ b/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_de_ch.conf
 @@ -0,0 +1,4 @@
-+[ch.qml]
-+name=Deutsch (CH)
++[custom_de_ch.qml]
++name=Deutsch (Schweiz)
 +languageCode=DE
 +handler=Xt9InputHandler.qml
 diff --git a/usr/share/maliit/plugins/com/jolla/qmldir b/usr/share/maliit/plugins/com/jolla/qmldir
