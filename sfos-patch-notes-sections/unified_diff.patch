@@ -1,51 +1,84 @@
 diff --git a/usr/share/jolla-notes/pages/NotePage.qml b/usr/share/jolla-notes/pages/NotePage.qml
-index 15c99e4..b1dba57 100644
+index 15c99e4..200f6c4 100644
 --- a/usr/share/jolla-notes/pages/NotePage.qml
 +++ b/usr/share/jolla-notes/pages/NotePage.qml
-@@ -274,6 +274,46 @@ Page {
+@@ -274,6 +274,7 @@ Page {
                      }
                  }
              }
-+            MenuItem {
-+                id: addSection
-+                enabled: true
-+                text: "Add timestamped section"
-+
-+                Component.onCompleted: {
-+                    var loc = Qt.locale()
-+                    if (loc && loc.name.indexOf("de_") !== -1) text = "Datierten Abschnitt einfügen";
-+                }
-+
-+                onClicked: {
-+                    var loc = Qt.locale()
-+                    var d, t, mShort, mLong;
-+                    var s = ":\n\n--------------------\n"
-+
-+                    console.log(loc, loc.name, loc.name.indexOf("de_"))
-+
-+                    if (loc && loc.name.indexOf("de_") !== -1) {
-+                        d = Qt.formatDateTime(new Date(), "ddd, d. M. yyyy")
-+                        t = Qt.formatDateTime(new Date(), ", H:mm ") + "Uhr"
-+                        mShort = /^[a-zA-Z]+\.?, \d+\. \d+\. \d+:\n/
-+                        mLong  = /^[a-zA-Z]+\.?, \d+\. \d+\. \d+, \d+:\d+ Uhr:\n/
-+                    } else {
-+                        d = Qt.formatDateTime(new Date(), "ddd, yyyy-MM-dd")
-+                        t = Qt.formatDateTime(new Date(), ", HH:mm")
-+                        mShort = /^[a-zA-Z]+\.?, \d+-\d+-\d+:\n/
-+                        mLong  = /^[a-zA-Z]+\.?, \d+-\d+-\d+, \d+:\d+:\n/
-+                    }
-+
-+                    var heading = textArea.text.match(/^.*?:[ ]*\n/)
-+                    if (heading && !heading[0].match(mLong) && !heading[0].match(mShort)) {
-+                        t = ((heading == "TODO:\n" || heading == "Todo:\n") ? "" : t)
-+                        textArea.text = textArea.text.replace(heading, heading + d + t + s)
-+                    } else if (textArea.text.match(/\nTODO$/i) || textArea.text.match(/#TODO$/i)) {
-+                        textArea.text = d + s + textArea.text
-+                    } else {
-+                        textArea.text = d + t + s + textArea.text
-+                    }
-+                }
-+            }
++            NotePageTimestampedSectionMenuItem { }
          }
  
          Column {
+diff --git a/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml b/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml
+new file mode 100644
+index 0000000..d75aa9e
+--- /dev/null
++++ b/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml
+@@ -0,0 +1,66 @@
++import QtQuick 2.0
++import Sailfish.Silica 1.0
++
++// translations:
++// - locale name: en_US, fr_FR, etc.
++// - translation of the string "Add timestamped section"
++// - short date format string without time (like "ddd, yyyy-MM-dd", see the docs
++//   at https://doc.qt.io/qt-5/qml-qtqml-qt.html#formatDateTime-method)
++// - time format string (like ", HH:mm")
++// - regex for the short format (like "/^[a-zA-Z]+\.?, \d+\. \d+\. \d+:\n/" for German)
++// - regex for the long format (like " /^[a-zA-Z]+\.?, \d+\. \d+\. \d+, \d+:\d+ Uhr:\n/" for German)
++
++MenuItem {
++    enabled: true
++    text: "Add timestamped section"
++
++    Component.onCompleted: {
++        var loc = Qt.locale()
++        if (loc) {
++            if      (loc.name.indexOf("de_")   !== -1) text = "Datierten Abschnitt einfügen";
++            else if (loc.name.indexOf("fr_")   !== -1) text = "Ajouter une section datée";
++            else if (loc.name.indexOf("zh_CN") !== -1) text = "添加时间戳记";
++            // add new translations here
++        }
++    }
++
++    onClicked: {
++        var loc = Qt.locale()
++        var d, t, mShort, mLong;
++        var s = ":\n\n--------------------\n"
++
++        if (loc && loc.name.indexOf("de_") !== -1) {
++            d = Qt.formatDateTime(new Date(), "ddd, d. M. yyyy");
++            t = Qt.formatDateTime(new Date(), ", H:mm ") + "Uhr";
++            mShort = /^[a-zA-Z]+\.?, \d+\. \d+\. \d+:\n/;
++            mLong  = /^[a-zA-Z]+\.?, \d+\. \d+\. \d+, \d+:\d+ Uhr:\n/;
++        } else if (loc && loc.name.indexOf("fr_") !== -1) {
++            d = Qt.formatDateTime(new Date(), "ddd, d MMM yyyy");
++            t = Qt.formatDateTime(new Date(), ", H 'h' mm");
++            mShort = /^[a-zA-Z]+\.?, \d+ [a-zA-Z]+\.? \d+[ ]?:\n/;
++            mLong  = /^[a-zA-Z]+\.?, \d+ [a-zA-Z]+\.? \d+, \d+ h \d+[ ]?:\n/;
++            s = " " + s; // French requires a space before the colon ('blah :')
++        } else if (loc && loc.name.indexOf("zh_CN") !== -1) {
++            d = Qt.formatDateTime(new Date(), "yyyy-MM-dd, ddd");
++            t = Qt.formatDateTime(new Date(), " HH:mm");
++            mShort = /^\d+-\d+-\d+, .+?:\n/;
++            mLong  = /^\d+-\d+-\d+, .+?\d+:\d+:\n/;
++        // add new translations here
++        } else {
++            d = Qt.formatDateTime(new Date(), "ddd, yyyy-MM-dd");
++            t = Qt.formatDateTime(new Date(), ", HH:mm");
++            mShort = /^[a-zA-Z]+\.?, \d+-\d+-\d+:\n/;
++            mLong  = /^[a-zA-Z]+\.?, \d+-\d+-\d+, \d+:\d+:\n/;
++        }
++
++        var heading = textArea.text.match(/^.*?[ ]?:[ ]*\n/)
++        if (heading && !heading[0].match(mLong) && !heading[0].match(mShort)) {
++            t = ((heading == "TODO:\n" || heading == "Todo:\n") ? "" : t)
++            textArea.text = textArea.text.replace(heading, heading + d + t + s)
++        } else if (textArea.text.match(/\nTODO$/i) || textArea.text.match(/#TODO$/i)) {
++            textArea.text = d + s + textArea.text
++        } else {
++            textArea.text = d + t + s + textArea.text
++        }
++    }
++}

@@ -32,8 +32,8 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-timestamped-se
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
-Release: 2
+Version: 1.0.1
+Release: 1
 
 Requires:
 - sailfish-version >= 3.0.0
@@ -55,6 +55,11 @@ CompatibleVersions:
 - 3.0.3.10
 
 Changelog:
-- initial public release
+- 1.0.1:
+- - translations added: Chinese, French
+- - internally: code cleaned up
+-
+- 1.0.0:
+- - initial public release
 
 # kate: syntax SailfishOS Patch
