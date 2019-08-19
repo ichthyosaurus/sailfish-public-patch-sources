@@ -1,0 +1,1671 @@
+diff --git a/usr/share/harbour-podcatcher/qml/Podcatcher.qml b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
+index 26d6e53..744e0dd 100644
+--- a/usr/share/harbour-podcatcher/qml/Podcatcher.qml
++++ b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
+@@ -37,11 +37,8 @@ ApplicationWindow
+     signal markAsUnplayed(int channelId, int index)
+     signal startStreaming(int channelId, int index)
+     signal autoDownloadChanged(int channelId, bool autoDownload)
++    signal noNetworkAvailable()
+ 
+     initialPage: Component { MainPage { } }
+     cover: Qt.resolvedUrl("cover/CoverPage.qml")
+-    //allowedOrientations:Orientation.All
+-   // _defaultPageOrientations: Orientation.Portrait
+ }
+-
+-
+diff --git a/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml b/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
+index 4c2d5c5..6cdbcbf 100644
+--- a/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
++++ b/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
+@@ -16,67 +16,70 @@
+  * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
+  */
+ 
+-import QtQuick 2.0
++import QtQuick 2.2
+ import Sailfish.Silica 1.0
+ 
+-Cover{
++CoverBackground {
++    id: coverPage
+ 
+-    transparent: false
+-
+-    Rectangle{
+-        color: "black"
+-        opacity:.75
++    Column{
+         anchors.fill: parent
+-    }
+-
+-    Image {
+-        id: icon
+-        source: "qrc:///icons/256x256/harbour-podcatcher.png"
+-        anchors.horizontalCenter: parent.horizontalCenter
+-        width : parent.width - 2* Theme.paddingLarge
+-        anchors.top: parent.top
+         anchors.topMargin: Theme.paddingLarge
+-        smooth: true
+-    }
+-
+-    Label {
+-        id: label
+-        anchors.horizontalCenter: parent.horizontalCenter
+-        anchors.top: icon.bottom
+-        anchors.topMargin: Theme.paddingLarge
+-        font.pixelSize: Theme.fontSizeMedium
+-        color: Theme.primaryColor
+-        text: qsTr("Podcatcher")
+-    }
+-
+-
+-
++        spacing: Theme.paddingLarge
+ 
+-    /* //ui.isDownloading updates don't get here???
+-    Column{
+-        anchors.fill: parent
++        Image {
++            id: icon
++            source: "qrc:///icons/256x256/harbour-podcatcher.png"
++            anchors.horizontalCenter: parent.horizontalCenter
++            width : parent.width - 6*Theme.paddingLarge
++            height: width
++            smooth: true
++        }
+ 
+         Label {
+             id: label
+             anchors.horizontalCenter: parent.horizontalCenter
+-            font.pixelSize: Theme.fontSizeSmall
++            font.pixelSize: Theme.fontSizeMedium
++            color: Theme.primaryColor
+             text: qsTr("Podcatcher")
+         }
+ 
+-       BusyIndicator{
+-            size: BusyIndicatorSize.Medium
++        // we have to use our own busy indicator because the stock one
++        // stops when the application is not active - when the cover is shown
++        Item {
++            id: spinner
++            property bool running: visible && (coverPage.status === Cover.Active)
+             anchors.horizontalCenter: parent.horizontalCenter
+-            //running: ui.isDownloading
+-            visible: true
+-        }
+-        Label{
+-            //text: qsTr("downloading: ") + ui.isDownloading
+-            text: ui.isDownloading
+-            visible: true
++            visible: false
++
++            implicitWidth: image.implicitWidth
++            implicitHeight: image.implicitHeight
++            opacity: running ? 1.0 : 0.0
++            Behavior on opacity { FadeAnimation { id: fadeAnimation }}
++
++            Image {
++                id: image
++                smooth: true
++                source: "image://theme/graphic-busyindicator-medium"
++                transformOrigin: Item.Center
++
++                RotationAnimator on rotation {
++                    from: 0; to: 360
++                    duration: 2000
++                    running: (spinner.running || opacity > 0) && spinner.visible
++                    loops: Animation.Infinite
++                }
++            }
+         }
+-    }*/
+-
+ 
++        Connections {
++            target: ui
++            onDownloadingPodcasts: {
++                if (downloading) spinner.visible = true;
++                else spinner.visible = false;
++            }
++        }
++    }
+ 
+     CoverActionList {
+         id: coverAction
+@@ -85,11 +88,5 @@ Cover{
+             iconSource: "image://theme/icon-cover-refresh"
+             onTriggered: ui.refreshChannels()
+         }
+-
+-       /* CoverAction {
+-            iconSource: "image://theme/icon-cover-pause"
+-        }*/
+     }
+ }
+-
+-
+diff --git a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
+index ffeab67..d394f9f 100644
+--- a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
++++ b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
+@@ -20,12 +20,11 @@
+ import QtQuick 2.0
+ import Sailfish.Silica 1.0
+ 
+-import  org.nemomobile.configuration 1.0
++import Nemo.Configuration 1.0
+ 
+ Page {
+     id: mainPage
+-    //orientationLock: PageOrientation.LockPortrait
+-    allowedOrientations:Orientation.All
++    allowedOrientations: Orientation.All
+ 
+     property string contextMenuChannelName;
+     property int contextUnplayedEpisodes;
+@@ -35,15 +34,6 @@ Page {
+ 
+     state: ""
+ 
+-    function openFile(file) {
+-        var component = Qt.createComponent(Qt.resolvedUrl(file))
+-
+-        if (component.status === Component.Ready)
+-            pageStack.push(component);
+-        else
+-            console.log("Error loading component:", component.errorString());
+-    }
+-
+     function addPodcast(url, logo) {
+         fetchingChannelBanner.show();
+         ui.addPodcast(url, logo);
+@@ -53,242 +43,34 @@ Page {
+         ui.importFromGPodder(username, password);
+     }
+ 
+-    SilicaFlickable{
+-
+-        //contentHeight: mainPageColumn.height
++    SilicaListView {
++        id: podcastChannelsList
++        model: channelsModel
++        spacing: 1
++        clip: true
+         anchors.fill: parent
+ 
+-
+-//        EmptyChannelPage {
+-//            id: emptyText
+-//            visible: (podcastChannelsList.count == 0);
+-//        }
+-
+-        ViewPlaceholder {
+-            enabled: podcastChannelsList.count == 0
+-            text: qsTr("No podcast subscriptions yet")
+-            hintText: qsTr("Why don't you add some...")
+-        }
+-
+-        Column {
+-            id: mainPageColumn
+-            anchors.fill: parent
+-            PageHeader {
+-                id: mainPageTitle
+-
+-                title: qsTr("Podcatcher")
+-
+-
+-                Image  {
+-                    id: loadingIndicator
+-                    parent: mainPageTitle.extraContent
+-                    anchors.left: parent.left
+-                    anchors.leftMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    source: "image://theme/icon-s-sync"
+-                    visible: (mainPage.state == "downloading");
+-                    NumberAnimation on rotation {
+-                        from: -360; to: 0;
+-                        running: mainPage.state == "downloading"
+-                        loops: Animation.Infinite; duration: 1400
+-                    }
+-                    smooth: true
+-                }
+-
+-
+-
+-            }
+-
+-
+-            SilicaListView {
+-                id: podcastChannelsList
+-                model: channelsModel
+-                visible: (podcastChannelsList.count > 0);
+-                spacing: 1
+-                width: parent.width
+-                height: parent.height - mainPageTitle.height/* - audioStreamerUi.height*/ - Theme.paddingMedium
+-                clip: true
+-
+-                delegate: ListItem {
+-                    id: listItem
+-                    contentHeight: Theme.itemSizeLarge
+-
+-                    menu: ContextMenu {
+-                        id: contextMenu;
+-                        MenuItem {
+-                            text: qsTr("Mark all podcasts as played")
+-                            visible: unplayedEpisodes > 0
+-                            onClicked: {
+-                                appWindow.allListened(model.channelId);
+-                            }
+-                        }
+-                        MenuItem {
+-                            text: qsTr("Remove subscription");
+-                            onClicked: {
+-                                channelRemorse.execute(listItem,qsTr("Removing"),
+-                                                       function(){
+-                                                           console.log("Going to delete Channel "+model.channelId+"!");
+-                                                           appWindow.deleteChannel(model.channelId);
+-                                                       });
+-                            }
+-                        }
+-                    }
+-
+-                    RemorseItem{
+-                        id: channelRemorse
+-                    }
+-
+-                    PodcastChannelLogo {
+-                        id: channelLogoId;
+-                        channelLogo: logo
+-                        anchors.left: parent.left
+-                        anchors.verticalCenter: parent.verticalCenter
+-                        width: parent.height;
+-                        height: parent.height;
+-                    }
+-
+-                    Label {
+-                        id: channelName;
+-                        anchors.left: channelLogoId.right
+-                        anchors.leftMargin: Theme.paddingMedium;
+-                        anchors.verticalCenter: parent.verticalCenter
+-                        anchors.right: unplayedNumber.left
+-                        anchors.rightMargin: Theme.paddingMedium
+-                        text: title
+-                        //width: parent.width - 2*Theme.horizontalPageMargin - Theme.paddingMedium - unplayedNumber.width
+-                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+-                        color: listItem.highlighted ? Theme.highlightColor : Theme.primaryColor
+-                    }
+-
+-                    Label{
+-                        id: unplayedNumber
+-                        text: unplayedEpisodes
+-                        anchors.right: parent.right
+-                        anchors.rightMargin: Theme.horizontalPageMargin
+-                        //anchors.verticalCenter: parent.verticalCenter
+-
+-                        y: parent.height/2 - height/2
+-                        height: Text.paintedHeight
+-
+-                        font.pixelSize: Theme.fontSizeSmall
+-                        visible: ((unplayedEpisodes > 0) || model.isDownloading);
+-                        color: (model.isDownloading)?Theme.secondaryHighlightColor:Theme.secondaryColor;
+-
+-                        SequentialAnimation on y {
+-                            running: isDownloading
+-                            loops: Animation.Infinite
+-                            PropertyAnimation { to: unplayedNumber.y + unplayedNumber.height / 3; duration: 500; easing.type: Easing.InOutQuad }
+-                            PropertyAnimation { to: unplayedNumber.y - unplayedNumber.height / 3; duration: 500; easing.type: Easing.InOutQuad }
+-
+-                            onRunningChanged: {
+-                                if (isDownloading === false) {
+-                                    unplayedNumber.y = unplayedNumber.parent.height/2 - unplayedNumber.height/2;
+-                                }
+-                            }
+-                        }
+-                    }
+-
+-                    /*ProgressBar{
+-                        indeterminate: isRefreshing
+-                        width: parent.width
+-                        anchors.top: channelName.bottom
+-                    }*/
+-                    BusyIndicator{
+-                        running: isRefreshing
+-                        anchors.centerIn: unplayedNumber
+-                    }
+-
+-                    onClicked: {
+-                        appWindow.showChannel(channelId);
+-                        openFile("PodcastEpisodes.qml");
+-                    }
+-
+-                }
+-
+-                onCountChanged: {
+-                    console.log("And hiding the banner...");
+-                    fetchingChannelBanner.hide();
+-                }
+-
+-                VerticalScrollDecorator{}
+-            }
+-
+-
+-        }
+-
+-
+-        Connections {
+-
+-            target: ui
+-            onShowInfoBanner: {
+-                fetchingChannelBanner.hide(true);
+-                uiInfoBanner.hide(true);
+-                uiInfoBanner.text = text
+-                uiInfoBanner.show();
+-            }
+-
+-            onDownloadingPodcasts: {
+-                console.log("Downloading changed:" + downloading)
+-                if (downloading) {
+-                    mainPage.state = "downloading"
+-                } else {
+-                    mainPage.state = ""
+-                }
+-            }
+-
+-
+-        }
+-
+-        Connections {
+-            target: audioStreamer
+-
+-            onPlayStream: {
+-                console.log("Showing audio streamer.");
+-                audioStreamerUi.show();
+-            }
+-        }
+-
+-        Component.onCompleted: {
+-            console.log("Is downloading: " + ui.isDownloading);
+-            if (ui.isDownloading) {
+-                mainPage.state = "downloading";
+-            }
+-            else {
+-                mainPage.state = "";
+-            }
+-        }
+-
+-
+-
+         PullDownMenu {
+             id: myMenu
+ 
+             MenuItem {
+                 text: qsTr("About")
+-                onClicked: {
+-                    openFile("About.qml");
+-                }
++                onClicked: pageStack.push(Qt.resolvedUrl("About.qml"))
+             }
+-
+-
+             MenuItem {
+                 text: qsTr("Settings")
+-                onClicked: {
+-                    openFile("Settings.qml");
+-                }
++                onClicked: pageStack.push(Qt.resolvedUrl("Settings.qml"));
+             }
+-
+-
+             MenuItem {
+                 text: qsTr("Add Podcast")
+                 onClicked: {
+-                    if (showPopularConf.value)
+-                        openFile("BrowsePodcasts.qml");
+-                    else
+-                        openFile("SearchPodcasts.qml");
++                    if (showPopularConf.value) {
++                        pageStack.push(Qt.resolvedUrl("BrowsePodcasts.qml"));
++                    } else {
++                        pageStack.push(Qt.resolvedUrl("SearchPodcasts.qml"));
++                    }
+                 }
+             }
+-
+             MenuItem {
+                 text: qsTr("Refresh all subscriptions")
+                 onClicked: {
+@@ -297,19 +79,103 @@ Page {
+                     //uiInfoBanner.show();
+                 }
+             }
++        }
++
++
++        header: PageHeader {
++            id: mainPageTitle
++            title: qsTr("Podcatcher")
++
++            Image  {
++                id: loadingIndicator
++                parent: mainPageTitle.extraContent
++                anchors.left: parent.left
++                anchors.leftMargin: Theme.horizontalPageMargin
++                anchors.verticalCenter: parent.verticalCenter
++                source: "image://theme/icon-s-sync"
++                visible: (mainPage.state == "downloading");
++                NumberAnimation on rotation {
++                    from: -360; to: 0;
++                    running: mainPage.state == "downloading"
++                    loops: Animation.Infinite; duration: 1400
++                }
++                smooth: true
++            }
++        }
++
++        footer: Item { id: bottomSpacer; width: parent.width; height: Theme.horizontalPageMargin }
+ 
++        ViewPlaceholder {
++            enabled: podcastChannelsList.count == 0
++            text: qsTr("No podcast subscriptions yet")
++            hintText: qsTr("Why don't you add some...")
+         }
+ 
++        delegate: Loader {
++            asynchronous: false
++            width: parent.width
++            visible: status == Loader.Ready
++            sourceComponent: PodcastChannelDelegate { }
++        }
+ 
++        onCountChanged: {
++            console.log("And hiding the banner...");
++            fetchingChannelBanner.hide();
++        }
++
++        VerticalScrollDecorator{}
++    }
++
++    Connections {
++        target: ui
++        onShowInfoBanner: {
++            fetchingChannelBanner.hide(true);
++            uiInfoBanner.hide(true);
++            uiInfoBanner.text = text
++            uiInfoBanner.show();
++        }
++
++        onDownloadingPodcasts: {
++            console.log("Download status changed: " + downloading)
++            if (downloading) {
++                mainPage.state = "downloading"
++            } else {
++                mainPage.state = ""
++            }
++        }
++    }
++
++    Connections {
++        target: audioStreamer
++
++        onPlayStream: {
++            console.log("Showing audio streamer.");
++            audioStreamerUi.show();
++        }
++    }
++
++    Component.onCompleted: {
++        console.log("Is downloading: " + ui.isDownloading);
++        if (ui.isDownloading) {
++            mainPage.state = "downloading";
++        }
++        else {
++            mainPage.state = "";
++        }
+     }
+ 
+     AudioStreamer {
+         id: audioStreamerUi
+     }
+ 
+-
+     InfoBanner {
+         id: uiInfoBanner
++
++        onTextChanged: {
++            if (text === 'Network access is disabled.') {
++                appWindow.noNetworkAvailable();
++            }
++        }
+     }
+ 
+     InfoBanner {
+@@ -318,11 +184,9 @@ Page {
+         text: qsTr("Fetching channel information...")
+     }
+ 
+-
+     ConfigurationValue{
+         id: showPopularConf
+         key: "/apps/ControlPanel/Podcatcher/showPopular"
+         defaultValue: 0
+     }
+-
+ }
+diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastChannelDelegate.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastChannelDelegate.qml
+new file mode 100644
+index 0000000..73e4201
+--- /dev/null
++++ b/usr/share/harbour-podcatcher/qml/pages/PodcastChannelDelegate.qml
+@@ -0,0 +1,133 @@
++/**
++ * This file is part of Podcatcher for Sailfish OS.
++ * Authors: Johan Paul (johan.paul@gmail.com)
++ *          Moritz Carmesin (carolus@carmesinus.de)
++ *
++ * Podcatcher for Sailfish OS is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * Podcatcher for Sailfish OS is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import QtQuick 2.0
++import Sailfish.Silica 1.0
++
++import Nemo.Configuration 1.0
++
++ListItem {
++    id: listItem
++    contentHeight: Theme.itemSizeLarge
++
++    menu: ContextMenu {
++        id: contextMenu;
++        MenuItem {
++            text: qsTr("Mark all podcasts as played")
++            visible: unplayedEpisodes > 0
++            onClicked: {
++                appWindow.allListened(model.channelId);
++            }
++        }
++        MenuItem {
++            text: qsTr("Remove subscription");
++            onClicked: {
++                channelRemorse.execute(listItem,qsTr("Removing"),
++                                        function(){
++                                            console.log("Going to delete Channel "+model.channelId+"!");
++                                            appWindow.deleteChannel(model.channelId);
++                                        });
++            }
++        }
++    }
++
++    RemorseItem{
++        id: channelRemorse
++    }
++
++    PodcastChannelLogo {
++        id: channelLogoId;
++        channelLogo: logo
++        anchors.left: parent.left
++        anchors.verticalCenter: parent.verticalCenter
++        width: parent.height;
++        height: parent.height;
++    }
++
++    Label {
++        id: channelName;
++        anchors.left: channelLogoId.right
++        anchors.leftMargin: Theme.paddingMedium;
++        anchors.verticalCenter: parent.verticalCenter
++        anchors.right: unplayedNumber.left
++        anchors.rightMargin: Theme.paddingMedium
++        text: title
++        //width: parent.width - 2*Theme.horizontalPageMargin - Theme.paddingMedium - unplayedNumber.width
++        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
++        color: listItem.highlighted ? Theme.highlightColor : Theme.primaryColor
++    }
++
++    Label{
++        id: unplayedNumber
++        text: unplayedEpisodes
++        anchors.right: parent.right
++        anchors.rightMargin: Theme.horizontalPageMargin
++        //anchors.verticalCenter: parent.verticalCenter
++
++        y: parent.height/2 - height/2
++        height: Text.paintedHeight
++
++        font.pixelSize: Theme.fontSizeSmall
++        visible: ((unplayedEpisodes > 0) || model.isDownloading);
++        color: (model.isDownloading)?Theme.secondaryHighlightColor:Theme.secondaryColor;
++
++        SequentialAnimation on y {
++            running: isDownloading
++            loops: Animation.Infinite
++            PropertyAnimation { to: unplayedNumber.y + unplayedNumber.height / 3; duration: 500; easing.type: Easing.InOutQuad }
++            PropertyAnimation { to: unplayedNumber.y - unplayedNumber.height / 3; duration: 500; easing.type: Easing.InOutQuad }
++
++            onRunningChanged: {
++                if (isDownloading === false) {
++                    unplayedNumber.y = unplayedNumber.parent.height/2 - unplayedNumber.height/2;
++                }
++            }
++        }
++    }
++
++    // FIXME needs changes in the backend: we should detect when it is impossible
++    // to refresh and set 'isRefreshing' to false. This is e.g. the case when
++    // *there is no network*...
++    property bool refreshingRequested: isRefreshing
++    property bool isReallyRefreshing: false
++
++    BusyIndicator {
++        id: spinner
++        visible: isReallyRefreshing
++        running: visible
++        anchors.centerIn: unplayedNumber
++    }
++
++    Connections {
++        target: appWindow
++        onNoNetworkAvailable: {
++            isReallyRefreshing = false;
++            print(refreshingRequested, isRefreshing, isReallyRefreshing, spinner.visible)
++        }
++    }
++
++    onClicked: {
++        appWindow.showChannel(channelId);
++        pageStack.push(Qt.resolvedUrl("PodcastEpisodes.qml"));
++    }
++
++    onRefreshingRequestedChanged: {
++        isReallyRefreshing = refreshingRequested;
++    }
++}
+diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml
+index 11b09fb..0af3c94 100644
+--- a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml
++++ b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml
+@@ -21,13 +21,14 @@ import Sailfish.Silica 1.0
+ 
+ Page {
+     id: episodesPage
+-
+     allowedOrientations: Orientation.All
+ 
+-    SilicaFlickable{
++    PodcastEpisodesList {
++        id: episodesList
+         anchors.fill: parent
+-        PullDownMenu{
++        channelId: channel.channelId
+ 
++        PullDownMenu{
+             MenuItem {
+                 text: qsTr("Remove subscription")
+                 onClicked: {
+@@ -38,8 +39,6 @@ Page {
+                     )
+                 }
+             }
+-
+-
+             MenuItem {
+                 text: qsTr("Delete all downloaded podcasts")
+                 onClicked: {
+@@ -50,15 +49,12 @@ Page {
+                     )
+                 }
+             }
+-
+             MenuItem {
+                 text: qsTr("Mark all podcasts as played")
+                 onClicked: {
+                     appWindow.allListened(channel.channelId);
+                 }
+             }
+-
+-
+             MenuItem {
+                 text: qsTr("Refresh")
+                 onClicked: {
+@@ -67,7 +63,6 @@ Page {
+                 }
+                 anchors.horizontalCenter: parent.horizontalCenter
+             }
+-
+         }
+ 
+         RemorsePopup{
+@@ -80,56 +75,36 @@ Page {
+             text: qsTr("Delete downloaded podcasts")
+         }
+ 
+-        Column {
+-            id: episodesPageColumn
+-            anchors.fill: parent
+-            spacing: Theme.paddingMedium
++        header: Item {
++            width: parent.width
++            height: channelTitle.height + episodeData.height
+ 
+             PageHeader{
+-                id: chanelTitle
++                id: channelTitle
+                 title: channel.title
+                 wrapMode: Text.WordWrap
+             }
+ 
+-
+             PodcastEpisodesChannelInfo {
+                 id: episodeData
+-                //width: parent.width
+-                //height: 218
+-            }
+-
+-
+-            Separator{
+-                width:parent.width
+-            }
+-
+-            PodcastEpisodesList {
+-                id: episodesList
+-                width: parent.width
+-                height: parent.height - episodeData.height -chanelTitle.height - 3*Theme.paddingMedium
+-                channelId: channel.channelId
++                anchors.top: channelTitle.bottom
+             }
+         }
++    }
+ 
++    EpisodeDescriptionPage {
++        id: episodeDescriptionPage
++    }
+ 
+-        EpisodeDescriptionPage {
+-            id: episodeDescriptionPage
+-        }
+-
+-
+-
+-        Connections {
+-            target: ui
+-            onShowInfoBanner: {
+-                console.log("Showing banner: "+text);
+-                uiInfoBanner.text = text
+-                uiInfoBanner.show();
+-            }
++    Connections {
++        target: ui
++        onShowInfoBanner: {
++            console.log("Showing banner: "+text);
++            uiInfoBanner.text = text
++            uiInfoBanner.show();
+         }
+-
+-
+-
+     }
++
+     InfoBanner {
+         id: refreshingBanner
+         text:  qsTr("Refreshing episodes...")
+diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
+index 0b58a37..abaf80b 100644
+--- a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
++++ b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
+@@ -16,12 +16,12 @@
+  * You should have received a copy of the GNU General Public License
+  * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
+  */
++
+ import QtQuick 2.0
+ import Sailfish.Silica 1.0
+ 
+-
+-Item {
+-    id: podcastsEpisodesList
++SilicaListView {
++    id: podcastEpisodesList
+ 
+     signal selectedEpisodeDescription(string desc)
+ 
+@@ -65,441 +65,425 @@ Item {
+         return download_statusText;
+     }
+ 
+-    Rectangle {
+-        id: podcastEpisodesInfoRect
++    anchors.fill: parent
++    model: episodesModel
+ 
+-        smooth: true
+-        color: "transparent"
++    delegate: ListItem {
++        id: podcastItem
++        state: episodeState
++        contentHeight: episodeName.height + lastPlayed.height + Theme.paddingSmall + Theme.paddingMedium
+         width: parent.width
+-        height:  parent.height -Theme.paddingMedium
+ 
+-        SilicaListView {
+-            id: podcastEpisodesList
+-            anchors.fill: podcastEpisodesInfoRect
+-            model: episodesModel
+-            clip: true
+-            anchors.top:  podcastEpisodesInfoRect.top
+ 
+-            delegate: ListItem {
+-                id: podcastItem
+-                state: episodeState
+-                contentHeight: episodeName.height + lastPlayed.height + Theme.paddingSmall + Theme.paddingMedium
+-                width: parent.width
++        onClicked: {
++            episodeDescriptionPage.episodeDescriptionText = description;
++            episodeDescriptionPage.episodePublished = published
++            episodeDescriptionPage.episodeName = title
++            appWindow.pageStack.push(episodeDescriptionPage);
++        }
+ 
++        RemorseItem{
++            id: episodeRemorse
++        }
+ 
++        menu: ContextMenu{
++            visible: (episodeState == "downloaded" || episodeState == "played" || episodeState == "get")
++            MenuItem {
++                text: qsTr("Delete downloaded podcast")
++                visible: (episodeState == "downloaded" || episodeState == "played");
+                 onClicked: {
+-                    episodeDescriptionPage.episodeDescriptionText = description;
+-                    episodeDescriptionPage.episodePublished = published
+-                    episodeDescriptionPage.episodeName = title
+-                    appWindow.pageStack.push(episodeDescriptionPage);
+-                }
+-
+-                RemorseItem{
+-                    id: episodeRemorse
+-                }
+-
+-                menu: ContextMenu{
+-                    visible: (episodeState == "downloaded" || episodeState == "played" || episodeState == "get")
+-                    MenuItem {
+-                        text: qsTr("Delete downloaded podcast")
+-                        visible: (episodeState == "downloaded" || episodeState == "played");
+-                        onClicked: {
+-                            episodeRemorse.execute(podcastItem,qsTr("Deleting"),
+-                                                   function(){
+-                                                       console.log("Emiting deleteDownloaded() "+ channelId + index);
+-                                                       appWindow.deleteDownloaded(channelId, index);
+-                                                   });
+-                        }
+-                    }
+-                    MenuItem{
+-                        text: qsTr("Mark as unplayed")
+-                        visible: episodeState == "played"
+-                        onClicked: {
+-                            appWindow.markAsUnplayed(channelId,index);
+-                        }
+-                    }
+-
+-                    MenuItem {
+-                        text: qsTr("Start streaming the podcast")
+-                        visible: (episodeState == "get")
+-                        onClicked: {
+-                            appWindow.startStreaming(channelId, index);
+-                        }
+-
+-                    }
+-
+-                }
+-
+-
+-                Rectangle {
+-                    id: downloadedIndicator
+-                    width: 10
+-                    height: parent.height
+-                    color: Theme.highlightColor
+-                    anchors.left: parent.left
+-                    visible: false
++                    episodeRemorse.execute(podcastItem,qsTr("Deleting"),
++                                            function(){
++                                                console.log("Emiting deleteDownloaded() "+ channelId + index);
++                                                appWindow.deleteDownloaded(channelId, index);
++                                            });
+                 }
+-
+-
+-                Item{
+-                    id: downloadProgress
+-                    anchors.fill: parent
+-                    visible: cancelButton.visible
+-                    Rectangle{
+-
+-                        anchors.fill: parent
+-                        color: Theme.highlightBackgroundColor
+-                        opacity: 0.5
+-                    }
+-                }
+-
+-                OpacityRampEffect {
+-                    sourceItem:downloadProgress
+-                    direction: OpacityRamp.LeftToRight
+-                    slope: 1000
+-                    offset: (alreadyDownloadedSize/totalDownloadSize)
+-                }
+-
+-
+-                Label {
+-                    id: episodeName
+-                    text: title;
+-                    color: podcastItem.highlighted ? Theme.highlightColor : Theme.primaryColor
+-                    font.family: Theme.fontFamilyHeading
+-                    font.pixelSize: Theme.fontSizeSmall
+-                    anchors{
+-                        left: parent.left
+-                        leftMargin: Theme.horizontalPageMargin
+-                    }
+-
+-                    width: podcastItem.width - downloadedIndicator.width - playButton.width - Theme.paddingMedium -2* Theme.horizontalPageMargin
+-                    height: Text.paintedHeight
+-                    //height: 2.4*Theme.fontSizeSmall
+-                    truncationMode: TuncationMode.Elide
+-                    wrapMode: Text.WordWrap
+-                }
+-
+-                Label {
+-                    id: channelPublished
+-                    anchors{
+-                        top: episodeName.bottom
+-                        topMargin: Theme.paddingSmall
+-                        left: parent.left
+-                        leftMargin: Theme.horizontalPageMargin
+-                    }
+-                    font.pixelSize: Theme.fontSizeTiny
+-                    color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+-                    text: published
+-                    height: Text.paintedHeight
+-                }
+-
+-                Label {
+-                    id: lastPlayed
+-                    anchors{
+-                        top: episodeName.bottom
+-                        topMargin: Theme.paddingSmall
+-                        left: parent.left
+-                        leftMargin: Theme.horizontalPageMargin
+-                    }
+-                    font.pixelSize: Theme.fontSizeTiny
+-                    color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+-                    text: lastTimePlayed
+-                    height: Text.paintedHeight
+-                }
+-
+-                Label {
+-                    id: queued
+-                    anchors{
+-                        top: episodeName.bottom
+-                        topMargin: Theme.paddingSmall
+-                        left: parent.left
+-                        leftMargin: Theme.horizontalPageMargin
+-                    }
+-                    font.pixelSize: Theme.fontSizeTiny
+-                    color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+-                    text: qsTr("Queued")
+-                    height: Text.paintedHeight
+-                    visible: false
++            }
++            MenuItem{
++                text: qsTr("Mark as unplayed")
++                visible: episodeState == "played"
++                onClicked: {
++                    appWindow.markAsUnplayed(channelId,index);
+                 }
++            }
+ 
+-                Label {
+-                    id: downloadBytesText
+-                    anchors{
+-                        top: episodeName.bottom
+-                        topMargin: Theme.paddingSmall
+-                        left: parent.left
+-                        leftMargin: Theme.horizontalPageMargin
+-                    }
+-                    font.pixelSize: Theme.fontSizeTiny
+-                    color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+-                    text: downloadingStatusText(alreadyDownloadedSize, totalDownloadSize);
+-                    height: Text.paintedHeight
+-                    visible: false;
++            MenuItem {
++                text: qsTr("Start streaming the podcast")
++                visible: (episodeState == "get")
++                onClicked: {
++                    appWindow.startStreaming(channelId, index);
+                 }
+ 
++            }
+ 
++        }
+ 
+-                IconButton {
+-                    id: downloadButton
+-                    icon.source: "image://theme/icon-m-cloud-download"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+ 
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: true
++        Rectangle {
++            id: downloadedIndicator
++            width: 10
++            height: parent.height
++            color: Theme.highlightColor
++            anchors.left: parent.left
++            visible: false
++        }
+ 
+-                    onClicked: {
+-                        appWindow.downloadPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
+-                    }
+-                }
+ 
++        Item{
++            id: downloadProgress
++            anchors.fill: parent
++            visible: cancelButton.visible
++            Rectangle{
+ 
+-                IconButton {
+-                    id: queueButton
+-                    icon.source: "image://theme/icon-m-remove"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: false
++                anchors.fill: parent
++                color: Theme.highlightBackgroundColor
++                opacity: 0.5
++            }
++        }
+ 
+-                    onClicked: {
+-                        console.log("Cancel queue of: " + channelId + " index: "+index);
+-                        appWindow.cancelQueue(channelId, index);
+-                    }
+-                }
++        OpacityRampEffect {
++            sourceItem:downloadProgress
++            direction: OpacityRamp.LeftToRight
++            slope: 1000
++            offset: (alreadyDownloadedSize/totalDownloadSize)
++        }
+ 
+ 
+-                IconButton {
+-                    id: cancelButton
+-                    icon.source: "image://theme/icon-m-reset"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: false
++        Label {
++            id: episodeName
++            text: title;
++            color: podcastItem.highlighted ? Theme.highlightColor : Theme.primaryColor
++            font.family: Theme.fontFamilyHeading
++            font.pixelSize: Theme.fontSizeSmall
++            anchors{
++                left: parent.left
++                leftMargin: Theme.horizontalPageMargin
++            }
+ 
+-                    onClicked: {
+-                        console.log("Cancel download of: " + channelId + "index: "+index);
+-                        appWindow.cancelDownload(channelId, index);
+-                    }
+-                }
++            width: podcastItem.width - downloadedIndicator.width - playButton.width - Theme.paddingMedium -2* Theme.horizontalPageMargin
++            height: Text.paintedHeight
++            //height: 2.4*Theme.fontSizeSmall
++            truncationMode: TruncationMode.Elide
++            wrapMode: Text.WordWrap
++        }
+ 
++        Label {
++            id: channelPublished
++            anchors{
++                top: episodeName.bottom
++                topMargin: Theme.paddingSmall
++                left: parent.left
++                leftMargin: Theme.horizontalPageMargin
++            }
++            font.pixelSize: Theme.fontSizeTiny
++            color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
++            text: published
++            height: Text.paintedHeight
++        }
++
++        Label {
++            id: lastPlayed
++            anchors{
++                top: episodeName.bottom
++                topMargin: Theme.paddingSmall
++                left: parent.left
++                leftMargin: Theme.horizontalPageMargin
++            }
++            font.pixelSize: Theme.fontSizeTiny
++            color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
++            text: lastTimePlayed
++            height: Text.paintedHeight
++        }
++
++        Label {
++            id: queued
++            anchors{
++                top: episodeName.bottom
++                topMargin: Theme.paddingSmall
++                left: parent.left
++                leftMargin: Theme.horizontalPageMargin
++            }
++            font.pixelSize: Theme.fontSizeTiny
++            color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
++            text: qsTr("Queued")
++            height: Text.paintedHeight
++            visible: false
++        }
++
++        Label {
++            id: downloadBytesText
++            anchors{
++                top: episodeName.bottom
++                topMargin: Theme.paddingSmall
++                left: parent.left
++                leftMargin: Theme.horizontalPageMargin
++            }
++            font.pixelSize: Theme.fontSizeTiny
++            color: podcastItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
++            text: downloadingStatusText(alreadyDownloadedSize, totalDownloadSize);
++            height: Text.paintedHeight
++            visible: false;
++        }
++
++
++
++        IconButton {
++            id: downloadButton
++            icon.source: "image://theme/icon-m-cloud-download"
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++
++            anchors.verticalCenter: parent.verticalCenter
++            visible: true
++
++            onClicked: {
++                appWindow.downloadPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
++            }
++        }
++
++
++        IconButton {
++            id: queueButton
++            icon.source: "image://theme/icon-m-remove"
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++            anchors.verticalCenter: parent.verticalCenter
++            visible: false
++
++            onClicked: {
++                console.log("Cancel queue of: " + channelId + " index: "+index);
++                appWindow.cancelQueue(channelId, index);
++            }
++        }
++
++
++        IconButton {
++            id: cancelButton
++            icon.source: "image://theme/icon-m-reset"
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++            anchors.verticalCenter: parent.verticalCenter
++            visible: false
++
++            onClicked: {
++                console.log("Cancel download of: " + channelId + "index: "+index);
++                appWindow.cancelDownload(channelId, index);
++            }
++        }
++
++
++        IconButton {
++            id: playButton
++            icon.source: "image://theme/icon-m-play"
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++            anchors.verticalCenter: parent.verticalCenter
++            visible: false
++
++            onClicked: {
++                appWindow.playPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
++            }
++        }
++
++
++        IconButton {
++            id: webButton
++            icon.source: "image://theme/icon-m-play"
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++            anchors.verticalCenter: parent.verticalCenter
++            visible: false
++
++            onClicked: {
++                appWindow.openWeb(channelId, index);  // Channel id = which model to use, index = row in the model.
++            }
++        }
+ 
+-                IconButton {
+-                    id: playButton
+-                    icon.source: "image://theme/icon-m-play"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: false
+ 
+-                    onClicked: {
+-                        appWindow.playPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
+-                    }
+-                }
+ 
++        Label {
++            id: errorDownloadingLabel
++            visible: false
++            text: qsTr("No media")
++            anchors.right: parent.right
++            font.pixelSize: Theme.fontSizeSmall
++            anchors.rightMargin: 5
++            anchors.verticalCenter: parent.verticalCenter
++            width: 170
++        }
+ 
+-                IconButton {
+-                    id: webButton
+-                    icon.source: "image://theme/icon-m-play"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
++        /* PodcastDownloadingProgress {
++            id: downloadProgress
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++            width: playButton.width
++            visible: false
++            anchors.verticalCenter: parent.verticalCenter
++        }*/
++
++        states: [
++            State {
++                name: "get"
++                PropertyChanges {
++                    target: downloadButton
++                    visible: true
++                }
++                PropertyChanges {
++                    target: channelPublished
++                    visible: true
++                }
++                PropertyChanges {
++                    target: cancelButton
+                     visible: false
++                }
++            },
++            State {
++                name: "queued"
++                PropertyChanges {
++                    target: downloadButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: queueButton
++                    visible: true
++                }
++                PropertyChanges {
++                    target: queued
++                    visible: true
++                }
+ 
+-                    onClicked: {
+-                        appWindow.openWeb(channelId, index);  // Channel id = which model to use, index = row in the model.
+-                    }
++                PropertyChanges {
++                    target: channelPublished
++                    visible: false
++                }
++            },
++            State {
++                name: "downloading"
++                PropertyChanges {
++                    target: queueButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: queued
++                    visible: false
++                }
++                PropertyChanges {
++                    target: cancelButton
++                    visible: true
++                }
++                PropertyChanges {
++                    target: downloadButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: channelPublished
++                    visible: false
++                }
++                PropertyChanges {
++                    target: downloadBytesText
++                    visible: true
++                }
++            },
++            State {
++                name: "downloaded"
++                PropertyChanges {
++                    target: cancelButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: playButton
++                    visible: true
++                }
++                PropertyChanges {
++                    target: downloadedIndicator
++                    visible: true
++                }
++                PropertyChanges {
++                    target: channelPublished
++                    visible: true
++                }
++                PropertyChanges {
++                    target: downloadButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: downloadBytesText
++                    visible: false
++                }
++            },
++            State {
++                name: "played"
++                PropertyChanges {
++                    target: downloadedIndicator
++                    visible: true
++                    color: Theme.primaryColor
++                }
++                PropertyChanges {
++                    target: playButton
++                    visible: true
++                }
++                PropertyChanges {
++                    target: channelPublished
++                    visible: false
++                }
++                PropertyChanges {
++                    target: downloadButton
++                    visible: false
+                 }
+ 
++            },
++            State {
++                name: "undownloadable"
++                PropertyChanges {
++                    target: downloadButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: cancelButtonButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: playButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: channelPublished
++                    visible: false
++                }
++                PropertyChanges {
++                    target: errorDownloadingLabel
++                    visible: true
++                }
++                PropertyChanges {
++                    target: queued
++                    visible: false
++                }
+ 
++            },
+ 
+-                Label {
+-                    id: errorDownloadingLabel
++            State {
++                name: "website"
++                PropertyChanges {
++                    target: downloadButton
++                    visible: false
++                }
++                PropertyChanges {
++                    target: playButton
+                     visible: false
+-                    text: qsTr("No media")
+-                    anchors.right: parent.right
+-                    font.pixelSize: Theme.fontSizeSmall
+-                    anchors.rightMargin: 5
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    width: 170
+-                }
+-
+-                /* PodcastDownloadingProgress {
+-                    id: downloadProgress
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    width: playButton.width
++                }
++                PropertyChanges {
++                    target: channelPublished
+                     visible: false
+-                    anchors.verticalCenter: parent.verticalCenter
+-                }*/
+-
+-                states: [
+-                    State {
+-                        name: "get"
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: cancelButton
+-                            visible: false
+-                        }
+-                    },
+-                    State {
+-                        name: "queued"
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: queueButton
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: queued
+-                            visible: true
+-                        }
+-
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: false
+-                        }
+-                    },
+-                    State {
+-                        name: "downloading"
+-                        PropertyChanges {
+-                            target: queueButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: queued
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: cancelButton
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: downloadBytesText
+-                            visible: true
+-                        }
+-                    },
+-                    State {
+-                        name: "downloaded"
+-                        PropertyChanges {
+-                            target: cancelButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: playButton
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: downloadedIndicator
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: downloadBytesText
+-                            visible: false
+-                        }
+-                    },
+-                    State {
+-                        name: "played"
+-                        PropertyChanges {
+-                            target: downloadedIndicator
+-                            visible: true
+-                            color: Theme.primaryColor
+-                        }
+-                        PropertyChanges {
+-                            target: playButton
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: false
+-                        }
+-
+-                    },
+-                    State {
+-                        name: "undownloadable"
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: cancelButtonButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: playButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: errorDownloadingLabel
+-                            visible: true
+-                        }
+-                        PropertyChanges {
+-                            target: queued
+-                            visible: false
+-                        }
+-
+-                    },
+-
+-                    State {
+-                        name: "website"
+-                        PropertyChanges {
+-                            target: downloadButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: playButton
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: channelPublished
+-                            visible: false
+-                        }
+-                        PropertyChanges {
+-                            target: webButton
+-                            visible: true
+-                        }
+-
+-                    }
+-                ]
++                }
++                PropertyChanges {
++                    target: webButton
++                    visible: true
++                }
+ 
+             }
+-        }
++        ]
+     }
+ 
+-
+     Connections {
+         target: ui
+         onStreamingUrlResolved: {
+@@ -516,5 +500,4 @@ Item {
+             }
+         }
+     }
+-
+ }
