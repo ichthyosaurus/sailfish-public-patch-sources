@@ -13,7 +13,7 @@
 #
 
 SourcePackages:
-- Carolus:harbour-podcatcher >= 1.1.24
+- Carolus:harbour-podcatcher >= 1.1.23
 
 Prefix: /usr/share
 DisplayName: Various changes to harbour-podcatcher
@@ -30,7 +30,8 @@ Description:
 - Various small fixes, changes, and improvements that should make Podcatcher
 - (harbour-podcatcher) less fiddly to use.
 -
-- Changes so far: revamped cover page, scrollable episodes lists, cleaned up main page
+- Changes so far: revamped cover page, scrollable episodes lists,
+- added function to categorize podcast channels, cleaned up main page
 -
 - Note: I will make a pull request upstream once I have enough time to clean things up. Up until then,
 - this will remain as a (code-wise probably ugly and hackish) patch.
@@ -39,14 +40,15 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-various-change
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.1.0
 Release: 1
 
 Requires:
 - sailfish-version >= 3.0.0
-- harbour-podcatcher >= 1.1.24
+- harbour-podcatcher >= 1.1.23
 
 Screenshots:
+- screenshot-0.png
 - screenshot-1.png
 - screenshot-2.png
 - screenshot-3.png
@@ -82,6 +84,10 @@ CompatibleVersions:
 - 3.0.3.10
 
 Changelog:
+- 1.1.0:
+- - added function to categorize podcast channels (to keep the list neat and tidy)
+- - the patch should work with version 1.1.23 of harbour-podcatcher now
+-
 - 1.0.0: initial public release
 
 # kate: syntax SailfishOS Patch

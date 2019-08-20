@@ -1,12 +1,13 @@
 diff --git a/usr/share/harbour-podcatcher/qml/Podcatcher.qml b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-index 26d6e53..744e0dd 100644
+index 26d6e53..e27afc8 100644
 --- a/usr/share/harbour-podcatcher/qml/Podcatcher.qml
 +++ b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-@@ -37,11 +37,8 @@ ApplicationWindow
+@@ -37,11 +37,9 @@ ApplicationWindow
      signal markAsUnplayed(int channelId, int index)
      signal startStreaming(int channelId, int index)
      signal autoDownloadChanged(int channelId, bool autoDownload)
 +    signal noNetworkAvailable()
++    property string channelSelection: "active"
  
      initialPage: Component { MainPage { } }
      cover: Qt.resolvedUrl("cover/CoverPage.qml")
@@ -147,8 +148,22 @@ index 4c2d5c5..6cdbcbf 100644
  }
 -
 -
+diff --git a/usr/share/harbour-podcatcher/qml/pages/About.qml b/usr/share/harbour-podcatcher/qml/pages/About.qml
+index 8dc86ba..4b978b9 100644
+--- a/usr/share/harbour-podcatcher/qml/pages/About.qml
++++ b/usr/share/harbour-podcatcher/qml/pages/About.qml
+@@ -78,7 +78,8 @@ Page {
+                     font.pixelSize: Theme.fontSizeMedium
+                     text:
+                         "SailfishOS Version<BR><b>Moritz Carmesin</B><BR>" +
+-                        "carolus@carmesinus.de<BR><BR>" +
++                        "carolus@carmesinus.de<BR>" +
++                        "with a patch by <b>ichthyosaurus</b><br><br>"
+                         "Original Author<BR>"+
+                         "<B>Johan Paul</B><br>" +
+                         "johan@paul.fi<BR>" +
 diff --git a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
-index ffeab67..d394f9f 100644
+index ffeab67..774d36c 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
 +++ b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
 @@ -20,12 +20,11 @@
@@ -182,7 +197,7 @@ index ffeab67..d394f9f 100644
      function addPodcast(url, logo) {
          fetchingChannelBanner.show();
          ui.addPodcast(url, logo);
-@@ -53,242 +43,34 @@ Page {
+@@ -53,32 +43,53 @@ Page {
          ui.importFromGPodder(username, password);
      }
  
@@ -196,7 +211,9 @@ index ffeab67..d394f9f 100644
 +        clip: true
          anchors.fill: parent
  
--
++        PullDownMenu {
++            id: myMenu
+ 
 -//        EmptyChannelPage {
 -//            id: emptyText
 -//            visible: (podcastChannelsList.count == 0);
@@ -206,44 +223,70 @@ index ffeab67..d394f9f 100644
 -            enabled: podcastChannelsList.count == 0
 -            text: qsTr("No podcast subscriptions yet")
 -            hintText: qsTr("Why don't you add some...")
--        }
--
++            MenuItem {
++                text: qsTr("About")
++                onClicked: pageStack.push(Qt.resolvedUrl("About.qml"))
++            }
++            MenuItem {
++                text: qsTr("Settings")
++                onClicked: pageStack.push(Qt.resolvedUrl("Settings.qml"));
++            }
++            MenuItem {
++                text: qsTr("Add Podcast")
++                onClicked: {
++                    if (showPopularConf.value) {
++                        pageStack.push(Qt.resolvedUrl("BrowsePodcasts.qml"));
++                    } else {
++                        pageStack.push(Qt.resolvedUrl("SearchPodcasts.qml"));
++                    }
++                }
++            }
++            MenuItem {
++                text: qsTr("Refresh all subscriptions")
++                onClicked: {
++                    ui.refreshChannels();
++                    //uiInfoBanner.text = qsTr("Refreshing all subscriptions...");
++                    //uiInfoBanner.show();
++                }
++            }
+         }
+ 
 -        Column {
 -            id: mainPageColumn
 -            anchors.fill: parent
--            PageHeader {
--                id: mainPageTitle
++
++        header: Item {
++            width: parent.width
++            height: mainPageTitle.height + groupSelection.height + topSpacer.height
++
+             PageHeader {
+                 id: mainPageTitle
 -
--                title: qsTr("Podcatcher")
+                 title: qsTr("Podcatcher")
+ 
 -
--
--                Image  {
--                    id: loadingIndicator
--                    parent: mainPageTitle.extraContent
--                    anchors.left: parent.left
--                    anchors.leftMargin: Theme.horizontalPageMargin
--                    anchors.verticalCenter: parent.verticalCenter
--                    source: "image://theme/icon-s-sync"
--                    visible: (mainPage.state == "downloading");
--                    NumberAnimation on rotation {
--                        from: -360; to: 0;
--                        running: mainPage.state == "downloading"
--                        loops: Animation.Infinite; duration: 1400
--                    }
--                    smooth: true
--                }
+                 Image  {
+                     id: loadingIndicator
+                     parent: mainPageTitle.extraContent
+@@ -94,222 +105,115 @@ Page {
+                     }
+                     smooth: true
+                 }
 -
 -
 -
--            }
--
+             }
+ 
 -
 -            SilicaListView {
 -                id: podcastChannelsList
 -                model: channelsModel
 -                visible: (podcastChannelsList.count > 0);
 -                spacing: 1
--                width: parent.width
++            Row {
++                id: groupSelection
++                anchors.top: mainPageTitle.bottom
+                 width: parent.width
 -                height: parent.height - mainPageTitle.height/* - audioStreamerUi.height*/ - Theme.paddingMedium
 -                clip: true
 -
@@ -341,12 +384,28 @@ index ffeab67..d394f9f 100644
 -                        openFile("PodcastEpisodes.qml");
 -                    }
 -
--                }
++                height: visible ? Theme.itemSizeSmall : 0
++                visible: podcastChannelsList.count > 0
++                spacing: 0
++
++                BackgroundItem {
++                    width: parent.width/3; height: parent.height
++                    _backgroundColor: Theme.rgba(highlighted ? Theme.highlightBackgroundColor : Theme.highlightDimmerColor, Theme.highlightBackgroundOpacity)
++                    Label { text: qsTr("active");  anchors.centerIn: parent; color: parent.highlighted ? Theme.highlightColor : Theme.primaryColor }
++                    onClicked: appWindow.channelSelection = "active"
++                    highlighted: appWindow.channelSelection === "active"
+                 }
 -
 -                onCountChanged: {
 -                    console.log("And hiding the banner...");
 -                    fetchingChannelBanner.hide();
--                }
++                BackgroundItem {
++                    width: parent.width/3; height: parent.height
++                    _backgroundColor: Theme.rgba(highlighted ? Theme.highlightBackgroundColor : Theme.highlightDimmerColor, Theme.highlightBackgroundOpacity)
++                    Label { text: qsTr("archived");  anchors.centerIn: parent; color: parent.highlighted ? Theme.highlightColor : Theme.primaryColor }
++                    onClicked: appWindow.channelSelection = "archived"
++                    highlighted: appWindow.channelSelection === "archived"
+                 }
 -
 -                VerticalScrollDecorator{}
 -            }
@@ -371,21 +430,33 @@ index ffeab67..d394f9f 100644
 -                    mainPage.state = "downloading"
 -                } else {
 -                    mainPage.state = ""
--                }
--            }
++                BackgroundItem {
++                    width: parent.width/3; height: parent.height
++                    _backgroundColor: Theme.rgba(highlighted ? Theme.highlightBackgroundColor : Theme.highlightDimmerColor, Theme.highlightBackgroundOpacity)
++                    Label { text: qsTr("all");  anchors.centerIn: parent; color: parent.highlighted ? Theme.highlightColor : Theme.primaryColor }
++                    onClicked: appWindow.channelSelection = "all"
++                    highlighted: appWindow.channelSelection === "all"
+                 }
+             }
+ 
 -
--
--        }
--
++            Item { id: topSpacer; width: parent.width; height: Theme.paddingLarge }
+         }
+ 
 -        Connections {
 -            target: audioStreamer
--
++        footer: Item { id: bottomSpacer; width: parent.width; height: Theme.horizontalPageMargin }
+ 
 -            onPlayStream: {
 -                console.log("Showing audio streamer.");
 -                audioStreamerUi.show();
 -            }
--        }
--
++        ViewPlaceholder {
++            enabled: podcastChannelsList.count == 0
++            text: qsTr("No podcast subscriptions yet")
++            hintText: qsTr("Why don't you add some...")
+         }
+ 
 -        Component.onCompleted: {
 -            console.log("Is downloading: " + ui.isDownloading);
 -            if (ui.isDownloading) {
@@ -394,100 +465,39 @@ index ffeab67..d394f9f 100644
 -            else {
 -                mainPage.state = "";
 -            }
--        }
--
--
--
-         PullDownMenu {
-             id: myMenu
- 
-             MenuItem {
-                 text: qsTr("About")
--                onClicked: {
--                    openFile("About.qml");
--                }
-+                onClicked: pageStack.push(Qt.resolvedUrl("About.qml"))
-             }
--
--
-             MenuItem {
-                 text: qsTr("Settings")
--                onClicked: {
--                    openFile("Settings.qml");
--                }
-+                onClicked: pageStack.push(Qt.resolvedUrl("Settings.qml"));
-             }
--
--
-             MenuItem {
-                 text: qsTr("Add Podcast")
-                 onClicked: {
--                    if (showPopularConf.value)
--                        openFile("BrowsePodcasts.qml");
--                    else
--                        openFile("SearchPodcasts.qml");
-+                    if (showPopularConf.value) {
-+                        pageStack.push(Qt.resolvedUrl("BrowsePodcasts.qml"));
-+                    } else {
-+                        pageStack.push(Qt.resolvedUrl("SearchPodcasts.qml"));
-+                    }
-                 }
-             }
--
-             MenuItem {
-                 text: qsTr("Refresh all subscriptions")
-                 onClicked: {
-@@ -297,19 +79,103 @@ Page {
-                     //uiInfoBanner.show();
-                 }
-             }
-+        }
-+
-+
-+        header: PageHeader {
-+            id: mainPageTitle
-+            title: qsTr("Podcatcher")
-+
-+            Image  {
-+                id: loadingIndicator
-+                parent: mainPageTitle.extraContent
-+                anchors.left: parent.left
-+                anchors.leftMargin: Theme.horizontalPageMargin
-+                anchors.verticalCenter: parent.verticalCenter
-+                source: "image://theme/icon-s-sync"
-+                visible: (mainPage.state == "downloading");
-+                NumberAnimation on rotation {
-+                    from: -360; to: 0;
-+                    running: mainPage.state == "downloading"
-+                    loops: Animation.Infinite; duration: 1400
-+                }
-+                smooth: true
-+            }
-+        }
-+
-+        footer: Item { id: bottomSpacer; width: parent.width; height: Theme.horizontalPageMargin }
- 
-+        ViewPlaceholder {
-+            enabled: podcastChannelsList.count == 0
-+            text: qsTr("No podcast subscriptions yet")
-+            hintText: qsTr("Why don't you add some...")
-         }
- 
 +        delegate: Loader {
 +            asynchronous: false
 +            width: parent.width
 +            visible: status == Loader.Ready
 +            sourceComponent: PodcastChannelDelegate { }
-+        }
+         }
  
 +        onCountChanged: {
 +            console.log("And hiding the banner...");
 +            fetchingChannelBanner.hide();
 +        }
-+
+ 
 +        VerticalScrollDecorator{}
 +    }
-+
+ 
+-        PullDownMenu {
+-            id: myMenu
+-
+-            MenuItem {
+-                text: qsTr("About")
+-                onClicked: {
+-                    openFile("About.qml");
+-                }
+-            }
+-
+-
+-            MenuItem {
+-                text: qsTr("Settings")
+-                onClicked: {
+-                    openFile("Settings.qml");
+-                }
+-            }
+-
 +    Connections {
 +        target: ui
 +        onShowInfoBanner: {
@@ -496,26 +506,43 @@ index ffeab67..d394f9f 100644
 +            uiInfoBanner.text = text
 +            uiInfoBanner.show();
 +        }
-+
+ 
+-            MenuItem {
+-                text: qsTr("Add Podcast")
+-                onClicked: {
+-                    if (showPopularConf.value)
+-                        openFile("BrowsePodcasts.qml");
+-                    else
+-                        openFile("SearchPodcasts.qml");
+-                }
 +        onDownloadingPodcasts: {
 +            console.log("Download status changed: " + downloading)
 +            if (downloading) {
 +                mainPage.state = "downloading"
 +            } else {
 +                mainPage.state = ""
-+            }
+             }
 +        }
 +    }
-+
+ 
+-            MenuItem {
+-                text: qsTr("Refresh all subscriptions")
+-                onClicked: {
+-                    ui.refreshChannels();
+-                    //uiInfoBanner.text = qsTr("Refreshing all subscriptions...");
+-                    //uiInfoBanner.show();
+-                }
+-            }
 +    Connections {
 +        target: audioStreamer
-+
+ 
 +        onPlayStream: {
 +            console.log("Showing audio streamer.");
 +            audioStreamerUi.show();
-+        }
+         }
 +    }
-+
+ 
+-
 +    Component.onCompleted: {
 +        console.log("Is downloading: " + ui.isDownloading);
 +        if (ui.isDownloading) {
@@ -542,7 +569,7 @@ index ffeab67..d394f9f 100644
      }
  
      InfoBanner {
-@@ -318,11 +184,9 @@ Page {
+@@ -318,11 +222,9 @@ Page {
          text: qsTr("Fetching channel information...")
      }
  
@@ -556,10 +583,10 @@ index ffeab67..d394f9f 100644
  }
 diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastChannelDelegate.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastChannelDelegate.qml
 new file mode 100644
-index 0000000..73e4201
+index 0000000..568e89b
 --- /dev/null
 +++ b/usr/share/harbour-podcatcher/qml/pages/PodcastChannelDelegate.qml
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,148 @@
 +/**
 + * This file is part of Podcatcher for Sailfish OS.
 + * Authors: Johan Paul (johan.paul@gmail.com)
@@ -586,7 +613,8 @@ index 0000000..73e4201
 +
 +ListItem {
 +    id: listItem
-+    contentHeight: Theme.itemSizeLarge
++    contentHeight: visible ? Theme.itemSizeLarge : 0
++    visible: appWindow.channelSelection === "all" || channelCategory.value === appWindow.channelSelection
 +
 +    menu: ContextMenu {
 +        id: contextMenu;
@@ -598,15 +626,32 @@ index 0000000..73e4201
 +            }
 +        }
 +        MenuItem {
++            text: qsTr("Activate channel")
++            visible: channelCategory.value !== "active"
++            onClicked: channelCategory.value = "active"
++        }
++        MenuItem {
++            text: qsTr("Archive channel")
++            visible: channelCategory.value !== "archived"
++            onClicked: channelCategory.value = "archived"
++        }
++        MenuItem {
 +            text: qsTr("Remove subscription");
 +            onClicked: {
-+                channelRemorse.execute(listItem,qsTr("Removing"),
-+                                        function(){
-+                                            console.log("Going to delete Channel "+model.channelId+"!");
-+                                            appWindow.deleteChannel(model.channelId);
-+                                        });
++                channelRemorse.execute(listItem,qsTr("Removing"), function() {
++                    channelCategory.value = undefined;
++                    channelCategory.sync();
++                    console.log("Going to delete Channel " + model.channelId + "!");
++                    appWindow.deleteChannel(model.channelId);
++                });
 +            }
 +        }
++    }
++
++    ConfigurationValue{
++        id: channelCategory
++        key: "/apps/ControlPanel/Podcatcher/channelCategory/id_" + model.channelId
++        defaultValue: "active"
 +    }
 +
 +    RemorseItem{
@@ -678,10 +723,7 @@ index 0000000..73e4201
 +
 +    Connections {
 +        target: appWindow
-+        onNoNetworkAvailable: {
-+            isReallyRefreshing = false;
-+            print(refreshingRequested, isRefreshing, isReallyRefreshing, spinner.visible)
-+        }
++        onNoNetworkAvailable: isReallyRefreshing = false;
 +    }
 +
 +    onClicked: {
