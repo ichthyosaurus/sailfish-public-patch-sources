@@ -30,8 +30,9 @@ Description:
 - Various small fixes, changes, and improvements that should make Podcatcher
 - (harbour-podcatcher) less fiddly to use.
 -
-- Changes so far: revamped cover page, scrollable episodes lists,
-- added function to categorize podcast channels, cleaned up main page
+- Changes so far: revamped cover page, added scrollable episodes list (with
+- scroll bar), added function to categorize podcast channels,
+- cleaned up main page, removed text prediction where appropriate
 -
 - Note: I will make a pull request upstream once I have enough time to clean things up. Up until then,
 - this will remain as a (code-wise probably ugly and hackish) patch.
@@ -40,7 +41,7 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-various-change
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.1.0
+Version: 1.1.1
 Release: 1
 
 Requires:
@@ -84,6 +85,11 @@ CompatibleVersions:
 - 3.0.3.10
 
 Changelog:
+- 1.1.1:
+- - fixed subscribing to podcasts
+- - disabled text prediction when adding a new podcast by its url
+- - added scroll bar to list of episodes
+-
 - 1.1.0:
 - - added function to categorize podcast channels (to keep the list neat and tidy)
 - - the patch should work with version 1.1.23 of harbour-podcatcher now

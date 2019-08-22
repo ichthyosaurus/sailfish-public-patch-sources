@@ -1,15 +1,21 @@
 diff --git a/usr/share/harbour-podcatcher/qml/Podcatcher.qml b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-index 26d6e53..e27afc8 100644
+index 26d6e53..c48c782 100644
 --- a/usr/share/harbour-podcatcher/qml/Podcatcher.qml
 +++ b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-@@ -37,11 +37,9 @@ ApplicationWindow
+@@ -37,11 +37,14 @@ ApplicationWindow
      signal markAsUnplayed(int channelId, int index)
      signal startStreaming(int channelId, int index)
      signal autoDownloadChanged(int channelId, bool autoDownload)
 +    signal noNetworkAvailable()
 +    property string channelSelection: "active"
++
++    // Although it is sub-optimal to use an object instance for initialPage
++    // (as the QML interpreter warning says) it is necessary here to make sure
++    // 'mainPage' is accessible from everywhere.
++    property MainPage mainPage: MainPage { }
++    initialPage: mainPage
  
-     initialPage: Component { MainPage { } }
+-    initialPage: Component { MainPage { } }
      cover: Qt.resolvedUrl("cover/CoverPage.qml")
 -    //allowedOrientations:Orientation.All
 -   // _defaultPageOrientations: Orientation.Portrait
@@ -162,6 +168,19 @@ index 8dc86ba..4b978b9 100644
                          "Original Author<BR>"+
                          "<B>Johan Paul</B><br>" +
                          "johan@paul.fi<BR>" +
+diff --git a/usr/share/harbour-podcatcher/qml/pages/BrowsePodcasts.qml b/usr/share/harbour-podcatcher/qml/pages/BrowsePodcasts.qml
+index 3b0fc76..a0d8773 100644
+--- a/usr/share/harbour-podcatcher/qml/pages/BrowsePodcasts.qml
++++ b/usr/share/harbour-podcatcher/qml/pages/BrowsePodcasts.qml
+@@ -256,6 +256,8 @@ Page {
+                         placeholderText: qsTr("Podcast RSS URL")
+                         width: parent.width
+ 
++                        inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
++
+                         Keys.onReturnPressed: {
+                             parent.focus = true;
+                         }
 diff --git a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
 index ffeab67..774d36c 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
@@ -864,7 +883,7 @@ index 11b09fb..0af3c94 100644
          id: refreshingBanner
          text:  qsTr("Refreshing episodes...")
 diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
-index 0b58a37..abaf80b 100644
+index 0b58a37..0494777 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
 +++ b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
 @@ -16,12 +16,12 @@
@@ -883,7 +902,7 @@ index 0b58a37..abaf80b 100644
  
      signal selectedEpisodeDescription(string desc)
  
-@@ -65,441 +65,425 @@ Item {
+@@ -65,441 +65,427 @@ Item {
          return download_statusText;
      }
  
@@ -891,6 +910,8 @@ index 0b58a37..abaf80b 100644
 -        id: podcastEpisodesInfoRect
 +    anchors.fill: parent
 +    model: episodesModel
++
++    VerticalScrollDecorator { flickable: podcastEpisodesList }
  
 -        smooth: true
 -        color: "transparent"
@@ -1197,7 +1218,14 @@ index 0b58a37..abaf80b 100644
 +            text: published
 +            height: Text.paintedHeight
 +        }
-+
+ 
+-                IconButton {
+-                    id: playButton
+-                    icon.source: "image://theme/icon-m-play"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: false
 +        Label {
 +            id: lastPlayed
 +            anchors{
@@ -1272,8 +1300,12 @@ index 0b58a37..abaf80b 100644
 +                appWindow.cancelQueue(channelId, index);
 +            }
 +        }
-+
-+
+ 
+-                    onClicked: {
+-                        appWindow.playPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
+-                    }
+-                }
+ 
 +        IconButton {
 +            id: cancelButton
 +            icon.source: "image://theme/icon-m-reset"
@@ -1281,7 +1313,13 @@ index 0b58a37..abaf80b 100644
 +            anchors.rightMargin: Theme.horizontalPageMargin
 +            anchors.verticalCenter: parent.verticalCenter
 +            visible: false
-+
+ 
+-                IconButton {
+-                    id: webButton
+-                    icon.source: "image://theme/icon-m-play"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
 +            onClicked: {
 +                console.log("Cancel download of: " + channelId + "index: "+index);
 +                appWindow.cancelDownload(channelId, index);
@@ -1315,20 +1353,9 @@ index 0b58a37..abaf80b 100644
 +                appWindow.openWeb(channelId, index);  // Channel id = which model to use, index = row in the model.
 +            }
 +        }
- 
--                IconButton {
--                    id: playButton
--                    icon.source: "image://theme/icon-m-play"
--                    anchors.right: parent.right
--                    anchors.rightMargin: Theme.horizontalPageMargin
--                    anchors.verticalCenter: parent.verticalCenter
--                    visible: false
- 
--                    onClicked: {
--                        appWindow.playPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
--                    }
--                }
- 
++
++
++
 +        Label {
 +            id: errorDownloadingLabel
 +            visible: false
@@ -1339,13 +1366,7 @@ index 0b58a37..abaf80b 100644
 +            anchors.verticalCenter: parent.verticalCenter
 +            width: 170
 +        }
- 
--                IconButton {
--                    id: webButton
--                    icon.source: "image://theme/icon-m-play"
--                    anchors.right: parent.right
--                    anchors.rightMargin: Theme.horizontalPageMargin
--                    anchors.verticalCenter: parent.verticalCenter
++
 +        /* PodcastDownloadingProgress {
 +            id: downloadProgress
 +            anchors.right: parent.right
@@ -1705,9 +1726,22 @@ index 0b58a37..abaf80b 100644
      Connections {
          target: ui
          onStreamingUrlResolved: {
-@@ -516,5 +500,4 @@ Item {
+@@ -516,5 +502,4 @@ Item {
              }
          }
      }
 -
  }
+diff --git a/usr/share/harbour-podcatcher/qml/pages/SearchPodcasts.qml b/usr/share/harbour-podcatcher/qml/pages/SearchPodcasts.qml
+index 612d70c..0e61f67 100644
+--- a/usr/share/harbour-podcatcher/qml/pages/SearchPodcasts.qml
++++ b/usr/share/harbour-podcatcher/qml/pages/SearchPodcasts.qml
+@@ -262,6 +262,8 @@ Page {
+                     placeholderText: qsTr("Podcast RSS URL")
+                     width: parent.width
+ 
++                    inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
++
+                     Keys.onReturnPressed: {
+                         parent.focus = true;
+                     }
