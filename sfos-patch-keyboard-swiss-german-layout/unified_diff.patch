@@ -162,12 +162,3 @@ index 0000000..c2cdad1
 +name=Deutsch (Schweiz)
 +languageCode=DE
 +handler=Xt9InputHandler.qml
-diff --git a/usr/share/maliit/plugins/com/jolla/qmldir b/usr/share/maliit/plugins/com/jolla/qmldir
-index 89a9bd5..b30351f 100644
---- a/usr/share/maliit/plugins/com/jolla/qmldir
-+++ b/usr/share/maliit/plugins/com/jolla/qmldir
-@@ -41,3 +41,4 @@ HwrLayout 1.0 HwrLayout.qml
- StrokeLayout 1.0 StrokeLayout.qml
- KeyboardBackground 1.0 KeyboardBackground.qml
- SmallCharacterKey 1.0 SmallCharacterKey.qml
-+EmojiHybridKey 1.0 EmojiHybridKey.qml

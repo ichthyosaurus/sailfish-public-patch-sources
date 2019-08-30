@@ -34,20 +34,20 @@ Description:
 - Many special characters are available if you long-press a key.
 -
 - The new layout includes an extra row of keys. Therefore I recommend installing
-- the <a href="https://openrepos.net/content/ichthyosaurus/patch-smaller-keyboard">smaller keyboard patch</a>
+- the [smaller keyboard patch](https://openrepos.net/content/ichthyosaurus/patch-smaller-keyboard)
 - which reduces the default height of the keyboard so it does not take as much
 - space on the screen.
 -
 - Switching between keyboards may become slower because of the extra row.
 - This cannot be changed unless the other keyboards add another row too. You
-- can install the <a href="https://openrepos.net/content/ichthyosaurus/patch-improved-stock-emoji-keyboard">improved emojis patch</a>
+- can install the [improved emojis patch](https://openrepos.net/content/ichthyosaurus/patch-improved-stock-emoji-keyboard)
 - to add an extra row to the stock emojis keyboard.
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-swiss-german-keyboard-layout
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.0.2
 Release: 1
 
 Requires:
@@ -93,8 +93,13 @@ CompatibleVersions:
 - 3.0.3.8
 - 3.0.3.9
 - 3.0.3.10
+- 3.1.0.11
 
 Changelog:
-- initial public release
+- 1.0.1:
+- - rename to "Deutsch (Schweiz)" in list of available keyboards
+- - make file names internally less ambiguous
+-
+- 1.0.0: initial public release
 
 # kate: syntax SailfishOS Patch
