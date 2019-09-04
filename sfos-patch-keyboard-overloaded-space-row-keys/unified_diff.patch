@@ -1,0 +1,23 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml b/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml
+index 1577c1b..2420533 100644
+--- a/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml
++++ b/usr/share/maliit/plugins/com/jolla/SpacebarRow.qml
+@@ -34,15 +34,15 @@ KeyboardRow {
+     splitIndex: 3
+ 
+     SymbolKey {}
+-    ContextAwareCommaKey {}
++    ContextAwareCommaKey { accents: "@/,;"; accentsShifted: accents; }
+     SpacebarKey {}
+     SpacebarKey {
+         active: splitActive
+         languageLabel: ""
+     }
+     CharacterKey {
+-        caption: "."
+-        captionShifted: "."
++        caption: "."; accents: "×÷…·¶"
++        captionShifted: "."; accentsShifted: accents
+         implicitWidth: punctuationKeyWidth
+         fixedWidth: !splitActive
+         separator: SeparatorState.HiddenSeparator
