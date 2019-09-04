@@ -47,7 +47,7 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-swiss-german-k
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.2
+Version: 1.0.3
 Release: 1
 
 Requires:
@@ -96,6 +96,13 @@ CompatibleVersions:
 - 3.1.0.11
 
 Changelog:
+- 1.0.3:
+- - add a few more accents to the following keys: 1, 2, 3, ?, r, c
+- - add a few more symbol keys at the following positions: 7, 8, ü, s, x
+-
+- 1.0.2:
+- - fix compatibility with SFOS 3.1.0.11
+-
 - 1.0.1:
 - - rename to "Deutsch (Schweiz)" in list of available keyboards
 - - make file names internally less ambiguous
