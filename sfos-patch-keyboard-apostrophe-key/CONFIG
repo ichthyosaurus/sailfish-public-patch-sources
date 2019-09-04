@@ -16,7 +16,7 @@ SourcePackages:
 - jolla-keyboard >= 0.7.1
 
 Prefix: /usr/share
-DisplayName: Apostrophe key for all keyboards
+DisplayName: Apostrophe key for all stock keyboards
 PackageName: sfos-patch-keyboard-apostrophe-key
 Category: Keyboard
 Keywords:
@@ -27,12 +27,20 @@ Maintainer: ichthyosaurus
 Summary: Patch adding an apostrophe key next to the comma key in the space bar row.
 Description:
 - Patch adding an apostrophe key next to the comma key in the space bar row.
+-
+- Please note that this patch only works with the stock keyboard. It does however
+- work with patches adding custom keyboard layouts. Not supported is, for
+- example, the Dolphin keyboard.
+-
+- Note: this patch conflicts with the
+- [patch adding accents to spacebar row keys](https://openrepos.net/content/ichthyosaurus/patch-overloaded-spacebar-row-keys).
+- Therefore I added the same characters here, too.
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-apostrophe-key-all-keyboards
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.0.1
 Release: 1
 
 Requires:
@@ -40,7 +48,7 @@ Requires:
 - jolla-keyboard >= 0.7.1
 
 Conflicts:
-- sfos-patch-keyboard-wider-spacebar
+- sfos-patch-keyboard-overloaded-space-row-keys
 
 # Obsoletes:
 # - the-other-old-name
@@ -61,6 +69,12 @@ CompatibleVersions:
 - 3.0.3.10
 
 Changelog:
-- initial public release
+- 1.0.1:
+- - the patch no longer conflicts with the wider spacebar patch
+- - added "accents" (character alternatives shown on long-press)
+- - improved description
+- - simplified changes to make them as small as possible
+-
+- 1.0.0: initial public release
 
 # kate: syntax SailfishOS Patch
