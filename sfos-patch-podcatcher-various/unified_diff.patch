@@ -1,5 +1,5 @@
 diff --git a/usr/share/harbour-podcatcher/qml/Podcatcher.qml b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-index 26d6e53..c48c782 100644
+index 26d6e53..d47170b 100644
 --- a/usr/share/harbour-podcatcher/qml/Podcatcher.qml
 +++ b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
 @@ -37,11 +37,14 @@ ApplicationWindow
@@ -8,52 +8,60 @@ index 26d6e53..c48c782 100644
      signal autoDownloadChanged(int channelId, bool autoDownload)
 +    signal noNetworkAvailable()
 +    property string channelSelection: "active"
-+
+ 
+-    initialPage: Component { MainPage { } }
+-    cover: Qt.resolvedUrl("cover/CoverPage.qml")
+-    //allowedOrientations:Orientation.All
+-   // _defaultPageOrientations: Orientation.Portrait
+-}
+-
 +    // Although it is sub-optimal to use an object instance for initialPage
 +    // (as the QML interpreter warning says) it is necessary here to make sure
 +    // 'mainPage' is accessible from everywhere.
 +    property MainPage mainPage: MainPage { }
 +    initialPage: mainPage
  
--    initialPage: Component { MainPage { } }
-     cover: Qt.resolvedUrl("cover/CoverPage.qml")
--    //allowedOrientations:Orientation.All
--   // _defaultPageOrientations: Orientation.Portrait
- }
--
--
++    cover: Qt.resolvedUrl("cover/PatchedCoverPage.qml")
++}
 diff --git a/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml b/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
-index 4c2d5c5..6cdbcbf 100644
+index 8262a65..e69de29 100644
 --- a/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
 +++ b/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
-@@ -16,67 +16,70 @@
-  * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
-  */
- 
--import QtQuick 2.0
-+import QtQuick 2.2
- import Sailfish.Silica 1.0
- 
--Cover{
-+CoverBackground {
-+    id: coverPage
- 
--    transparent: false
+@@ -1,91 +0,0 @@
+-/**
+- * This file is part of Podcatcher for Sailfish OS.
+- * Author: Moritz Carmesin (carolus@carmesinus.de)
+- *
+- * Podcatcher for Sailfish OS is free software: you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation, either version 3 of the License, or
+- * (at your option) any later version.
+- *
+- * Podcatcher for Sailfish OS is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
+- */
 -
--    Rectangle{
--        color: "black"
--        opacity:.75
-+    Column{
-         anchors.fill: parent
--    }
+-import QtQuick 2.0
+-import Sailfish.Silica 1.0
+-
+-Cover{
+-
+-    transparent: true
 -
 -    Image {
 -        id: icon
 -        source: "qrc:///icons/256x256/harbour-podcatcher.png"
 -        anchors.horizontalCenter: parent.horizontalCenter
 -        width : parent.width - 2* Theme.paddingLarge
+-        fillMode: Image.PreserveAspectFit
+-
 -        anchors.top: parent.top
-         anchors.topMargin: Theme.paddingLarge
+-        anchors.topMargin: Theme.paddingLarge
 -        smooth: true
 -    }
 -
@@ -69,11 +77,83 @@ index 4c2d5c5..6cdbcbf 100644
 -
 -
 -
-+        spacing: Theme.paddingLarge
- 
+-
 -    /* //ui.isDownloading updates don't get here???
 -    Column{
 -        anchors.fill: parent
+-
+-        Label {
+-            id: label
+-            anchors.horizontalCenter: parent.horizontalCenter
+-            font.pixelSize: Theme.fontSizeSmall
+-            text: qsTr("Podcatcher")
+-        }
+-
+-       BusyIndicator{
+-            size: BusyIndicatorSize.Medium
+-            anchors.horizontalCenter: parent.horizontalCenter
+-            //running: ui.isDownloading
+-            visible: true
+-        }
+-        Label{
+-            //text: qsTr("downloading: ") + ui.isDownloading
+-            text: ui.isDownloading
+-            visible: true
+-        }
+-    }*/
+-
+-
+-
+-    CoverActionList {
+-        id: coverAction
+-
+-        CoverAction {
+-            iconSource: "image://theme/icon-cover-refresh"
+-            onTriggered: ui.refreshChannels()
+-        }
+-
+-       /* CoverAction {
+-            iconSource: "image://theme/icon-cover-pause"
+-        }*/
+-    }
+-}
+-
+-
+diff --git a/usr/share/harbour-podcatcher/qml/cover/PatchedCoverPage.qml b/usr/share/harbour-podcatcher/qml/cover/PatchedCoverPage.qml
+new file mode 100644
+index 0000000..6cdbcbf
+--- /dev/null
++++ b/usr/share/harbour-podcatcher/qml/cover/PatchedCoverPage.qml
+@@ -0,0 +1,92 @@
++/**
++ * This file is part of Podcatcher for Sailfish OS.
++ * Author: Moritz Carmesin (carolus@carmesinus.de)
++ *
++ * Podcatcher for Sailfish OS is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * Podcatcher for Sailfish OS is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import QtQuick 2.2
++import Sailfish.Silica 1.0
++
++CoverBackground {
++    id: coverPage
++
++    Column{
++        anchors.fill: parent
++        anchors.topMargin: Theme.paddingLarge
++        spacing: Theme.paddingLarge
++
 +        Image {
 +            id: icon
 +            source: "qrc:///icons/256x256/harbour-podcatcher.png"
@@ -82,31 +162,21 @@ index 4c2d5c5..6cdbcbf 100644
 +            height: width
 +            smooth: true
 +        }
- 
-         Label {
-             id: label
-             anchors.horizontalCenter: parent.horizontalCenter
--            font.pixelSize: Theme.fontSizeSmall
++
++        Label {
++            id: label
++            anchors.horizontalCenter: parent.horizontalCenter
 +            font.pixelSize: Theme.fontSizeMedium
 +            color: Theme.primaryColor
-             text: qsTr("Podcatcher")
-         }
- 
--       BusyIndicator{
--            size: BusyIndicatorSize.Medium
++            text: qsTr("Podcatcher")
++        }
++
 +        // we have to use our own busy indicator because the stock one
 +        // stops when the application is not active - when the cover is shown
 +        Item {
 +            id: spinner
 +            property bool running: visible && (coverPage.status === Cover.Active)
-             anchors.horizontalCenter: parent.horizontalCenter
--            //running: ui.isDownloading
--            visible: true
--        }
--        Label{
--            //text: qsTr("downloading: ") + ui.isDownloading
--            text: ui.isDownloading
--            visible: true
++            anchors.horizontalCenter: parent.horizontalCenter
 +            visible: false
 +
 +            implicitWidth: image.implicitWidth
@@ -127,10 +197,8 @@ index 4c2d5c5..6cdbcbf 100644
 +                    loops: Animation.Infinite
 +                }
 +            }
-         }
--    }*/
--
- 
++        }
++
 +        Connections {
 +            target: ui
 +            onDownloadingPodcasts: {
@@ -139,21 +207,16 @@ index 4c2d5c5..6cdbcbf 100644
 +            }
 +        }
 +    }
- 
-     CoverActionList {
-         id: coverAction
-@@ -85,11 +88,5 @@ Cover{
-             iconSource: "image://theme/icon-cover-refresh"
-             onTriggered: ui.refreshChannels()
-         }
--
--       /* CoverAction {
--            iconSource: "image://theme/icon-cover-pause"
--        }*/
-     }
- }
--
--
++
++    CoverActionList {
++        id: coverAction
++
++        CoverAction {
++            iconSource: "image://theme/icon-cover-refresh"
++            onTriggered: ui.refreshChannels()
++        }
++    }
++}
 diff --git a/usr/share/harbour-podcatcher/qml/pages/About.qml b/usr/share/harbour-podcatcher/qml/pages/About.qml
 index 8dc86ba..4b978b9 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/About.qml

@@ -41,7 +41,7 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-various-change
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.1.1
+Version: 1.1.2
 Release: 1
 
 Requires:
@@ -85,6 +85,10 @@ CompatibleVersions:
 - 3.0.3.10
 
 Changelog:
+- 1.1.2:
+- - fixed incompatibilities with latest upstream
+- - the patch should work with versions 1.1.23 to 1.1.25 of harbour-podcatcher now
+-
 - 1.1.1:
 - - fixed subscribing to podcasts
 - - disabled text prediction when adding a new podcast by its url
