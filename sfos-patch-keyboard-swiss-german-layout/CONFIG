@@ -47,7 +47,7 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-swiss-german-k
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.3
+Version: 1.0.4
 Release: 1
 
 Requires:
@@ -94,8 +94,13 @@ CompatibleVersions:
 - 3.0.3.9
 - 3.0.3.10
 - 3.1.0.11
+- 3.2.0.12
+- 3.2.1.20
 
 Changelog:
+- 1.0.4:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS 3
+-
 - 1.0.3:
 - - add a few more accents to the following keys: 1, 2, 3, ?, r, c
 - - add a few more symbol keys at the following positions: 7, 8, ü, s, x

@@ -1,8 +1,8 @@
 diff --git a/usr/share/harbour-podcatcher/qml/Podcatcher.qml b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-index 26d6e53..d47170b 100644
+index d20f239..d47170b 100644
 --- a/usr/share/harbour-podcatcher/qml/Podcatcher.qml
 +++ b/usr/share/harbour-podcatcher/qml/Podcatcher.qml
-@@ -37,11 +37,14 @@ ApplicationWindow
+@@ -37,20 +37,14 @@ ApplicationWindow
      signal markAsUnplayed(int channelId, int index)
      signal startStreaming(int channelId, int index)
      signal autoDownloadChanged(int channelId, bool autoDownload)
@@ -10,24 +10,32 @@ index 26d6e53..d47170b 100644
 +    property string channelSelection: "active"
  
 -    initialPage: Component { MainPage { } }
+-    //initialPage: player
 -    cover: Qt.resolvedUrl("cover/CoverPage.qml")
 -    //allowedOrientations:Orientation.All
 -   // _defaultPageOrientations: Orientation.Portrait
--}
--
 +    // Although it is sub-optimal to use an object instance for initialPage
 +    // (as the QML interpreter warning says) it is necessary here to make sure
 +    // 'mainPage' is accessible from everywhere.
 +    property MainPage mainPage: MainPage { }
 +    initialPage: mainPage
  
+-    AudioPlayer{
+-        id: player
+-    }
+-
+-    MediaKeys{
+-
+-    }
 +    cover: Qt.resolvedUrl("cover/PatchedCoverPage.qml")
-+}
+ }
+-
+-
 diff --git a/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml b/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
-index 8262a65..e69de29 100644
+index 554aa36..e69de29 100644
 --- a/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
 +++ b/usr/share/harbour-podcatcher/qml/cover/CoverPage.qml
-@@ -1,91 +0,0 @@
+@@ -1,95 +0,0 @@
 -/**
 - * This file is part of Podcatcher for Sailfish OS.
 - * Author: Moritz Carmesin (carolus@carmesinus.de)
@@ -50,6 +58,7 @@ index 8262a65..e69de29 100644
 -import Sailfish.Silica 1.0
 -
 -Cover{
+-    id: coverpage
 -
 -    transparent: true
 -
@@ -112,9 +121,12 @@ index 8262a65..e69de29 100644
 -            onTriggered: ui.refreshChannels()
 -        }
 -
--       /* CoverAction {
--            iconSource: "image://theme/icon-cover-pause"
--        }*/
+-        CoverAction {
+-            iconSource: (coverpage.parent.player.audioPlayer.playbackState === Audio.PlayingState)?
+-                            "image://theme/icon-cover-pause":"image://theme/icon-cover-play"
+-            onTriggered: (coverpage.parent.player.audioPlayer.playbackState === Audio.PlayingState)?
+-                             appWindow.player.audioPlayer.pause(): appWindow.player.audioPlayer.play();
+-        }
 -    }
 -}
 -
@@ -245,7 +257,7 @@ index 3b0fc76..a0d8773 100644
                              parent.focus = true;
                          }
 diff --git a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
-index ffeab67..774d36c 100644
+index 262ae96..774d36c 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
 +++ b/usr/share/harbour-podcatcher/qml/pages/MainPage.qml
 @@ -20,12 +20,11 @@
@@ -279,10 +291,16 @@ index ffeab67..774d36c 100644
      function addPodcast(url, logo) {
          fetchingChannelBanner.show();
          ui.addPodcast(url, logo);
-@@ -53,32 +43,53 @@ Page {
+@@ -53,39 +43,53 @@ Page {
          ui.importFromGPodder(username, password);
      }
  
+-    onStatusChanged:{
+-        if(status ===PageStatus.Active && player.active){
+-            pageStack.pushAttached(player);
+-        }
+-    }
+-
 -    SilicaFlickable{
 -
 -        //contentHeight: mainPageColumn.height
@@ -292,15 +310,16 @@ index ffeab67..774d36c 100644
 +        spacing: 1
 +        clip: true
          anchors.fill: parent
- 
-+        PullDownMenu {
-+            id: myMenu
+-        clip: audioStreamerUi.expanded
+-
  
 -//        EmptyChannelPage {
 -//            id: emptyText
 -//            visible: (podcastChannelsList.count == 0);
 -//        }
--
++        PullDownMenu {
++            id: myMenu
+ 
 -        ViewPlaceholder {
 -            enabled: podcastChannelsList.count == 0
 -            text: qsTr("No podcast subscriptions yet")
@@ -350,7 +369,7 @@ index ffeab67..774d36c 100644
                  Image  {
                      id: loadingIndicator
                      parent: mainPageTitle.extraContent
-@@ -94,222 +105,115 @@ Page {
+@@ -101,225 +105,115 @@ Page {
                      }
                      smooth: true
                  }
@@ -496,6 +515,8 @@ index ffeab67..774d36c 100644
 -        }
 -
 -
+-
+-
 -        Connections {
 -
 -            target: ui
@@ -637,6 +658,7 @@ index ffeab67..774d36c 100644
  
      AudioStreamer {
          id: audioStreamerUi
+-        anchors.bottom: parent.bottom
      }
  
 -
@@ -651,7 +673,7 @@ index ffeab67..774d36c 100644
      }
  
      InfoBanner {
-@@ -318,11 +222,9 @@ Page {
+@@ -328,11 +222,9 @@ Page {
          text: qsTr("Fetching channel information...")
      }
  
@@ -818,16 +840,22 @@ index 0000000..568e89b
 +    }
 +}
 diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml
-index 11b09fb..0af3c94 100644
+index 9e6f57f..0af3c94 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml
 +++ b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodes.qml
-@@ -21,13 +21,14 @@ import Sailfish.Silica 1.0
+@@ -21,19 +21,14 @@ import Sailfish.Silica 1.0
  
  Page {
      id: episodesPage
 -
      allowedOrientations: Orientation.All
  
+-    onStatusChanged:{
+-        if(status ===PageStatus.Active && player.active){
+-            pageStack.pushAttached(player);
+-        }
+-    }
+-
 -    SilicaFlickable{
 +    PodcastEpisodesList {
 +        id: episodesList
@@ -839,7 +867,7 @@ index 11b09fb..0af3c94 100644
              MenuItem {
                  text: qsTr("Remove subscription")
                  onClicked: {
-@@ -38,8 +39,6 @@ Page {
+@@ -44,8 +39,6 @@ Page {
                      )
                  }
              }
@@ -848,7 +876,7 @@ index 11b09fb..0af3c94 100644
              MenuItem {
                  text: qsTr("Delete all downloaded podcasts")
                  onClicked: {
-@@ -50,15 +49,12 @@ Page {
+@@ -56,15 +49,12 @@ Page {
                      )
                  }
              }
@@ -864,7 +892,7 @@ index 11b09fb..0af3c94 100644
              MenuItem {
                  text: qsTr("Refresh")
                  onClicked: {
-@@ -67,7 +63,6 @@ Page {
+@@ -73,7 +63,6 @@ Page {
                  }
                  anchors.horizontalCenter: parent.horizontalCenter
              }
@@ -872,7 +900,7 @@ index 11b09fb..0af3c94 100644
          }
  
          RemorsePopup{
-@@ -80,56 +75,36 @@ Page {
+@@ -86,56 +75,36 @@ Page {
              text: qsTr("Delete downloaded podcasts")
          }
  
@@ -946,10 +974,10 @@ index 11b09fb..0af3c94 100644
          id: refreshingBanner
          text:  qsTr("Refreshing episodes...")
 diff --git a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
-index 0b58a37..0494777 100644
+index 42458b9..83fa099 100644
 --- a/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
 +++ b/usr/share/harbour-podcatcher/qml/pages/PodcastEpisodesList.qml
-@@ -16,12 +16,12 @@
+@@ -16,17 +16,22 @@
   * You should have received a copy of the GNU General Public License
   * along with Podcatcher for Sailfish OS.  If not, see <http://www.gnu.org/licenses/>.
   */
@@ -965,7 +993,17 @@ index 0b58a37..0494777 100644
  
      signal selectedEpisodeDescription(string desc)
  
-@@ -65,441 +65,427 @@ Item {
+     property int channelId
+ 
++    // UI settings
++    property int downloadedIndicatorWidth: 10
++    property int playedIndicatorWidth: 5
++    // --
++
+     function downloadingStatusText(alreadyDownloadedSize, totalDownloadSize) {
+         var downloadedStatus = parseInt(alreadyDownloadedSize) / 1024;  // to kB
+         var totalDownloadStatus = parseInt(totalDownloadSize) / 1024;   // to kB
+@@ -65,441 +70,431 @@ Item {
          return download_statusText;
      }
  
@@ -973,11 +1011,11 @@ index 0b58a37..0494777 100644
 -        id: podcastEpisodesInfoRect
 +    anchors.fill: parent
 +    model: episodesModel
-+
-+    VerticalScrollDecorator { flickable: podcastEpisodesList }
  
 -        smooth: true
 -        color: "transparent"
++    VerticalScrollDecorator { flickable: podcastEpisodesList }
++
 +    delegate: ListItem {
 +        id: podcastItem
 +        state: episodeState
@@ -1106,7 +1144,7 @@ index 0b58a37..0494777 100644
 -                    width: podcastItem.width - downloadedIndicator.width - playButton.width - Theme.paddingMedium -2* Theme.horizontalPageMargin
 -                    height: Text.paintedHeight
 -                    //height: 2.4*Theme.fontSizeSmall
--                    truncationMode: TuncationMode.Elide
+-                    truncationMode: TruncationMode.Elide
 -                    wrapMode: Text.WordWrap
 -                }
 -
@@ -1189,12 +1227,16 @@ index 0b58a37..0494777 100644
 -                    icon.source: "image://theme/icon-m-cloud-download"
 -                    anchors.right: parent.right
 -                    anchors.rightMargin: Theme.horizontalPageMargin
++        Rectangle {
++            id: downloadedIndicatorSpacer
++            width: downloadedIndicatorWidth
++        }
  
 -                    anchors.verticalCenter: parent.verticalCenter
 -                    visible: true
 +        Rectangle {
 +            id: downloadedIndicator
-+            width: 10
++            width: downloadedIndicatorWidth
 +            height: parent.height
 +            color: Theme.highlightColor
 +            anchors.left: parent.left
@@ -1205,12 +1247,17 @@ index 0b58a37..0494777 100644
 -                        appWindow.downloadPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
 -                    }
 -                }
- 
 +        Item{
 +            id: downloadProgress
 +            anchors.fill: parent
 +            visible: cancelButton.visible
 +            Rectangle{
+ 
++                anchors.fill: parent
++                color: Theme.highlightBackgroundColor
++                opacity: 0.5
++            }
++        }
  
 -                IconButton {
 -                    id: queueButton
@@ -1219,17 +1266,6 @@ index 0b58a37..0494777 100644
 -                    anchors.rightMargin: Theme.horizontalPageMargin
 -                    anchors.verticalCenter: parent.verticalCenter
 -                    visible: false
-+                anchors.fill: parent
-+                color: Theme.highlightBackgroundColor
-+                opacity: 0.5
-+            }
-+        }
- 
--                    onClicked: {
--                        console.log("Cancel queue of: " + channelId + " index: "+index);
--                        appWindow.cancelQueue(channelId, index);
--                    }
--                }
 +        OpacityRampEffect {
 +            sourceItem:downloadProgress
 +            direction: OpacityRamp.LeftToRight
@@ -1237,14 +1273,12 @@ index 0b58a37..0494777 100644
 +            offset: (alreadyDownloadedSize/totalDownloadSize)
 +        }
  
+-                    onClicked: {
+-                        console.log("Cancel queue of: " + channelId + " index: "+index);
+-                        appWindow.cancelQueue(channelId, index);
+-                    }
+-                }
  
--                IconButton {
--                    id: cancelButton
--                    icon.source: "image://theme/icon-m-reset"
--                    anchors.right: parent.right
--                    anchors.rightMargin: Theme.horizontalPageMargin
--                    anchors.verticalCenter: parent.verticalCenter
--                    visible: false
 +        Label {
 +            id: episodeName
 +            text: title;
@@ -1256,18 +1290,25 @@ index 0b58a37..0494777 100644
 +                leftMargin: Theme.horizontalPageMargin
 +            }
  
--                    onClicked: {
--                        console.log("Cancel download of: " + channelId + "index: "+index);
--                        appWindow.cancelDownload(channelId, index);
--                    }
--                }
-+            width: podcastItem.width - downloadedIndicator.width - playButton.width - Theme.paddingMedium -2* Theme.horizontalPageMargin
+-                IconButton {
+-                    id: cancelButton
+-                    icon.source: "image://theme/icon-m-reset"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: false
++            width: podcastItem.width - downloadedIndicatorWidth - playButton.width - Theme.paddingMedium -2* Theme.horizontalPageMargin
 +            height: Text.paintedHeight
 +            //height: 2.4*Theme.fontSizeSmall
 +            truncationMode: TruncationMode.Elide
 +            wrapMode: Text.WordWrap
 +        }
  
+-                    onClicked: {
+-                        console.log("Cancel download of: " + channelId + "index: "+index);
+-                        appWindow.cancelDownload(channelId, index);
+-                    }
+-                }
 +        Label {
 +            id: channelPublished
 +            anchors{
@@ -1282,13 +1323,6 @@ index 0b58a37..0494777 100644
 +            height: Text.paintedHeight
 +        }
  
--                IconButton {
--                    id: playButton
--                    icon.source: "image://theme/icon-m-play"
--                    anchors.right: parent.right
--                    anchors.rightMargin: Theme.horizontalPageMargin
--                    anchors.verticalCenter: parent.verticalCenter
--                    visible: false
 +        Label {
 +            id: lastPlayed
 +            anchors{
@@ -1302,7 +1336,14 @@ index 0b58a37..0494777 100644
 +            text: lastTimePlayed
 +            height: Text.paintedHeight
 +        }
-+
+ 
+-                IconButton {
+-                    id: playButton
+-                    icon.source: "image://theme/icon-m-play"
+-                    anchors.right: parent.right
+-                    anchors.rightMargin: Theme.horizontalPageMargin
+-                    anchors.verticalCenter: parent.verticalCenter
+-                    visible: false
 +        Label {
 +            id: queued
 +            anchors{
@@ -1317,7 +1358,11 @@ index 0b58a37..0494777 100644
 +            height: Text.paintedHeight
 +            visible: false
 +        }
-+
+ 
+-                    onClicked: {
+-                        appWindow.playPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
+-                    }
+-                }
 +        Label {
 +            id: downloadBytesText
 +            anchors{
@@ -1357,25 +1402,12 @@ index 0b58a37..0494777 100644
 +            anchors.rightMargin: Theme.horizontalPageMargin
 +            anchors.verticalCenter: parent.verticalCenter
 +            visible: false
-+
+ 
 +            onClicked: {
 +                console.log("Cancel queue of: " + channelId + " index: "+index);
 +                appWindow.cancelQueue(channelId, index);
 +            }
 +        }
- 
--                    onClicked: {
--                        appWindow.playPodcast(channelId, index);  // Channel id = which model to use, index = row in the model.
--                    }
--                }
- 
-+        IconButton {
-+            id: cancelButton
-+            icon.source: "image://theme/icon-m-reset"
-+            anchors.right: parent.right
-+            anchors.rightMargin: Theme.horizontalPageMargin
-+            anchors.verticalCenter: parent.verticalCenter
-+            visible: false
  
 -                IconButton {
 -                    id: webButton
@@ -1383,6 +1415,15 @@ index 0b58a37..0494777 100644
 -                    anchors.right: parent.right
 -                    anchors.rightMargin: Theme.horizontalPageMargin
 -                    anchors.verticalCenter: parent.verticalCenter
++
++        IconButton {
++            id: cancelButton
++            icon.source: "image://theme/icon-m-reset"
++            anchors.right: parent.right
++            anchors.rightMargin: Theme.horizontalPageMargin
++            anchors.verticalCenter: parent.verticalCenter
++            visible: false
++
 +            onClicked: {
 +                console.log("Cancel download of: " + channelId + "index: "+index);
 +                appWindow.cancelDownload(channelId, index);
@@ -1518,6 +1559,7 @@ index 0b58a37..0494777 100644
 +                PropertyChanges {
 +                    target: downloadedIndicator
 +                    visible: true
++                    width: downloadedIndicatorWidth
 +                }
 +                PropertyChanges {
 +                    target: channelPublished
@@ -1537,7 +1579,7 @@ index 0b58a37..0494777 100644
 +                PropertyChanges {
 +                    target: downloadedIndicator
 +                    visible: true
-+                    color: Theme.primaryColor
++                    width: playedIndicatorWidth
 +                }
 +                PropertyChanges {
 +                    target: playButton
@@ -1588,10 +1630,6 @@ index 0b58a37..0494777 100644
 +                name: "website"
 +                PropertyChanges {
 +                    target: downloadButton
-+                    visible: false
-+                }
-+                PropertyChanges {
-+                    target: playButton
                      visible: false
 -                    text: qsTr("No media")
 -                    anchors.right: parent.right
@@ -1608,7 +1646,7 @@ index 0b58a37..0494777 100644
 -                    width: playButton.width
 +                }
 +                PropertyChanges {
-+                    target: channelPublished
++                    target: playButton
                      visible: false
 -                    anchors.verticalCenter: parent.verticalCenter
 -                }*/
@@ -1776,6 +1814,10 @@ index 0b58a37..0494777 100644
 -                ]
 +                }
 +                PropertyChanges {
++                    target: channelPublished
++                    visible: false
++                }
++                PropertyChanges {
 +                    target: webButton
 +                    visible: true
 +                }
@@ -1789,10 +1831,31 @@ index 0b58a37..0494777 100644
      Connections {
          target: ui
          onStreamingUrlResolved: {
-@@ -516,5 +502,4 @@ Item {
+@@ -508,22 +503,12 @@ Item {
+                 mainPahe.infoBanner.show();
+             } else {
+                 console.log("Streaming " + streamUrl + streamUrl);
+-                //mainPage.audioStreamer.playStream(streamUrl, streamTitle);
+-                player.playStream(streamUrl, streamTitle);
++                mainPage.audioStreamer.playStream(streamUrl, streamTitle);
+ 
+-                pageStack.push(player);
++                if (episodesPage.pageStack.depth > 1)  {
++                    episodesPage.pageStack.pop();
++                }
              }
          }
      }
+-
+-    Connections{
+-        target: ui
+-
+-        onPlayFileWithInternalPlayer:{
+-            player.playFile(fileName);
+-            pageStack.push(player);
+-        }
+-
+-    }
 -
  }
 diff --git a/usr/share/harbour-podcatcher/qml/pages/SearchPodcasts.qml b/usr/share/harbour-podcatcher/qml/pages/SearchPodcasts.qml

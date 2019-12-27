@@ -41,7 +41,7 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-xt9-improved-p
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.0.1
 Release: 1
 
 Requires:
@@ -65,8 +65,12 @@ CompatibleVersions:
 - 3.0.3.8
 - 3.0.3.9
 - 3.0.3.10
+- 3.1.0.11
+- 3.2.0.12
+- 3.2.1.20
 
 Changelog:
+- Fr Dec 27: update compatibility info: the patch is compatible with all versions of SailfishOS 3
 - So Jun 30: fix package name to be the same in all locations
 - Sa Jun 29: initial public release
 
