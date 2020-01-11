@@ -1,0 +1,13 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+index 9f98394..5cdc2f2 100644
+--- a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
++++ b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+@@ -92,7 +92,7 @@ SwipeGestureArea {
+ 
+     readonly property bool swipeGestureIsSafe: !releaseTimer.running
+ 
+-    height: layout ? layout.height : 0
++    height: layout ? (portraitMode ? layout.height*1.25 : layout.height) : 0
+     onLayoutChanged: if (layout) layout.parent = keyboard
+     onPortraitModeChanged: cancelAllTouchPoints()
+ 

@@ -1,0 +1,71 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.7.13
+
+Prefix: /usr/share
+DisplayName: Keyboard adapted to 'long' phones (like Xperia 10)
+PackageName: sfos-patch-keyboard-for-long-phones
+Category: Keyboard
+Keywords:
+- Patch
+- Xperia 10
+- Keyboard
+- Height
+- Position
+
+Maintainer: ichthyosaurus
+Summary: Keyboard adapted to 'long' phones (like Xperia 10)
+Description:
+- Using the keyboard on phones with a 'long' form factor like the Xperia 10
+- can be quite uncomfortable. This patch moves the entire keyboard higher up
+- on the screen to make it easier accessible without having to lose grip.
+-
+- *Note:*
+- It would be nice if someone who actually has such a long phone could provide
+- two 'before and after' screenshots!
+-
+- *Credits:*
+- I am only the packager of this patch. The idea was raised
+- [here](https://together.jolla.com/question/220879/idea-raise-the-keyboard-on-long-devices/)
+- where [Edz](https://together.jolla.com/users/907/edz/) provided the first
+- patch. It was further improved by [rdomschk](https://openrepos.net/users/rdomschk).
+
+# DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-...
+# DonationsLink: still missing
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.7.13
+
+# Conflicts:
+# - my-conflicting-package = 0.0.1
+
+# Screenshots:
+# - screenshot-1.png
+# - screenshot-2.png
+
+CompatibleVersions:
+- 3.2.1.20
+
+Changelog:
+- 1.0.0 (2020-01-11):
+- - initial public release
+
+# kate: syntax SailfishOS Patch
