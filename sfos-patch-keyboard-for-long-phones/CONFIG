@@ -33,15 +33,14 @@ Description:
 - can be quite uncomfortable. This patch moves the entire keyboard higher up
 - on the screen to make it easier accessible without having to lose grip.
 -
-- *Note:*
-- It would be nice if someone who actually has such a long phone could provide
-- two 'before and after' screenshots!
--
 - *Credits:*
 - I am only the packager of this patch. The idea was raised
 - [here](https://together.jolla.com/question/220879/idea-raise-the-keyboard-on-long-devices/)
+- by [JacekJagosz](https://openrepos.net/users/jacekjagosz)
 - where [Edz](https://together.jolla.com/users/907/edz/) provided the first
 - patch. It was further improved by [rdomschk](https://openrepos.net/users/rdomschk).
+-
+- Screenshots were provided by [theyosh](https://openrepos.net/users/theyosh).
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-keyboard-adapted-long-phones-xperia-10
 # DonationsLink: still missing
@@ -57,9 +56,9 @@ Requires:
 # Conflicts:
 # - my-conflicting-package = 0.0.1
 
-# Screenshots:
-# - screenshot-1.png
-# - screenshot-2.png
+Screenshots:
+- screenshot-01-original.png
+- screenshot-02-patched.png
 
 CompatibleVersions:
 - 3.2.1.20
