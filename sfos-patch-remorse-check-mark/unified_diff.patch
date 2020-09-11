@@ -1,0 +1,13 @@
+diff --git a/usr/lib/qt5/qml/Sailfish/Silica/private/RemorseBase.qml b/usr/lib/qt5/qml/Sailfish/Silica/private/RemorseBase.qml
+index f852bcb..0b5fa42 100644
+--- a/usr/lib/qt5/qml/Sailfish/Silica/private/RemorseBase.qml
++++ b/usr/lib/qt5/qml/Sailfish/Silica/private/RemorseBase.qml
+@@ -175,7 +175,7 @@ BackgroundItem {
+ 
+     IconButton {
+         id: iconButton
+-        icon.source: enabled ? "image://theme/icon-m-input-remove" : ""
++        icon.source: enabled ? "image://theme/icon-m-accept" : ""
+         y: parent.height > Theme.itemSizeExtraLarge ? background.y : parent.height/2 - height/2
+         enabled: hint.state === ""
+         opacity: enabled ? 1.0 : 0.0
