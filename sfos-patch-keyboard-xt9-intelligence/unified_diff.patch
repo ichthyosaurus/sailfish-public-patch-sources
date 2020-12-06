@@ -1,8 +1,8 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml b/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
-index e87fb01..76829dd 100644
+index 38bf609..9ef0289 100644
 --- a/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
 +++ b/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
-@@ -362,16 +362,33 @@ InputHandler {
+@@ -319,16 +319,33 @@ InputHandler {
                      commit(preedit + pressedKey.text)
                  } else {
                      if (candidateSpaceIndex > 0 && candidateSpaceIndex === MInputMethodQuick.cursorPosition

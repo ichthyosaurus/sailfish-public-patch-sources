@@ -13,7 +13,7 @@
 #
 
 SourcePackages:
-- sailfishsilica-qt5 = 1.1.86.1
+- sailfishsilica-qt5 >= 1.1.86.1
 
 Prefix: /usr/lib/qt5/qml/Sailfish/Silica/private
 DisplayName: Check mark for remorse timer
@@ -52,12 +52,12 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-check-mark-rem
 # DonationsLink:
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.0.1
 Release: 1
 
 Requires:
 - sailfish-version >= 3.0.0
-- sailfishsilica-qt5 = 1.1.86.1
+- sailfishsilica-qt5 >= 1.1.86.1
 
 Conflicts:
 - sfos-patch-remorse-remove-cross = 1.0.0
@@ -81,8 +81,14 @@ CompatibleVersions:
 - 3.2.1.20
 - 3.3.0.14
 - 3.3.0.16
+- 3.4.0.22
+- 3.4.0.24
+
 
 Changelog:
+- 1.0.1:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
+-
 - 1.0.0 (2020-09-08):
 - - initial public release
 

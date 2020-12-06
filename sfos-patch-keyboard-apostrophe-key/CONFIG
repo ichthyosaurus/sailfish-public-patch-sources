@@ -40,7 +40,7 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-apostrophe-key
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.3
+Version: 1.0.4
 Release: 1
 
 Requires:
@@ -72,8 +72,14 @@ CompatibleVersions:
 - 3.2.1.20
 - 3.3.0.14
 - 3.3.0.16
+- 3.4.0.22
+- 3.4.0.24
+
 
 Changelog:
+- 1.0.4:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
+-
 - 1.0.3:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS 3 up to 3.3.0.16
 -
