@@ -38,6 +38,7 @@ index 0000000..d75aa9e
 +            if      (loc.name.indexOf("de_")   !== -1) text = "Datierten Abschnitt einfügen";
 +            else if (loc.name.indexOf("fr_")   !== -1) text = "Ajouter une section datée";
 +            else if (loc.name.indexOf("zh_CN") !== -1) text = "添加时间戳记";
+             else if (loc.name.indexOf("pl_PL") !== -1) text = "Wstaw sekcję z datą";
 +            // add new translations here
 +        }
 +    }
