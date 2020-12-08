@@ -1,0 +1,76 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.8.9.1
+
+Prefix: /usr
+DisplayName: Toggle text prediction
+PackageName: sfos-patch-keyboard-toggle-prediction
+Category: Keyboard
+Keywords:
+- Patch
+- Keyboard
+- completion
+- text prediction
+- predictive
+- toggle
+
+Maintainer: ichthyosaurus
+Summary: Extra keyboard button to toggle text prediction
+Description:
+- This patch adds a toggle button left of the clipboard.
+-
+- Clicking the button enables or disables text prediction. The default state is
+- restored when the keyboard is closed. It can also be reset manually
+- by pressing and holding the switch, just as you would clear the clipboard.
+-
+- While developing the patch, it often caused the keyboard to freeze. This should
+- no longer happen, but if it does, removing the patch should suffice.
+-
+-
+- Some useful commands for developing keyboard patches:
+-
+- - remove the patch: /usr/sbin/patchmanager -u sfos-patch-keyboard-toggle-prediction
+- - restart the keyboard: systemctl --user restart maliit-server
+- - reset settings: dconf reset /patch/ichthyosaurus/keyboard-toggle-prediction/enabled
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-toggle-text-prediction
+# DonationsLink: still missing
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- jolla-keyboard >= 0.8.9.1
+
+# Conflicts:
+# - my-conflicting-package = 0.0.1
+
+Screenshots:
+- screenshot-01.png
+- screenshot-02.png
+- screenshot-03.png
+
+CompatibleVersions:
+- 3.4.0.22
+- 3.4.0.24
+
+Changelog:
+- 1.0.0:
+- - initial public release
+
+# kate: syntax SailfishOS Patch

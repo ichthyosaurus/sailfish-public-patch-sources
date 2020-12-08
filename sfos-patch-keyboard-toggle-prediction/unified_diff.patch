@@ -1,0 +1,180 @@
+diff --git a/usr/lib/maliit/plugins/jolla-keyboard.qml b/usr/lib/maliit/plugins/jolla-keyboard.qml
+index 0d7879a..e2ea0b2 100644
+--- a/usr/lib/maliit/plugins/jolla-keyboard.qml
++++ b/usr/lib/maliit/plugins/jolla-keyboard.qml
+@@ -251,6 +251,13 @@ Item {
+         defaultValue: false
+     }
+ 
++    ConfigurationValue {
++        id: predictionOverrideState
++        key: "/patch/ichthyosaurus/keyboard-toggle-prediction/enabled"
++        defaultValue: MInputMethodQuick.predictionEnabled
++        onValueChanged: keyboard.updateLayoutIfAllowed()
++    }
++
+     OpaqueBackgroundItem {
+         x: MInputMethodQuick.appOrientation == 270
+                 ? canvas.width - width
+@@ -521,7 +528,7 @@ Item {
+                         // non-composing
+                         if (MInputMethodQuick.contentType === Maliit.FreeTextContentType
+                                 && !MInputMethodQuick.hiddenText
+-                                && MInputMethodQuick.predictionEnabled) {
++                                && predictionOverrideState.value) {
+                             return advancedInputHandler
+                         } else {
+                             return pasteInputHandler
+diff --git a/usr/share/maliit/plugins/com/jolla/PasteButton.qml b/usr/share/maliit/plugins/com/jolla/PasteButton.qml
+index b4660c5..5a181d3 100644
+--- a/usr/share/maliit/plugins/com/jolla/PasteButton.qml
++++ b/usr/share/maliit/plugins/com/jolla/PasteButton.qml
+@@ -15,6 +15,12 @@ PasteButtonBase {
+         anchors.right: parent.right
+         anchors.rightMargin: Theme.paddingMedium
+ 
++        PredictionSwitch {
++            id: pastePredictionSwitch
++            height: parent.height
++            container: pasteContainer
++        }
++
+         Label {
+             id: pasteLabel
+ 
+@@ -31,6 +37,7 @@ PasteButtonBase {
+         Image {
+             id: pasteIcon
+ 
++            visible: Clipboard.hasText
+             anchors.verticalCenter: parent.verticalCenter
+             source: "image://theme/icon-m-clipboard"
+                     + (pasteContainer.highlighted ? ("?" + Theme.highlightColor) : "")
+diff --git a/usr/share/maliit/plugins/com/jolla/PasteButtonBase.qml b/usr/share/maliit/plugins/com/jolla/PasteButtonBase.qml
+index 5d589c9..f5a6264 100644
+--- a/usr/share/maliit/plugins/com/jolla/PasteButtonBase.qml
++++ b/usr/share/maliit/plugins/com/jolla/PasteButtonBase.qml
+@@ -10,11 +10,14 @@ BackgroundItem {
+ 
+     property int popupAnchor // 0 -> left, 1 -> right, 2 -> center
+     property alias popupParent: popup.parent
++    property alias popupLabelText: clearLabel.text
++    property alias popupVisible: popup.visible
++    property alias popupLabelTextDefault: clearLabel.defaultText
+ 
+     height: parent ? parent.height : 0
+     width: Clipboard.hasText ? (keyboard.expandedPaste ? pasteRow.width + 2*Theme.paddingMedium
+                                                        : pasteIcon.width + Theme.paddingMedium)
+-                             : 0
++                             : Theme.iconSizeMedium + 2*Theme.paddingMedium
+ 
+     preventStealing: popup.visible
+     highlighted: down || popup.visible
+@@ -64,6 +67,7 @@ BackgroundItem {
+             anchors.centerIn: parent
+             color: parent.containsMouse ? Theme.primaryColor : Theme.highlightColor
+             //% "Clear clipboard"
++            property string defaultText: qsTrId("text_input-la-clear_clipboard")
+             text: qsTrId("text_input-la-clear_clipboard")
+         }
+     }
+diff --git a/usr/share/maliit/plugins/com/jolla/PredictionSwitch.qml b/usr/share/maliit/plugins/com/jolla/PredictionSwitch.qml
+new file mode 100644
+index 0000000..f9186fa
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/PredictionSwitch.qml
+@@ -0,0 +1,82 @@
++// Copyright (c) 2020 ichthyosaurus
++// Licensed under the GNU GPL v3+ (https://gnu.org/licenses).
++
++import QtQuick 2.0
++import com.meego.maliitquick 1.0
++import org.nemomobile.configuration 1.0
++import com.jolla.keyboard 1.0
++import Sailfish.Silica 1.0
++
++// Using BackgroundItem (or PasteButtonBase) instead of Item breaks everything!
++// Adding it directly in HorizontalPredictionListView.qml instead of PasteButton.qml
++// doesn't work either. If the logs (journalctl) show the warning
++// "invalid inputhandler for  , forcing paste input handler" (and the keyboard freezes),
++// then something went wrong.
++// Remove the patch: /usr/sbin/patchmanager -u sfos-patch-keyboard-toggle-prediction
++// And restart the keyboard: systemctl --user restart maliit-server
++// Reset settings: dconf reset /patch/ichthyosaurus/keyboard-toggle-prediction/enabled
++Item {
++    id: pastePredictionSwitch
++    property var container
++    width: Theme.iconSizeMedium
++
++    function reset(force) {
++        container.popupLabelText = container.popupLabelTextDefault
++        container.popupVisible = false
++
++        if (force || !MInputMethodQuick.predictionEnabled) {
++            // reset to disabled if requested by an app, otherwise we can leave it
++            switchy.checked = MInputMethodQuick.predictionEnabled
++            predictionOverrideState.value = undefined // MInputMethodQuick.predictionEnabled
++        }
++    }
++
++    MouseArea {
++        id: mouse
++        anchors.fill: parent
++        preventStealing: true
++
++        onClicked: {
++            switchy.checked = !switchy.checked
++            predictionOverrideState.value = switchy.checked
++        }
++        onPressAndHold: {
++            container.popupLabelText = "Prediction mode reset to " + (
++                MInputMethodQuick.predictionEnabled ? "enabled" : "disabled")
++            container.popupVisible = true
++            timeout.restart()
++        }
++
++        Timer {
++            id: timeout
++            running: false; repeat: false
++            interval: 1200
++            onTriggered: reset(true) // force
++        }
++    }
++
++    Switch {
++        id: switchy
++        width: 0; height: 0
++        anchors {
++            verticalCenter: parent.verticalCenter
++            horizontalCenter: parent.horizontalCenter
++        }
++        checked: false
++        Component.onCompleted: checked = predictionOverrideState.value
++        automaticCheck: false
++        highlighted: mouse.pressed || parent.highlighted
++    }
++
++    ConfigurationValue {
++        id: predictionOverrideState
++        key: "/patch/ichthyosaurus/keyboard-toggle-prediction/enabled"
++        defaultValue: MInputMethodQuick.predictionEnabled
++    }
++
++    Connections {
++        target: MInputMethodQuick
++        onActiveChanged: reset()
++        onPredictionEnabledChanged: reset()
++    }
++}
+diff --git a/usr/share/maliit/plugins/com/jolla/qmldir b/usr/share/maliit/plugins/com/jolla/qmldir
+index cfb1e36..6b628ca 100644
+--- a/usr/share/maliit/plugins/com/jolla/qmldir
++++ b/usr/share/maliit/plugins/com/jolla/qmldir
+@@ -27,6 +27,7 @@ QuickPick 1.0 QuickPick.qml
+ DeadKey 1.0 DeadKey.qml
+ AccentedCharacterKey 1.0 AccentedCharacterKey.qml
+ NumberKey 1.0 NumberKey.qml
++PredictionSwitch 1.0 PredictionSwitch.qml
+ PasteButtonBase 1.0 PasteButtonBase.qml
+ PasteButton 1.0 PasteButton.qml
+ PasteButtonVertical 1.0 PasteButtonVertical.qml
