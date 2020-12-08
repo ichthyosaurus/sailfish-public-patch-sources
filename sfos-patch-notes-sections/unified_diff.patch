@@ -12,10 +12,10 @@ index a054a77..9d69565 100644
          Column {
 diff --git a/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml b/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml
 new file mode 100644
-index 0000000..d75aa9e
+index 0000000..1524411
 --- /dev/null
 +++ b/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,67 @@
 +import QtQuick 2.0
 +import Sailfish.Silica 1.0
 +
@@ -38,7 +38,7 @@ index 0000000..d75aa9e
 +            if      (loc.name.indexOf("de_")   !== -1) text = "Datierten Abschnitt einfügen";
 +            else if (loc.name.indexOf("fr_")   !== -1) text = "Ajouter une section datée";
 +            else if (loc.name.indexOf("zh_CN") !== -1) text = "添加时间戳记";
-             else if (loc.name.indexOf("pl_PL") !== -1) text = "Wstaw sekcję z datą";
++            else if (loc.name.indexOf("pl_PL") !== -1) text = "Wstaw sekcję z datą";
 +            // add new translations here
 +        }
 +    }
