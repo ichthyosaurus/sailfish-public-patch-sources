@@ -1,5 +1,5 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml b/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
-index d0fa206..94e1c61 100644
+index d0fa206..6260deb 100644
 --- a/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
 +++ b/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
 @@ -3,10 +3,13 @@
@@ -44,7 +44,7 @@ index d0fa206..94e1c61 100644
              }
          }
  
-@@ -51,8 +62,26 @@ PredictionListView {
+@@ -51,8 +62,25 @@ PredictionListView {
              }
          }
  
@@ -57,9 +57,8 @@ index d0fa206..94e1c61 100644
 +            horizontalAlignment: Image.AlignHCenter
 +            verticalAlignment: Image.AlignVCenter
 +            asynchronous: true
-+            source: isEmojiKeyboard ?
-+                        Emoji.parseSingleUrl(model.text, width, Emoji.Style[emojiConfig.currentStyle],
-+                                             true, width).text : ''
++            source: (isEmojiKeyboard && !!emojiConfig) ?
++                        emojiConfig.getUrl(model.text, width, true) : ''
 +            visible: source !== '' && status === Image.Ready
 +            opacity: visible ? 1.0 : 0.0
 +            Behavior on opacity { FadeAnimator { } }
@@ -71,7 +70,7 @@ index d0fa206..94e1c61 100644
  
              x: Theme.paddingLarge
              width: Math.min(implicitWidth, view._maximumLabelWidth + Theme.paddingLarge - view._buttonMargin)
-@@ -87,6 +116,10 @@ PredictionListView {
+@@ -87,6 +115,10 @@ PredictionListView {
          }
      }
  
@@ -198,7 +197,7 @@ index 66a1575..32d409a 100644
          // position content row so that the base character is visible and centered
          contentRow.x = popper.radius -
 diff --git a/usr/share/maliit/plugins/com/jolla/PopperCell.qml b/usr/share/maliit/plugins/com/jolla/PopperCell.qml
-index b205294..7adb61b 100644
+index b205294..d658d5d 100644
 --- a/usr/share/maliit/plugins/com/jolla/PopperCell.qml
 +++ b/usr/share/maliit/plugins/com/jolla/PopperCell.qml
 @@ -3,6 +3,8 @@
@@ -210,7 +209,7 @@ index b205294..7adb61b 100644
  
  Item {
      id: popperCell
-@@ -10,11 +12,37 @@ Item {
+@@ -10,11 +12,36 @@ Item {
      height: geometry.popperHeight
  
      property bool active
@@ -236,8 +235,7 @@ index b205294..7adb61b 100644
 +        horizontalAlignment: Image.AlignHCenter
 +        verticalAlignment: Image.AlignVCenter
 +        asynchronous: true
-+        source: isEmoji ? Emoji.parseSingleUrl(character, width,
-+                                               Emoji.Style[emojiConfig.currentStyle]).text : ''
++        source: (isEmoji && !!emojiConfig) ? emojiConfig.getUrl(character, width, false) : ''
 +        visible: textVisible && isEmoji && status === Image.Ready
 +        opacity: visible ? (popperCell.active ? 1.0 : 0.4) : 0.0
 +        Behavior on opacity { FadeAnimator { } }
@@ -249,7 +247,7 @@ index b205294..7adb61b 100644
          anchors.top: parent.top
          anchors.bottom: parent.bottom
          anchors.horizontalCenter: parent.horizontalCenter
-@@ -28,4 +56,8 @@ Item {
+@@ -28,4 +55,8 @@ Item {
          font.pixelSize: geometry.popperFontSize
          fontSizeMode: Text.Fit
      }
@@ -260,14 +258,16 @@ index b205294..7adb61b 100644
  }
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml
 new file mode 100644
-index 0000000..b3413cf
+index 0000000..1bff6e9
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,165 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
 +// SPDX-FileCopyrightText: 2021 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
++import Sailfish.Silica 1.0
 +import Nemo.Configuration 1.0
++import "patch_ichthyo_emoji.js" as Emoji
 +
 +ConfigurationGroup {
 +    id: root
@@ -275,10 +275,26 @@ index 0000000..b3413cf
 +
 +    property string currentStyle: 'openmoji'
 +    property var recentlyUsedList: []
++    property int layoutRows: 3
 +    property int maxHistory: 30
++    property bool _initialized: false
 +
 +    signal variationChanged(var key)
 +    signal variationsChanged
++
++    function init() {
++        Emoji.dataBaseDirectory = StandardPaths.genericData
++    }
++
++    function getUrl(emojiCharacter, width, noGrow, maxSize) {
++        if (!_initialized) init()
++        return Emoji.parseSingleUrl(emojiCharacter, width,
++                                    Emoji.Style[currentStyle],
++                                    (!!noGrow), (!!noGrow) ?
++                                        (maxSize !== undefined ? maxSize :width) :
++                                        undefined
++                                    ).text
++    }
 +
 +    function saveVariation(base, selected) {
 +        variations.setValue(base, selected)
@@ -413,10 +429,10 @@ index 0000000..b3413cf
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
 new file mode 100644
-index 0000000..81adb00
+index 0000000..531a0f8
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
-@@ -0,0 +1,305 @@
+@@ -0,0 +1,394 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
 +// SPDX-FileCopyrightText: 2021 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
@@ -432,6 +448,7 @@ index 0000000..81adb00
 +    //   but still be picked up by the column layout
 +    height: _closedHeight
 +    width: parent.width
++    enabled: height === _openedHeight
 +    Behavior on height { SmoothedAnimation { duration: 300 } }
 +
 +    readonly property string patchVersion: "1.0.0-1" // <-- change on update
@@ -441,7 +458,7 @@ index 0000000..81adb00
 +    property real _openedHeight: ((MInputMethodQuick.appOrientation % 180 === 0) ?
 +                                      Screen.height : Screen.width)
 +
-+    readonly property bool _haveRecently: emojiConfig.recentlyUsedList.length > 0
++    readonly property bool _haveRecently: !!emojiConfig && emojiConfig.recentlyUsedList.length > 0
 +    property int _currentSelection: -1
 +    signal emojiClicked(var index)
 +
@@ -483,15 +500,50 @@ index 0000000..81adb00
 +        property: "height"
 +        from: _closedHeight
 +        to: _closedHeight
++        onStopped: if (!open) flick.scrollToTop()
++    }
++
++    Label {
++        id: closeLabelTop
++        anchors {
++            top: parent.top; topMargin: Theme.paddingLarge
++            horizontalCenter: parent.horizontalCenter
++        }
++        font.pixelSize: Theme.fontSizeLarge
++        color: Theme.secondaryColor
++        text: "Close"
++        opacity: flick.contentY > 0 ? 0.0 : (-1*flick.contentY)/250
++    }
++
++    Label {
++        id: closeLabelBottom
++        anchors {
++            bottom: parent.bottom; bottomMargin: Theme.paddingLarge
++            horizontalCenter: parent.horizontalCenter
++        }
++        font.pixelSize: Theme.fontSizeLarge
++        color: Theme.secondaryColor
++        text: "Close"
++        opacity: ((flick.contentY+flick.height)<flick.contentHeight)
++                 ? 0.0 : ((flick.contentY+flick.height)-flick.contentHeight)/250
 +    }
 +
 +    SilicaFlickable {
++        id: flick
 +        anchors.fill: parent
 +        opacity: (open && !openAnim.running) ? 1.0 : 0.0
 +        Behavior on opacity { FadeAnimator { duration: 200 } }
-+        VerticalScrollDecorator { }
++        VerticalScrollDecorator { flickable: flick }
 +        contentWidth: parent.width
 +        contentHeight: column.height
++
++        boundsBehavior: Flickable.DragOverBounds
++        onDraggingVerticallyChanged: {
++            if (contentY < -150 || contentY+height > contentHeight+150) {
++                scrollToTop()
++                open = false
++            }
++        }
 +
 +        Column {
 +            id: column
@@ -536,7 +588,7 @@ index 0000000..81adb00
 +                    padding: Theme.paddingMedium
 +
 +                    Repeater {
-+                        model: emojiConfig.recentlyUsedList
++                        model: !!emojiConfig ? emojiConfig.recentlyUsedList : []
 +                        Item {
 +                            id: emoji
 +                            width: Theme.iconSizeSmallPlus
@@ -553,9 +605,8 @@ index 0000000..81adb00
 +                                horizontalAlignment: Image.AlignHCenter
 +                                verticalAlignment: Image.AlignVCenter
 +                                asynchronous: true
-+                                source: Emoji.parseSingleUrl(modelData, width,
-+                                                             Emoji.Style[emojiConfig.currentStyle],
-+                                                             true, Theme.iconSizeSmallPlus).text
++                                source: !!emojiConfig ? emojiConfig.getUrl(modelData, width,
++                                                                           true, Theme.iconSizeSmallPlus) : ''
 +                                visible: status === Image.Ready && !removeButton.visible
 +                                opacity: visible ? 1.0 : 0.0
 +                                Behavior on opacity { FadeAnimator { } }
@@ -571,6 +622,7 @@ index 0000000..81adb00
 +                                anchors.centerIn: parent
 +                                icon.source: "image://theme/icon-m-clear"
 +                                onClicked: {
++                                    if (!emojiConfig) return
 +                                    emojiIcon.visible = false // hide doomed
 +                                    emojiClicked(-1) // reset selection
 +                                    emojiConfig.removeRecently(index)
@@ -589,6 +641,7 @@ index 0000000..81adb00
 +                visible: !_haveRecently
 +                width: parent.width - 2*Theme.horizontalPageMargin
 +                wrapMode: Text.Wrap
++                font.pixelSize: Theme.fontSizeSmall
 +                anchors.horizontalCenter: parent.horizontalCenter
 +                text: "No recently used emojis have been collected yet."
 +                color: Theme.secondaryHighlightColor
@@ -600,7 +653,7 @@ index 0000000..81adb00
 +                visible: _haveRecently
 +                anchors.horizontalCenter: parent.horizontalCenter
 +                text: "Clear recently used"
-+                onClicked: emojiConfig.clearRecently()
++                onClicked: if (!!emojiConfig) emojiConfig.clearRecently()
 +            }
 +
 +            Item { width: parent.width; height: 2*Theme.paddingLarge }
@@ -615,7 +668,8 @@ index 0000000..81adb00
 +                anchors.horizontalCenter: parent.horizontalCenter
 +                textFormat: Text.StyledText
 +                linkColor: Theme.secondaryColor
-+                text: "You have to manually install an emoji set before you can use it. " +
++                font.pixelSize: Theme.fontSizeSmall
++                text: "You have to manually download and install an emoji set before you can use it. " +
 +                      "Please follow the instructions "+
 +                      "<a href='https://gitlab.com/rubdos/whisperfish-wiki/-/blob/master/Emojis.md'>" +
 +                      "in the Whisperfish wiki</a>."
@@ -637,7 +691,7 @@ index 0000000..81adb00
 +                    height: Theme.itemSizeSmall
 +                    property string name: Emoji.Style[modelData].name
 +                    property string type: modelData
-+                    highlighted: down || type === emojiConfig.currentStyle
++                    highlighted: down || (!!emojiConfig && type === emojiConfig.currentStyle)
 +
 +                    Label {
 +                        anchors.centerIn: parent
@@ -646,7 +700,7 @@ index 0000000..81adb00
 +                    }
 +
 +                    onClicked: {
-+                        emojiConfig.currentStyle = type
++                        if (!!emojiConfig) emojiConfig.currentStyle = type
 +                    }
 +                }
 +            }
@@ -686,6 +740,57 @@ index 0000000..81adb00
 +                    emojiConfig.currentStyle = availableStyles[currentIndex]
 +                }
 +            } */
++
++            Item { width: parent.width; height: 2*Theme.paddingLarge }
++
++            SectionHeader {
++                text: "Keyboard layout"
++            }
++
++            Slider {
++                width: parent.width
++                anchors.horizontalCenter: parent.horizontalCenter
++                minimumValue: 2
++                maximumValue: 5
++                value: emojiConfig.layoutRows
++                stepSize: 1.0
++                valueText: "%1 rows".arg(value)
++                label: "Number of keyboard rows"
++                onReleased: {
++                    if (!emojiConfig) return
++                    // update as seldom as possible
++                    if (value !== emojiConfig.layoutRows) {
++                        emojiConfig.layoutRows = value
++                    }
++                }
++            }
++
++            Label {
++                width: parent.width - 2*Theme.horizontalPageMargin
++                wrapMode: Text.Wrap
++                font.pixelSize: Theme.fontSizeSmall
++                anchors.horizontalCenter: parent.horizontalCenter
++                text: "Adjust the number of keyboard rows to the number of rows " +
++                      "in your default keyboard. Switching between keyboards can be " +
++                      "slow if they have different heights."
++                color: Theme.secondaryHighlightColor
++            }
++
++            /*Item { width: parent.width; height: 1*Theme.paddingLarge }
++
++            Switch {
++                id: leftSwitch
++                onCheckedChanged: if (checked) rightSwitch.checked = false
++            }
++
++            Switch {
++                id: rightSwitch
++                onCheckedChanged: if (checked) leftSwitch.checked = false
++            }
++
++            Switch {
++                id: bothSwitch
++            }*/
 +
 +            Item { width: parent.width; height: 2*Theme.paddingLarge }
 +
@@ -770,10 +875,10 @@ index 0000000..17750a0
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiKey.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiKey.qml
 new file mode 100644
-index 0000000..5f4d1c1
+index 0000000..c0e1048
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiKey.qml
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,89 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
 +// SPDX-FileCopyrightText: 2021 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
@@ -831,8 +936,7 @@ index 0000000..5f4d1c1
 +            horizontalAlignment: Image.AlignHCenter
 +            verticalAlignment: Image.AlignVCenter
 +            asynchronous: true
-+            source: (!!emojiConfig) ? Emoji.parseSingleUrl(selectedEmoji, width,
-+                                                         Emoji.Style[emojiConfig.currentStyle]).text : ''
++            source: (!!emojiConfig) ? emojiConfig.getUrl(selectedEmoji, width) : ''
 +            visible: status === Image.Ready
 +            opacity: visible ? 1.0 : 0.0
 +            Behavior on opacity { FadeAnimator { } }
@@ -905,7 +1009,7 @@ index 0000000..92b58c9
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/patch_ichthyo_emoji.js b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/patch_ichthyo_emoji.js
 new file mode 100644
-index 0000000..2c672c8
+index 0000000..6b60420
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/patch_ichthyo_emoji.js
 @@ -0,0 +1,273 @@
@@ -959,7 +1063,7 @@ index 0000000..2c672c8
 +// Data directories: emojis are by default located in StandardPaths.data/emojis,
 +// which is typically $HOME/.local/share/sailor-emoji. The base directory has to
 +// be initialized from QML, as this script cannot access the StandardPaths object.
-+var dataBaseDirectory = '/home/nemo/.local/share' // base path to emoji sources
++var dataBaseDirectory = '' // e.g. /home/nemo/.local/share; base path to emoji sources
 +var emojiSubDirectory = 'sailor-emoji' // subdirectory below DataBaseDirectory
 +
 +// Emoji styles: emojis can be in raster or vector format. Raster emojis are
@@ -1191,7 +1295,7 @@ index 0000000..706e72e
 +EmojiGroupKey 1.0 EmojiGroupKey.qml
 +EmojiKey 1.0 EmojiKey.qml
 diff --git a/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml b/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
-index 3580703..e44d960 100644
+index 3580703..37d5ac5 100644
 --- a/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
 +++ b/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
 @@ -27,73 +27,222 @@
@@ -1303,7 +1407,7 @@ index 3580703..e44d960 100644
 +
 +    Repeater {
 +        id: mainRowsRepeater
-+        model: 3
++        model: emojiConfigItem.layoutRows - 1
 +        KeyboardRow {
 +            separateButtonSizes: true
 +            property int rowIndex: index

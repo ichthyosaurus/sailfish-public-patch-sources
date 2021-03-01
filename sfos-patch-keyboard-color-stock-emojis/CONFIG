@@ -27,7 +27,7 @@ Keywords:
 Maintainer: ichthyosaurus
 Summary: Patch adding support for color emojis to the stock emoji keyboard
 Description:
-- **Not yet compatible with SFOS 4**
+- **Work in progress: not yet compatible with SFOS 4!**
 -
 - This patch adds support for color emojis, skin tone variations, and different
 - emoji styles to the stock emoji keyboard layout.
@@ -35,13 +35,16 @@ Description:
 -
 - Emoji sets have to be installed manually. Please follow the instructions in
 - the [Whisperfish wiki](https://gitlab.com/rubdos/whisperfish-wiki/-/blob/master/Emojis.md).
+-
+- **Note:** remove the [improved stock emojis](https://openrepos.net/content/ichthyosaurus/patch-improved-stock-emoji-keyboard)
+- patch before installing.
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-stock-emoji-keyboard-colors
 # DonationsLink: https://example.org/donations
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
-Release: 2
+Version: 1.0.1
+Release: 1
 
 Requires:
 - sailfish-version >= 3.0.0
@@ -74,6 +77,12 @@ CompatibleVersions:
 - 3.4.0.24
 
 Changelog:
+- 1.0.1:
+- - support users other than "nemo"
+- - close settings page by dragging like a fake pulley menu
+- - configure number of keyboard rows
+- - fix some corner cases causing the keyboard to become unresponsive
+-
 - 1.0.0:
 - - initial public release (not yet compatible with SFOS 4)
 
