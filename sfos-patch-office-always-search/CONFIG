@@ -1,0 +1,97 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts, TestCommands
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- sailfish-office >= 1.5.36
+
+Prefix: /usr/share/
+DisplayName: Always show search in Office
+PackageName: sfos-patch-office-always-search
+Category: Others
+# Category must be one of:
+#     Homescreen
+#     Browser
+#     Camera
+#     Calendar
+#     Clock
+#     Contacts
+#     Email
+#     Gallery
+#     Media
+#     Messages
+#     Phone
+#     Silica
+#     Settings
+#     Keyboard
+#     Others
+Keywords:
+- Patch
+- Office
+- Documents
+- Search
+
+Maintainer: ichthyosaurus
+Summary: Always show search field in sailfish-office.
+Description:
+- This patch makes the search field in Jolla's documents app always visible.
+-
+- The search field can be focussed using the pulley menu or by tapping on it.
+-
+- **Note**: this patch is not (yet) compatible with SFOS 4.0 because Patchmanager
+- doesn't work for apps using sailjail.
+
+DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-always-show-search-office
+# DonationsLink: still missing
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+
+Requires:
+- sailfish-version >= 3.0.0
+- @sources
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+TestCommands:
+- killall sailfish-office
+- sailfish-office
+
+CompatibleVersions:
+- 3.0.0.5
+- 3.0.0.8
+- 3.0.0.11
+- 3.0.1.11
+- 3.0.1.14
+- 3.0.2.8
+- 3.0.3.8
+- 3.0.3.9
+- 3.0.3.10
+- 3.1.0.11
+- 3.2.0.12
+- 3.2.1.20
+- 3.3.0.14
+- 3.3.0.16
+- 3.4.0.22
+- 3.4.0.24
+# - 4.0.1.45
+# - 4.0.1.48
+
+Changelog:
+- 1.0.0 (2021-05-08):
+- - initial public release
+
+# kate: syntax SailfishOS Patch

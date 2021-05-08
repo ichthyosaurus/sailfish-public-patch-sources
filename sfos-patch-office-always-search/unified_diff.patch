@@ -1,0 +1,43 @@
+diff --git a/usr/share/sailfish-office/FileListPage.qml b/usr/share/sailfish-office/FileListPage.qml
+index 8d6bae7..16792bd 100644
+--- a/usr/share/sailfish-office/FileListPage.qml
++++ b/usr/share/sailfish-office/FileListPage.qml
+@@ -28,7 +28,7 @@ Page {
+     property alias model: filteredModel.sourceModel
+     property string title
+     property string searchText: searchField.text
+-    property bool searchEnabled
++    property bool searchEnabled: true // patch: enable by default
+     property QtObject provider
+ 
+     property string deletingSource
+@@ -155,6 +155,7 @@ Page {
+                 }
+             }
+ 
++            /* patch: disable "show/hide search"
+             MenuItem {
+                 text: !menu._searchEnabled ? //% "Show search"
+                                              qsTrId("sailfish-office-me-show_search")
+@@ -162,6 +163,7 @@ Page {
+                                            : qsTrId("sailfish-office-me-hide_search")
+                 onClicked: page.searchEnabled = !page.searchEnabled
+             }
++            */
+             
+             MenuItem {
+                 //% "Sort by: %1"
+@@ -176,6 +178,13 @@ Page {
+                     })
+                 }
+             }
++
++            // patch: add "focus search field"
++            MenuItem {
++                text: "Search"
++                // visible: !searchField.focus -- doesn't re-enable reliably
++                onClicked: searchField.forceActiveFocus()
++            }
+         }
+ 
+         InfoLabel {
