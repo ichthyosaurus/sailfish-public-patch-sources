@@ -1,13 +1,21 @@
-diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
-index 9f98394..5cdc2f2 100644
---- a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
-+++ b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
-@@ -92,7 +92,7 @@ SwipeGestureArea {
+diff -Naur /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+--- /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml	2021-10-15 13:18:03.545697852 +0200
++++ /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml	2021-10-27 18:43:05.706339880 +0200
+@@ -71,6 +71,8 @@
+     property bool closeSwipeActive
+     property int closeSwipeThreshold: Math.max(currentLayoutHeight*.3, Theme.itemSizeSmall)
  
-     readonly property bool swipeGestureIsSafe: !releaseTimer.running
++    property real longphoneoffset: Screen.height * 0.12
++
+     readonly property real currentLayoutHeight: layout ? layout.height : 2 * Theme.itemSizeHuge
+     readonly property real minimumLayoutHeight: {
+         var height = currentLayoutHeight
+@@ -113,7 +115,7 @@
+         readonly property bool current: status === Loader.Ready && PagedView.isCurrentItem
  
--    height: layout ? layout.height : 0
-+    height: layout ? (portraitMode ? layout.height*1.25 : layout.height) : 0
-     onLayoutChanged: if (layout) layout.parent = keyboard
-     onPortraitModeChanged: cancelAllTouchPoints()
+         width: keyboard.width
+-        height: status === Loader.Error ? Theme.itemSizeHuge : implicitHeight
++        height: status === Loader.Error ? Theme.itemSizeHuge : (portraitMode ? implicitHeight + longphoneoffset  : implicitHeight )
+ 
+         source: keyboard.sourceDirectory + model.file
  

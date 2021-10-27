@@ -13,7 +13,7 @@
 #
 
 SourcePackages:
-- jolla-keyboard >= 0.7.13
+- jolla-keyboard >= 0.8.26
 
 Prefix: /usr/share
 DisplayName: Keyboard adapted to 'long' phones (like Xperia 10)
@@ -46,12 +46,12 @@ DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-keyboard-adapt
 # DonationsLink: still missing
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.1
+Version: 1.0.2
 Release: 1
 
 Requires:
-- sailfish-version >= 3.0.0
-- jolla-keyboard >= 0.7.13
+- sailfish-version >= 4.2.0
+- jolla-keyboard >= 0.8.26
 
 # Conflicts:
 # - my-conflicting-package = 0.0.1
@@ -61,14 +61,19 @@ Screenshots:
 - screenshot-02-patched.png
 
 CompatibleVersions:
-- 3.2.1.20
-- 3.3.0.14
-- 3.3.0.16
-- 3.4.0.22
-- 3.4.0.24
+# 3.2.1.20
+# 3.3.0.14
+# 3.3.0.16
+# 3.4.0.22
+# 3.4.0.24
+- 4.2.0.21
 
 
 Changelog:
+- 1.0.2:
+- - update compatibility info: the patch is compatible with SailfishOS 4.2
+- - tie offset to screen height not keyboard height
+-
 - 1.0.1:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -
