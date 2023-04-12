@@ -1,0 +1,363 @@
+diff --git a/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml b/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
+index 4267c88..07cedfb 100644
+--- a/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
++++ b/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
+@@ -85,12 +85,12 @@ Private.SwipeItem {
+ 
+         z: -1
+         parent: root.contentItem
+-        highlighted: root.draggable && root.highlighted
++        highlighted: root.housekeeping && root.highlighted
+         height: parent.height - (extraBackgroundPadding ? 0 : 2*y)
+         x: Theme.paddingMedium
+         y: Math.round(Theme.paddingSmall/2)
+         width: parent.width - 2*x
+-        enabled: root.draggable
++        enabled: root.housekeeping
+ 
+         color:  Theme.highlightBackgroundColor
+         opacity: enabled ? Theme.highlightBackgroundOpacity : 0.0
+diff --git a/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml b/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
+index 87ee141..ac26912 100644
+--- a/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
++++ b/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
+@@ -78,9 +78,16 @@ SequentialAnimation {
+         return active
+     }
+ 
+-    function reset() {
++    function reset(animate) {
+         if (slideAnimation.target) {
+-            slideAnimation.target.x = startX
++            if (animate) {
++                slideAnimation.duration = 100
++                slideAnimation.to = startX
++                slideAnimation.easing.type = Easing.InOutQuad
++                restart()
++            } else {
++                slideAnimation.target.x = startX
++            }
+         }
+     }
+ 
+diff --git a/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml b/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
+index debacc0..987f127 100644
+--- a/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
++++ b/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
+@@ -46,6 +46,9 @@ BackgroundItem {
+     readonly property bool showSwipeHint: down && (_longPress || drag.active || _triggeredWithGesture)
+     property int swipeDistance: _page ? _page.width : width
+ 
++    property bool canSwipeLeft: true
++    property bool canSwipeRight: true
++
+     property bool _triggeredWithGesture
+     property bool _longPress
+     property Item _page
+@@ -54,6 +57,10 @@ BackgroundItem {
+         dismissAnimation.dismiss(contentItem, _page ? _page.width : width)
+     }
+ 
++    function reset(animate) {
++        dismissAnimation.reset(animate)
++    }
++
+     onPressAndHold: if (draggable) _longPress = true
+     onPressed: {
+         _longPress = false
+@@ -62,8 +69,8 @@ BackgroundItem {
+     onVisibleChanged: if (!visible) dismissAnimation.reset()
+ 
+     drag {
+-        minimumX: -drag.maximumX
+-        maximumX: swipeDistance
++        minimumX: canSwipeLeft ? -drag.maximumX : 0
++        maximumX: canSwipeRight ? swipeDistance : 0
+         axis: Drag.XAxis
+         onActiveChanged: {
+             if (!drag.active) {
+diff --git a/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml b/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
+index a699564..920505a 100644
+--- a/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
++++ b/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
+@@ -49,7 +49,7 @@ Pannable {
+     readonly property bool _transposed: Lipstick.compositor.topmostWindowAngle % 180 != 0
+ 
+     function partnerLayerForWindow(window) {
+-        for (var layer = switcherLayer.rightItem; layer != eventsLayer; layer = layer.rightItem) {
++        for (var layer = switcherLayer.rightItem; layer && layer != eventsLayer; layer = layer.rightItem) {
+             if (JollaSystemInfo.isWindowForLauncherItem(window, layer.launcherItem)) {
+                 return layer
+             }
+@@ -58,7 +58,7 @@ Pannable {
+     }
+ 
+     function activatePartnerWindow(launcherItem) {
+-        for (var layer = switcherLayer.rightItem; layer != eventsLayer; layer = layer.rightItem) {
++        for (var layer = switcherLayer.rightItem; layer && layer != eventsLayer; layer = layer.rightItem) {
+             if (!layer.launcherItem || layer.launcherItem.exec != launcherItem.exec) {
+                 continue
+             } else if (!layer.window.window) {
+@@ -87,7 +87,7 @@ Pannable {
+ 
+     function _findNextLayer(launcherItem) {
+         var index = partnerspaces.indexOf(launcherItem)
+-        for (var layer = switcherLayer.rightItem; layer != eventsLayer; layer = layer.rightItem) {
++        for (var layer = switcherLayer.rightItem; layer && layer != eventsLayer; layer = layer.rightItem) {
+             if (layer.launcherItem && index < partnerspaces.indexOf(layer.launcherItem)) {
+                 return layer
+             }
+@@ -181,7 +181,7 @@ Pannable {
+ 
+             objectName: "eventsLayer"
+ 
+-            leftItem: switcherLayer
++            leftItem: null
+             rightItem: switcherLayer
+ 
+             width: homescreen.width
+@@ -189,7 +189,7 @@ Pannable {
+ 
+             visible: false
+ 
+-            anchors { leftMargin: leftItem.minimizeMargin }
++            anchors { rightMargin: -rightItem.minimizeMargin }
+         },
+         SwitcherLayer {
+             id: switcherLayer
+@@ -210,7 +210,7 @@ Pannable {
+             objectName: "switcherLayer"
+ 
+             leftItem:  eventsLayer
+-            rightItem: eventsLayer
++            rightItem: null
+ 
+             width: homescreen.width
+             height: homescreen.height
+@@ -235,7 +235,7 @@ Pannable {
+                 NumberAnimation { duration: 250; easing.type: Easing.OutQuad }
+             }
+ 
+-            anchors { rightMargin: -rightItem.minimizeMargin }
++            anchors { leftMargin: leftItem.minimizeMargin }
+         }
+     ]
+ 
+@@ -259,7 +259,7 @@ Pannable {
+         onItemRemoved: {
+             var apkdPackage = item.readValue("X-apkd-packageName")
+ 
+-            for (var layer = switcherLayer.rightItem; layer != eventsLayer; layer = layer.rightItem) {
++            for (var layer = switcherLayer.rightItem; layer && layer != eventsLayer; layer = layer.rightItem) {
+                 if (layer.launcherItem == item) {
+                     function cleanup() {
+                         var left = layer.leftItem
+@@ -299,7 +299,7 @@ Pannable {
+             var i = count
+             var firstMoved = eventsLayer
+             var lastMoved = eventsLayer
+-            for (var layer = switcherLayer.rightItem; layer != eventsLayer; layer = layer.rightItem) {
++            for (var layer = switcherLayer.rightItem; layer && layer != eventsLayer; layer = layer.rightItem) {
+                 for (i = 0; i < count; ++i) {
+                     if (layer.launcherItem == partnerspaces.get(index + i)) {
+                         firstMoved = layer
+diff --git a/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml b/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
+index fa2b223..6a33d45 100644
+--- a/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
++++ b/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
+@@ -113,11 +113,14 @@ Item {
+     MouseArea {
+         id: delegateContentItem
+ 
++        property int oldZ
++
+         function startReordering() {
+             if (editMode && !dragged) {
+                 reparent(manager.dragContainer)
+                 manager.reorderItem = delegateContentItem
+                 drag.target = delegateContentItem
++                oldZ = z
+                 z = 1000
+                 reordering = true
+                 dragged = true
+@@ -126,6 +129,7 @@ Item {
+         }
+ 
+         function doReordering() {
++            z = oldZ
+             wrapper.reorder(_newIndex, _newFolderIndex)
+             _newIndex = -1
+         }
+@@ -135,6 +139,7 @@ Item {
+                 manager.startReorderTimer.stop()
+             }
+             if (reordering) {
++                z = oldZ
+                 reordering = false
+                 manager.reorderTimer.stop()
+                 manager.stopScrolling()
+diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
+index 8c37bd4..6714c3e 100644
+--- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
++++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
+@@ -7,9 +7,29 @@
+ 
+ import QtQuick 2.6
+ import Sailfish.Silica 1.0
++import Sailfish.Silica.private 1.0 as Private
+ import org.nemomobile.lipstick 0.1
+ 
+-Item {
++Private.SwipeItem {
++    id: root
++    draggable: true
++    canSwipeLeft: _housekeeping
++    canSwipeRight: _housekeepingAllowed
++    highlighted: false
++    highlightedColor: "transparent"
++
++    Binding {
++        target: root.contentItem
++        property: "opacity"
++        value: drag.maximumX > 0 ? 1.0 - (contentItem.x / drag.maximumX) : 1.0
++    }
++
++    onSwipedAway: {
++        _removeAllNotifications()
++        Lipstick.compositor.eventsLayer.setHousekeeping(false)
++        root.reset(true)
++    }
++
+     property bool stickyHeader
+     readonly property bool down: layerButton.down || clearNotificationsButton.down || leaveHouseKeepingButton.down
+     readonly property bool _housekeeping: Lipstick.compositor.eventsLayer.housekeeping
+diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
+index 6102645..fec5917 100644
+--- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
++++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
+@@ -47,6 +47,9 @@ NotificationGroupItem {
+     implicitHeight: column.height
+     draggable: groupHeader.draggable
+ 
++    canSwipeLeft: housekeeping
++    canSwipeRight: true
++
+     Column {
+         id: column
+         width: parent.width
+@@ -61,6 +64,8 @@ NotificationGroupItem {
+             extraBackgroundPadding: group.hasOnlyOneItem
+             groupHighlighted: root.highlighted
+             enabled: false
++
++            draggable: userRemovable
+         }
+ 
+         Item {
+diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
+index 5d4dee3..6e7ac4a 100644
+--- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
++++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
+@@ -38,6 +38,9 @@ NotificationGroupMember {
+ 
+     onHousekeepingChanged: expanded = false
+ 
++    canSwipeLeft: housekeeping
++    canSwipeRight: true
++
+     function _nthLine(str, n) {
+         var start = 0
+         var end = -1
+@@ -56,7 +59,7 @@ NotificationGroupMember {
+     }
+ 
+     contentHeight: Math.max(2 * contentColumn.y + contentColumn.height, _iconBottom)
+-    draggable: housekeeping && userRemovable
++    draggable: userRemovable
+ 
+     VerticalAutoScroll.keepVisible: expanded && (actionRow.animating || bodyHeightAnimation.running)
+     VerticalAutoScroll.topMargin: Theme.paddingLarge
+diff --git a/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml b/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
+index f879299..3ebe15b 100644
+--- a/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
++++ b/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
+@@ -31,7 +31,7 @@ EditableGridDelegate {
+     property bool windowMapPending
+     property int showingWid
+     property int columns: 1
+-    property bool closing: windowId != 0 && windowId == Lipstick.compositor.appLayer.closingWindowId
++    property bool closing: (windowId != 0 && windowId == Lipstick.compositor.appLayer.closingWindowId) || switcherItemRoot.drag.active
+     property bool running
+     property bool launching: pending
+     property bool pending
+@@ -193,6 +193,62 @@ EditableGridDelegate {
+         }
+     }
+ 
++    MouseArea {
++        id: switcherItemRoot
++        enabled: !wrapper.pending && !switcherRoot.housekeeping && !closeAnimation.running
++        anchors.fill: parent
++        drag.target: wrapper.contentItem
++        drag.axis: Drag.XAxis
++        drag.minimumX: wrapper.x - width / 2
++        drag.maximumX: wrapper.x
++
++        property double dragDistance: wrapper.x - wrapper.contentItem.x
++        property double dragRatio: 2 * dragDistance / width
++        property int oldZ
++
++        drag.onActiveChanged: {
++            if (drag.active) {
++                oldZ = wrapper.contentItem.z
++                wrapper.contentItem.z = 1000
++            } else {
++                wrapper.contentItem.z = oldZ
++                if (dragDistance > width / 3) {
++                    wrapper.close()
++                } else {
++                    state = "default"
++                }
++            }
++        }
++
++        state: "default"
++
++        states: [
++            State {
++                name: "default"
++            },
++            State {
++                name: "dragging"
++                when: switcherItemRoot.drag.active
++            }
++        ]
++
++        transitions: Transition {
++            from: "dragging"
++            to: "default"
++            NumberAnimation {
++                target: wrapper.contentItem
++                properties: "x"
++                to: wrapper.x
++                duration: 150
++            }
++        }
++
++        Component.onCompleted: {
++            clicked.connect(wrapper.clicked)
++            pressAndHold.connect(wrapper.pressAndHold)
++        }
++    }
++
+     LauncherIcon {
+         size: Theme.iconSizeMedium
+         anchors.centerIn: parent
+@@ -392,6 +448,7 @@ EditableGridDelegate {
+     HighlightImage {
+         id: closingGraphic
+         anchors.centerIn: parent
++        opacity: switcherItemRoot.drag.active ? switcherItemRoot.dragRatio : 1.0
+         visible: wrapper.closing
+         color: Theme.lightPrimaryColor
+         source: "image://theme/graphic-close-app"

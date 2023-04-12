@@ -1,0 +1,76 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release, License
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
+
+SourcePackages:
+- lipstick-jolla-home-qt5 >= 1.25.13.6
+# - lipstick-jolla-home-qt5-components >= 1.25.13.6
+
+Prefix: /usr/share/lipstick-jolla-home-qt5
+DisplayName: More launcher hint rows
+PackageName: sfos-patch-homescreen-launcher-hint-rows
+Category: Homescreen
+
+Keywords:
+- Patch
+- Homescreen
+- Launcher
+- Preview
+
+Maintainer: ichthyosaurus
+Summary: Configure how many rows are shown by the launcher hint
+Description:
+- This patch allows to configure how many rows are shown when the app launcher
+- is closed.
+-
+- The launcher hint is shown when tapping empty space on the "desktop" view.
+- Normally, only the top most row of app icons in the launcher is being shown.
+-
+- The number of rows can be configured on the settings page. You do not have to
+- restart any services for a changed setting to take effect.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+License: GPL-3.0-or-later
+
+# Add a list of commands below which can be run after deployment.
+TestCommands:
+- systemctl --user restart lipstick
+
+# Use @sources to mark all entries of SourcePackages as required.
+Requires:
+- sailfish-version >= 4.5.0
+- @sources
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+Changelog:
+- 1.0.0 (2023-04-09):
+- - initial public release
+
+# kate: syntax SailfishOS Patch

@@ -1,0 +1,32 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml b/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml
+index 03dd72a..c3e9483 100644
+--- a/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml
++++ b/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml
+@@ -4,9 +4,18 @@ import Sailfish.Lipstick 1.0
+ import org.nemomobile.lipstick 0.1
+ import "../backgrounds"
+ 
++import Nemo.Configuration 1.0
++
++
+ EdgeLayer {
+     id: launcherLayer
+ 
++    ConfigurationValue {
++        id: rowsConfig
++        key: "/patch/ichthyosaurus/homescreen-launcher-hint-rows/rows"
++        defaultValue: 1
++    }
++
+     // Show launcher above alarms
+     property bool allowed
+     property bool closedFromBottom
+@@ -107,7 +116,7 @@ EdgeLayer {
+     objectName: "launcherLayer"
+ 
+     edge: PeekFilter.Bottom
+-    hintHeight: Theme.iconSizeLauncher * 2 + (Screen.sizeCategory >= Screen.Large ? Theme.paddingLarge*4 : 0)
++    hintHeight: Theme.iconSizeLauncher * 2 * rowsConfig.value + (Screen.sizeCategory >= Screen.Large ? Theme.paddingLarge*4 : 0)
+     hintDuration: 600
+     _finishDragWithAnimation: !pinned && !_wasPinning
+ 

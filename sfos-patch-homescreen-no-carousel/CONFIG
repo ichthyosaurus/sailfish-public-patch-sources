@@ -1,0 +1,103 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release, License
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
+
+# base:       -1.16.1.jolla.armv7hl
+# components: -1.16.1.jolla.armv7hl
+# silica:     -1.14.1.jolla.armv7hl
+
+SourcePackages:
+- lipstick-jolla-home-qt5 >= 1.25.13.6
+- lipstick-jolla-home-qt5-components >= 1.25.13.6
+- sailfishsilica-qt5 >= 1.2.103.1
+
+# Prefix: /usr/share/lipstick-jolla-home-qt5
+Prefix: /usr
+DisplayName: No home carousel [SFOS 4.5]
+PackageName: sfos-patch-homescreen-no-carousel
+Category: Homescreen
+
+Keywords:
+- Patch
+- Homescreen
+- Carousel
+- Swipe
+- Events
+- Close
+
+Maintainer: ichthyosaurus
+Summary: Disables the homescreen carousel
+Description:
+- Disables the carousel on the homescreen by removing the left side of the events-view
+- and the right side of the switcher-view. This allows closing apps by swiping the
+- cover to the left in the switcher-view.
+-
+- Notifications now can be dismissed by swiping them to the right without having to press
+- the "housekeeping" button introduced in SFOS 4. Swiping the header dismisses all
+- notifications.
+-
+- This is an updated version of [cornerman's patch](https://openrepos.net/content/cornerman/patch-no-home-carousel),
+- which was updated by [kuba7](https://coderus.openrepos.net/pm2/project/no-home-carousel)
+- and [miau](https://coderus.openrepos.net/pm2/project/sailfishos-no-home-carousel-fork) for
+- SFOS 4 but was missing support for swiping away notifications.
+- Description adapted from kuba7's patch.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 4.0.0
+Release: 1
+License: GPL-3.0-or-later
+
+# Add a list of commands below which can be run after deployment.
+TestCommands:
+- systemctl --user restart lipstick
+
+# Use @sources to mark all entries of SourcePackages as required.
+Requires:
+- sailfish-version >= 4.5.0
+- @sources
+
+# Conflicts:
+# - my-conflicting-package = 0.0.1
+# - the-old-name
+
+Obsoletes:
+- sailfishos-patch-no-home-carousel = 0.0.1
+- sailfishos-patch-no-home-carousel = 0.0.2
+- sailfishos-patch-no-home-carousel = 0.0.3
+- sailfishos-patch-no-home-carousel = 0.1.0
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+- screenshot-3.png
+
+CompatibleVersions:
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+Changelog:
+- 4.0.0 (2023-04-12):
+- - initial public release of the updated version for SFOS 4.5
+- - notifications can be swiped away without having to press the "housekeeping" button
+- - swipe the list header to dismiss all notifications at once
+- - apps can be closed by swiping them to the left
+
+# kate: syntax SailfishOS Patch
