@@ -1,5 +1,5 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml b/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
-index d0fa206..6260deb 100644
+index 6f6ffc6..0f57af0 100644
 --- a/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
 +++ b/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
 @@ -3,10 +3,13 @@
@@ -70,7 +70,7 @@ index d0fa206..6260deb 100644
  
              x: Theme.paddingLarge
              width: Math.min(implicitWidth, view._maximumLabelWidth + Theme.paddingLarge - view._buttonMargin)
-@@ -87,6 +115,10 @@ PredictionListView {
+@@ -85,6 +113,10 @@ PredictionListView {
          }
      }
  
@@ -82,7 +82,7 @@ index d0fa206..6260deb 100644
          target: Clipboard
          onTextChanged: {
 diff --git a/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml b/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml
-index 8be9607..65e90c8 100644
+index f5447b5..28d1167 100644
 --- a/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml
 +++ b/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml
 @@ -4,6 +4,7 @@
@@ -93,7 +93,7 @@ index 8be9607..65e90c8 100644
  
  InputHandler {
      id: pasteHandler
-@@ -29,6 +30,7 @@ InputHandler {
+@@ -31,6 +32,7 @@ InputHandler {
          TopItem {
              HorizontalPredictionListView {
                  id: horizontalList
@@ -101,7 +101,7 @@ index 8be9607..65e90c8 100644
  
                  handler: pasteHandler
                  model: suggestionModel
-@@ -65,7 +67,14 @@ InputHandler {
+@@ -67,7 +69,14 @@ InputHandler {
          signal keyClick
  
          propertyName: "text"
@@ -118,26 +118,68 @@ index 8be9607..65e90c8 100644
  
      function handleKeyClick() {
 diff --git a/usr/share/maliit/plugins/com/jolla/Popper.qml b/usr/share/maliit/plugins/com/jolla/Popper.qml
-index 66a1575..32d409a 100644
+index 72fe32b..1176995 100644
 --- a/usr/share/maliit/plugins/com/jolla/Popper.qml
 +++ b/usr/share/maliit/plugins/com/jolla/Popper.qml
-@@ -29,6 +29,7 @@
- import QtQuick 2.0
+@@ -26,9 +26,10 @@
+  *
+  */
+ 
+-import QtQuick 2.0
++import QtQuick 2.6
  import com.jolla.keyboard 1.0
  import Sailfish.Silica 1.0
 +import "ichthyo_color_emojis"
  
  Rectangle {
      id: popper
-@@ -71,6 +72,7 @@ Rectangle {
+@@ -49,6 +50,19 @@ Rectangle {
+     property bool hasAccents
+     property bool popupAlways
+ 
++    readonly property alias expandedHeight: contentRow.height
++    readonly property string accentString: (!!target) ? ((keyboard.inSymView || keyboard.inSymView2 || '') ?
++        "" : (keyboard.isShifted ? (target.accentsShifted || '') : (target.accents || ''))) : ''
++    readonly property int itemsCount: (!!target) ? ((!!target.emojiVariations) ? target.emojiVariations.length :
++        (accentString.indexOf(target.text) >= 0 ? accentString.length : (accentString.length + 1))) : 0
++    readonly property int cellsPerRow: 6
++    readonly property int contentRowsCount: Math.ceil(itemsCount / cellsPerRow)
++
++    // emojis: needed for compat between SFOS 3.4 and 4.0
++    // We cannot change the line where the model is first populated, so we can't add
++    // an 'emoji' role there. SFOS 4 introduces KeyboardSupport.isEmoji(char).
++    property var _emojiLookupSFOS34: ({})
++
+     onTargetChanged: {
+         expanded = false
+         hasAccents = target && (typeof target.accents == "string") && target.accents.length > 0
+@@ -66,13 +80,23 @@ Rectangle {
+         id: accents
+     }
+ 
+-    Row {
++    Grid {
+         id: contentRow
+-        height: parent.height
++        width: Math.min(itemsCount, cellsPerRow) * geometry.accentPopperCellWidth + 2 * geometry.accentPopperMargin
++        columns: Math.min(itemsCount, cellsPerRow)
++        rowSpacing: -2 * Math.abs(geometry.accentPopperMargin)
+ 
          Repeater {
              model: accents
++
              PopperCell {
-+                isEmoji: emoji
++                property int itemIndex: index
++
++                // isEmoji: (typeof KeyboardSupport.isEmoji === 'undefined') ?
++                //              _emojiLookupSFOS34.hasOwnProperty(labelText) :
++                //              KeyboardSupport.isEmoji(labelText)
++                // --> KeyboardSupport.isEmoji appears to be unable to recognize skin tone variations
++                isEmoji: _emojiLookupSFOS34.hasOwnProperty(labelText)
                  character: labelText
                  active: index === popper.activeCell
                  textVisible: popper.expanded || index === popper.activeCell
-@@ -94,6 +96,10 @@ Rectangle {
+@@ -96,6 +120,10 @@ Rectangle {
          keyType: KeyType.PopupKey
      }
  
@@ -148,7 +190,44 @@ index 66a1575..32d409a 100644
      states: [
          State {
              name: "active"
-@@ -194,6 +200,11 @@ Rectangle {
+@@ -121,7 +149,18 @@ Rectangle {
+                                     Math.min(result,
+                                              parent.width - popper.expandedWidth - margin))
+                 }
++                y: {
++                    var moved = y - contentRow.height + 2*geometry.popperHeight
++                    if (contentRowsCount >= 2 && moved < y) {
++                        // never move more than the width of the screen to ensure
++                        // that we never move out of the top of the screen in
++                        // horizontal mode
++                        return Math.max(moved, -Screen.width)
++                    }
++                    return undefined
++                }
+                 width: popper.expandedWidth
++                height: popper.expandedHeight
+             }
+             PropertyChanges {
+                 target: contentRow
+@@ -139,7 +178,7 @@ Rectangle {
+                 PauseAnimation { duration: 20 }
+                 PropertyAction {
+                     target: popper
+-                    properties: "opacity, x"
++                    properties: "opacity, x, y"
+                 }
+                 ScriptAction {
+                     script: {
+@@ -155,7 +194,7 @@ Rectangle {
+             SequentialAnimation {
+                 PropertyAction {
+                     target: popper
+-                    properties: "opacity, x"
++                    properties: "opacity, x, y"
+                 }
+                 ScriptAction {
+                     script: {
+@@ -200,14 +239,30 @@ Rectangle {
          keyboard.inputHandler._handleKeyPress(inputKey)
          keyboard.inputHandler._handleKeyClick(inputKey)
          keyboard.inputHandler._handleKeyRelease(inputKey)
@@ -160,63 +239,93 @@ index 66a1575..32d409a 100644
      }
  
      function setActiveCell(mouseX, mouseY) {
-@@ -217,10 +228,12 @@ Rectangle {
-         var accentString = (keyboard.inSymView || keyboard.inSymView2)
-                            ? "" : keyboard.isShifted ? target.accentsShifted
-                                                      : target.accents
-+        var emojiVariations = (!!target.emojiVariations) ? target.emojiVariations : null
-+        var useEmojis = emojiVariations !== null
- 
-         // calculate expanded position and make sure we stay inside the vkb area
--        var baseIndex = accentString.indexOf(target.text)
--        var itemCount = baseIndex >= 0 ? accentString.length : (accentString.length + 1)
-+        var baseIndex = useEmojis ? 0 : accentString.indexOf(target.text)
-+        var itemCount = useEmojis ? emojiVariations.length : (baseIndex >= 0 ? accentString.length : (accentString.length + 1))
-         var middleCell = baseIndex >= 0 ? baseIndex : Math.floor(itemCount / 2)
- 
-         accentString = accentString.replace(target.text, "") // added back later
-@@ -248,10 +261,17 @@ Rectangle {
- 
-         // TODO: support separate visual and input text on accents
-         accents.clear()
--        for (var i = 0; i < accentString.length; ++i) {
--            accents.append({ "labelText": accentString.charAt(i), "inputText": accentString.charAt(i) })
-+        for (var i = 0; i < itemCount; ++i) {
-+            if (useEmojis) {
-+                accents.append({ "emoji": true, "labelText": emojiVariations[i], "inputText": emojiVariations[i] })
+         var oldActiveCell = activeCell
++        if (contentRowsCount <= 1) {
+         var xPos = mouseX - x - geometry.accentPopperMargin
+         if (xPos >= 0 && xPos < width-2*geometry.accentPopperMargin)
+             activeCell = Math.floor(xPos / geometry.accentPopperCellWidth)
+         else activeCell = -1
++        } else {
++            var item = contentRow.childAt(mouseX - x, mouseY - y)
++
++            if (!!item && item.hasOwnProperty('itemIndex')) {
++                activeCell = item.itemIndex
 +            } else {
-+                accents.append({ "emoji": false, "labelText": accentString.charAt(i), "inputText": accentString.charAt(i) })
++                activeCell = -1
 +            }
 +        }
 +
-+        if (!useEmojis) {
-+            accents.insert(activeCell, { "labelText": target.keyText, "inputText": target.text } )
+         if (activeCell !== oldActiveCell && activeCell !== -1) {
+             SampleCache.play("/usr/share/sounds/jolla-ambient/stereo/keyboard_letter.wav")
+             buttonPressEffect.play()
+@@ -250,7 +305,17 @@ Rectangle {
+             middleCell = Math.floor(itemCount / 2)
+         }
+ 
+-        popper.expandedWidth = itemCount * geometry.accentPopperCellWidth +
++        // emojis --->
++        var emojiVariations = (!!target.emojiVariations) ? target.emojiVariations : null
++        var useEmojis = emojiVariations !== null
++
++        if (useEmojis) {
++            baseIndex = 0
++            itemCount = emojiVariations.length
++        }
++        // <--- emojis
++
++        popper.expandedWidth = Math.min(itemCount, cellsPerRow) * geometry.accentPopperCellWidth +
+                                2 * geometry.accentPopperMargin
+ 
+         var mappedTargetX = parent.mapFromItem(target, 0, 0).x +
+@@ -276,7 +341,20 @@ Rectangle {
+         for (i = 0; i < accentArray.length; ++i) {
+             accents.append({ "labelText": accentArray[i], "inputText": accentArray[i] })
          }
 -        accents.insert(activeCell, { "labelText": target.keyText, "inputText": target.text } )
++        if (!useEmojis) accents.insert(activeCell, { "labelText": target.keyText, "inputText": target.text } )
++
++        // emojis --->
++        if (useEmojis) {
++            // We cannot change the initial loop (except for the accents.insert(...) line) because
++            // of changes between SFOS 3.4 and 4.0.
++            accents.clear()
++            _emojiLookupSFOS34 = {}
++            for (var j = 0; j < itemCount; ++j) {
++                _emojiLookupSFOS34[emojiVariations[j]] = true
++                accents.append({ "labelText": emojiVariations[j], "inputText": emojiVariations[j] })
++            }
++        }
++        // <--- emojis
  
          // position content row so that the base character is visible and centered
          contentRow.x = popper.radius -
 diff --git a/usr/share/maliit/plugins/com/jolla/PopperCell.qml b/usr/share/maliit/plugins/com/jolla/PopperCell.qml
-index b205294..d658d5d 100644
+index ac5a30c..665205b 100644
 --- a/usr/share/maliit/plugins/com/jolla/PopperCell.qml
 +++ b/usr/share/maliit/plugins/com/jolla/PopperCell.qml
-@@ -3,6 +3,8 @@
+@@ -1,6 +1,9 @@
+ // Copyright (C) 2013 Jolla Ltd.
+ // Contact: Pekka Vuorela <pekka.vuorela@jollamobile.com>
  
- import QtQuick 2.0
- import Sailfish.Silica 1.0
++// emoji imports above others for compatibility
 +import "ichthyo_color_emojis"
 +import "ichthyo_color_emojis/patch_ichthyo_emoji.js" as Emoji
- 
- Item {
-     id: popperCell
-@@ -10,11 +12,36 @@ Item {
-     height: geometry.popperHeight
+ import QtQuick 2.0
+ import Sailfish.Silica 1.0
+ import com.jolla.keyboard 1.0
+@@ -12,10 +15,44 @@ SilicaItem {
  
      property bool active
-+    property bool isEmoji: false
      property alias character: textItem.text
 -    property alias textVisible: textItem.visible
++
++    // emojis --->
 +    property bool textVisible
++    property bool isEmoji: false
++
++    EmojiConfig {
++        id: emojiConfig
++    }
 +
 +    EmojiPlaceholder {
 +        anchors.fill: image
@@ -239,31 +348,25 @@ index b205294..d658d5d 100644
 +        visible: textVisible && isEmoji && status === Image.Ready
 +        opacity: visible ? (popperCell.active ? 1.0 : 0.4) : 0.0
 +        Behavior on opacity { FadeAnimator { } }
++
++        onStatusChanged: console.log("EMOJI IMAGE:", status, visible, source, isEmoji)
 +    }
++    // <--- emojis
  
-     Text {
+     Label {
          id: textItem
 +        visible: textVisible && (!isEmoji || image.source === '')
          anchors.top: parent.top
          anchors.bottom: parent.bottom
          anchors.horizontalCenter: parent.horizontalCenter
-@@ -28,4 +55,8 @@ Item {
-         font.pixelSize: geometry.popperFontSize
-         fontSizeMode: Text.Fit
-     }
-+
-+    EmojiConfig {
-+        id: emojiConfig
-+    }
- }
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml
 new file mode 100644
-index 0000000..1bff6e9
+index 0000000..fb88877
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml
-@@ -0,0 +1,165 @@
+@@ -0,0 +1,166 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
-+// SPDX-FileCopyrightText: 2021 Mirian Margiani
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +import Sailfish.Silica 1.0
 +import Nemo.Configuration 1.0
@@ -276,7 +379,8 @@ index 0000000..1bff6e9
 +    property string currentStyle: 'openmoji'
 +    property var recentlyUsedList: []
 +    property int layoutRows: 3
-+    property int maxHistory: 30
++    property int keyWidth: 96 // punctuationKeyWidthNarrow is not defined in this context
++    property int maxHistory: 40
 +    property bool _initialized: false
 +
 +    signal variationChanged(var key)
@@ -427,15 +531,39 @@ index 0000000..1bff6e9
 +        onValuesChanged: variationsChanged()
 +    }
 +}
+diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigLabel.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigLabel.qml
+new file mode 100644
+index 0000000..b4f9788
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigLabel.qml
+@@ -0,0 +1,17 @@
++// This file is part of sfos-patch-keyboard-color-stock-emojis
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
++// SPDX-License-Identifier: GPL-3.0-or-later
++import QtQuick 2.2
++import Sailfish.Silica 1.0
++
++// to be used for descriptions in EmojiConfigOverlay.qml
++Label {
++    width: parent.width - 2*Theme.horizontalPageMargin
++    wrapMode: Text.Wrap
++    font.pixelSize: Theme.fontSizeSmall
++    anchors.horizontalCenter: parent.horizontalCenter
++    color: Theme.secondaryHighlightColor
++    linkColor: Theme.secondaryColor
++    onLinkActivated: Qt.openUrlExternally(link)
++    textFormat: Text.PlainText
++}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
 new file mode 100644
-index 0000000..531a0f8
+index 0000000..fa67cff
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
-@@ -0,0 +1,394 @@
+@@ -0,0 +1,469 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
-+// SPDX-FileCopyrightText: 2021 Mirian Margiani
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
++
 +import QtQuick 2.6
 +import com.jolla.keyboard 1.0
 +import Sailfish.Silica 1.0
@@ -451,7 +579,7 @@ index 0000000..531a0f8
 +    enabled: height === _openedHeight
 +    Behavior on height { SmoothedAnimation { duration: 300 } }
 +
-+    readonly property string patchVersion: "1.0.0-1" // <-- change on update
++    readonly property string patchVersion: "1.4.0 (e%1)".arg(Emoji.version) // <-- change on update
 +    property bool open: false // <-- change to show
 +    property EmojiConfig emojiConfig: null // <-- set from outside
 +    property real _closedHeight: 0.01
@@ -500,7 +628,10 @@ index 0000000..531a0f8
 +        property: "height"
 +        from: _closedHeight
 +        to: _closedHeight
-+        onStopped: if (!open) flick.scrollToTop()
++        onStopped: {
++            // scroll to top without animation
++            if (!open) flick.contentY = 0
++        }
 +    }
 +
 +    Label {
@@ -540,7 +671,6 @@ index 0000000..531a0f8
 +        boundsBehavior: Flickable.DragOverBounds
 +        onDraggingVerticallyChanged: {
 +            if (contentY < -150 || contentY+height > contentHeight+150) {
-+                scrollToTop()
 +                open = false
 +            }
 +        }
@@ -595,8 +725,10 @@ index 0000000..531a0f8
 +                            height: width
 +
 +                            EmojiPlaceholder {
++                                id: emojiPlaceholder
 +                                anchors.fill: emojiIcon
 +                                icon: emojiIcon
++                                visible: !removeButton.visible
 +                            }
 +
 +                            Image {
@@ -610,11 +742,12 @@ index 0000000..531a0f8
 +                                visible: status === Image.Ready && !removeButton.visible
 +                                opacity: visible ? 1.0 : 0.0
 +                                Behavior on opacity { FadeAnimator { } }
++                            }
 +
-+                                MouseArea {
-+                                    anchors.fill: parent
-+                                    onClicked: emojiClicked(index)
-+                                }
++                            MouseArea {
++                                enabled: !removeButton.visible
++                                anchors.fill: emojiIcon
++                                onClicked: emojiClicked(index)
 +                            }
 +
 +                            IconButton {
@@ -624,6 +757,7 @@ index 0000000..531a0f8
 +                                onClicked: {
 +                                    if (!emojiConfig) return
 +                                    emojiIcon.visible = false // hide doomed
++                                    emojiPlaceholder.visible = false
 +                                    emojiClicked(-1) // reset selection
 +                                    emojiConfig.removeRecently(index)
 +                                }
@@ -637,14 +771,9 @@ index 0000000..531a0f8
 +                }
 +            }
 +
-+            Label {
++            EmojiConfigLabel {
 +                visible: !_haveRecently
-+                width: parent.width - 2*Theme.horizontalPageMargin
-+                wrapMode: Text.Wrap
-+                font.pixelSize: Theme.fontSizeSmall
-+                anchors.horizontalCenter: parent.horizontalCenter
 +                text: "No recently used emojis have been collected yet."
-+                color: Theme.secondaryHighlightColor
 +            }
 +
 +            Item { visible: _haveRecently; width: parent.width; height: Theme.paddingLarge }
@@ -662,19 +791,12 @@ index 0000000..531a0f8
 +                text: "Emoji styles"
 +            }
 +
-+            Label {
-+                width: parent.width - 2*Theme.horizontalPageMargin
-+                wrapMode: Text.Wrap
-+                anchors.horizontalCenter: parent.horizontalCenter
++            EmojiConfigLabel {
 +                textFormat: Text.StyledText
-+                linkColor: Theme.secondaryColor
-+                font.pixelSize: Theme.fontSizeSmall
 +                text: "You have to manually download and install an emoji set before you can use it. " +
 +                      "Please follow the instructions "+
 +                      "<a href='https://gitlab.com/rubdos/whisperfish-wiki/-/blob/master/Emojis.md'>" +
 +                      "in the Whisperfish wiki</a>."
-+                color: Theme.secondaryHighlightColor
-+                onLinkActivated: Qt.openUrlExternally(link)
 +            }
 +
 +            Item { width: parent.width; height: Theme.paddingMedium }
@@ -691,16 +813,45 @@ index 0000000..531a0f8
 +                    height: Theme.itemSizeSmall
 +                    property string name: Emoji.Style[modelData].name
 +                    property string type: modelData
-+                    highlighted: down || (!!emojiConfig && type === emojiConfig.currentStyle)
++                    property bool isSelected: (!!emojiConfig && type === emojiConfig.currentStyle)
++                    property int installedState: (root.open || isSelected) ? Emoji.isInstalled(Emoji.Style[modelData], true) : -1
++                    highlighted: down || isSelected
 +
 +                    Label {
-+                        anchors.centerIn: parent
-+                        width: parent.width - 2*Theme.horizontalPageMargin
++                        id: styleLabel
++                        anchors {
++                            left: parent.left
++                            leftMargin: Theme.horizontalPageMargin
++                            verticalCenter: parent.verticalCenter
++                        }
++                        width: parent.width - 2*Theme.horizontalPageMargin - statusLabel.width
 +                        text: bgItem.name
++                        truncationMode: TruncationMode.Fade
++                    }
++
++                    Label {
++                        id: statusLabel
++                        anchors {
++                            baseline: styleLabel.baseline
++                            right: parent.right; rightMargin: Theme.horizontalPageMargin
++                        }
++                        text: {
++                            if (bgItem.installedState < 0) "not installed"
++                            else if (bgItem.installedState === 0) "installed"
++                            else if (bgItem.installedState === 1) "incomplete"
++                            else if (bgItem.installedState === 2) "outdated"
++                            else if (bgItem.installedState === 3) "incomplete and outdated"
++                            else if (bgItem.installedState >= 4) "unknown error"
++                        }
++                        font.pixelSize: Theme.fontSizeSmall
++                        color: highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
 +                    }
 +
 +                    onClicked: {
-+                        if (!!emojiConfig) emojiConfig.currentStyle = type
++                        if (!!emojiConfig) {
++                            emojiConfig.currentStyle = type
++                        }
++                        Emoji.flushCaches()
 +                    }
 +                }
 +            }
@@ -747,6 +898,11 @@ index 0000000..531a0f8
 +                text: "Keyboard layout"
 +            }
 +
++            EmojiConfigLabel {
++                text: "You have to switch back and forth between the emoji "+
++                      "keyboard and a text keyboard for any changes to take effect."
++            }
++
 +            Slider {
 +                width: parent.width
 +                anchors.horizontalCenter: parent.horizontalCenter
@@ -765,15 +921,34 @@ index 0000000..531a0f8
 +                }
 +            }
 +
-+            Label {
-+                width: parent.width - 2*Theme.horizontalPageMargin
-+                wrapMode: Text.Wrap
-+                font.pixelSize: Theme.fontSizeSmall
-+                anchors.horizontalCenter: parent.horizontalCenter
++            EmojiConfigLabel {
 +                text: "Adjust the number of keyboard rows to the number of rows " +
 +                      "in your default keyboard. Switching between keyboards can be " +
 +                      "slow if they have different heights."
-+                color: Theme.secondaryHighlightColor
++            }
++
++            Slider {
++                width: parent.width
++                anchors.horizontalCenter: parent.horizontalCenter
++                minimumValue: Math.round(punctuationKeyWidth * 0.8)
++                maximumValue: functionKeyWidth
++                value: emojiConfig.keyWidth
++                stepSize: 1.0
++                valueText: "%1px".arg(value)
++                label: "Emoji key width"
++                onReleased: {
++                    if (!emojiConfig) return
++                    // update as seldom as possible
++                    if (value !== emojiConfig.keyWidth) {
++                        emojiConfig.keyWidth = value
++                    }
++                }
++            }
++
++            EmojiConfigLabel {
++                text: "Some emoji styles like OpenMoji may require larger keys to " +
++                      "be readable. Note that the effective emoji size is restricted by " +
++                      "the row height which cannot be changed."
 +            }
 +
 +            /*Item { width: parent.width; height: 1*Theme.paddingLarge }
@@ -795,24 +970,51 @@ index 0000000..531a0f8
 +            Item { width: parent.width; height: 2*Theme.paddingLarge }
 +
 +            SectionHeader {
++                text: "Troubleshooting"
++            }
++
++            EmojiConfigLabel {
++                text: "Sometimes the keyboard breaks and no keys are shown at all - " +
++                      "only the settings button and emoji page navigation. To fix this, " +
++                      (restartButton.enabled
++                        ? "simply press the button below to restart the keyboard service."
++                        : "open the settings app and restart the home screen.")
++            }
++
++            Item { width: parent.width; height: Theme.paddingLarge }
++
++            Button {
++                id: restartButton
++                anchors.horizontalCenter: parent.horizontalCenter
++                text: "Restart"
++
++                onClicked: {
++                    var component = Qt.createComponent("KeyboardRestarter.qml");
++                    var restarter = component.createObject(root)
++
++                    if (restarter === null) {
++                        console.error("bug: failed to instantiate the emoji keyboard restarter")
++                        restartButton.enabled = false
++                        restartButton.text = 'Error'
++                    }
++                }
++            }
++
++            Item { width: parent.width; height: 2*Theme.paddingLarge }
++
++            SectionHeader {
 +                text: "About"
 +            }
 +
-+            Label {
-+                width: parent.width - 2*Theme.horizontalPageMargin
-+                wrapMode: Text.Wrap
++            EmojiConfigLabel {
 +                font.pixelSize: Theme.fontSizeExtraSmall
-+                anchors.horizontalCenter: parent.horizontalCenter
 +                textFormat: Text.StyledText
-+                linkColor: Theme.secondaryColor
-+                text: "Copyright 2021 Mirian Margiani<br>" +
++                text: "Copyright 2021-%1 Mirian Margiani<br>".arg(new Date().getFullYear()) +
 +                      "The emoji keyboard patch is currently released under the terms of the " +
 +                      "GNU GPL version 3 or later. The source code is available " +
 +                      "<a href='https://github.com/ichthyosaurus/sailfish-public-patch-sources'>on Github</a>. " +
 +                      "This is free software: you are free to change and redistribute it. " +
 +                      "There is no warranty, to the extent permitted by law."
-+                color: Theme.secondaryHighlightColor
-+                onLinkActivated: Qt.openUrlExternally(link)
 +            }
 +
 +            Item { width: parent.width; height: Theme.paddingLarge }
@@ -829,12 +1031,12 @@ index 0000000..531a0f8
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiGroupKey.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiGroupKey.qml
 new file mode 100644
-index 0000000..17750a0
+index 0000000..2af54ca
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiGroupKey.qml
 @@ -0,0 +1,40 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
-+// SPDX-FileCopyrightText: 2021 Mirian Margiani
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +import QtQuick 2.0
 +import Sailfish.Silica 1.0
@@ -844,7 +1046,7 @@ index 0000000..17750a0
 +    id: key
 +    repeat: false
 +    key: Qt.Key_unknown
-+    implicitWidth: punctuationKeyWidthNarrow
++    implicitWidth: punctuationKeyWidth * 0.8
 +    showPopper: false
 +    separator: -1
 +    showHighlight: false
@@ -875,12 +1077,12 @@ index 0000000..17750a0
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiKey.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiKey.qml
 new file mode 100644
-index 0000000..c0e1048
+index 0000000..ce5bd1d
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiKey.qml
 @@ -0,0 +1,89 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
-+// SPDX-FileCopyrightText: 2021 Mirian Margiani
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +import QtQuick 2.0
 +import com.jolla.keyboard 1.0
@@ -893,7 +1095,7 @@ index 0000000..c0e1048
 +    keyType: KeyType.CharacterKey
 +    text: commitText ? selectedEmoji : ''
 +    keyText: ''
-+    implicitWidth: punctuationKeyWidthNarrow
++    implicitWidth: punctuationKeyWidth * 0.8
 +    opacity: enabled ? (pressed ? 0.6 : 1.0) : 0.3
 +    separator: enabled ? SeparatorState.AutomaticSeparator : -1
 +    onEmojiChanged: refresh()
@@ -970,12 +1172,12 @@ index 0000000..c0e1048
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiPlaceholder.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiPlaceholder.qml
 new file mode 100644
-index 0000000..92b58c9
+index 0000000..7b9d19c
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiPlaceholder.qml
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,34 @@
 +// This file is part of sfos-patch-keyboard-color-stock-emojis
-+// SPDX-FileCopyrightText: 2021 Mirian Margiani
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +import QtQuick 2.0
 +import Sailfish.Silica 1.0
@@ -990,7 +1192,8 @@ index 0000000..92b58c9
 +        anchors.fill: parent
 +        radius: width
 +        color: Theme.primaryColor
-+        visible: enabled && icon.status !== Image.Ready
++        visible: enabled && icon.status !== Image.Ready &&
++                 icon.status !== Image.Loading // to avoid flickering
 +        opacity: visible ? 0.16 : 0.0
 +    }
 +
@@ -1007,12 +1210,68 @@ index 0000000..92b58c9
 +        visible: placeholder.visible && icon.status === Image.Error
 +    }
 +}
+diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/KeyboardRestarter.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/KeyboardRestarter.qml
+new file mode 100644
+index 0000000..7721521
+--- /dev/null
++++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/KeyboardRestarter.qml
+@@ -0,0 +1,50 @@
++// This file is part of sfos-patch-keyboard-color-stock-emojis
++// SPDX-FileCopyrightText: 2023 Mirian Margiani
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++import QtQuick 2.0
++import io.thp.pyotherside 1.5
++import Nemo.Notifications 1.0
++
++Item {
++    id: tool
++
++    Notification {
++        id: noteStart
++        previewSummary: 'The keyboard is being restarted and should be back shortly.'
++        isTransient: true
++        icon: 'icon-lock-information'
++        appIcon: icon
++    }
++
++    Notification {
++        id: noteFail
++        previewSummary: 'Failed to restart the keyboard service.'
++        isTransient: true
++        icon: 'icon-lock-warning'
++        appIcon: icon
++    }
++
++    Python {
++        id: py
++
++        onError: {
++            noteFail.publish()
++            console.error('failed to restart maliit-server:', traceback)
++        }
++
++        Component.onCompleted: {
++            noteStart.publish()
++            importModule('subprocess', run_systemctl)
++        }
++    }
++
++    function run_systemctl() {
++        py.call('subprocess.run', [['systemctl', '--user', 'restart', 'maliit-server']], handle_systemctl)
++    }
++
++    function handle_systemctl(success) {
++        // Note: we don't handle this because Python errors are handled
++        // in the error handler and the item is destroyed on success anyway.
++    }
++}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/patch_ichthyo_emoji.js b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/patch_ichthyo_emoji.js
 new file mode 100644
-index 0000000..6b60420
+index 0000000..e180043
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/patch_ichthyo_emoji.js
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,425 @@
 +/*
 +  Original license:
 +
@@ -1040,7 +1299,7 @@ index 0000000..6b60420
 +/*! Copyright Twitter Inc. and other contributors. Licensed under MIT *//*
 +  https://github.com/twitter/twemoji/blob/gh-pages/LICENSE
 +
-+  Modified and relicensed under AGPL v3+ for use in Whisperfish by Mirian Margiani (2021).
++  Modified and relicensed under AGPL v3+ for use in Whisperfish by Mirian Margiani (2021-2022).
 +  Based on: https://github.com/twitter/twemoji/blob/64b63c21b8a1524dd4bbfa112e826e76348a7219/v/13.0.1/twemoji.js
 +
 +  How to update:
@@ -1058,28 +1317,108 @@ index 0000000..6b60420
 +//       in $HOME/.local/share (in-app for open sets, and a guide for proprietary sets).
 +// TODO: We need an entry in the settings page to configure the emoji style.
 +// TODO: handle missing icons/characters instead of showing an empty space
-+// TODO: Is there a way to include official Signal emojis?
++
++// NOTE This version string must be updated with each change to the script.
++// We strictly follow Semantic Versioning 2.0.0, https://semver.org/.
++// While at version < 1.0.0, the public API may change at any time.
++var version = '0.3.0'
 +
 +// Data directories: emojis are by default located in StandardPaths.data/emojis,
 +// which is typically $HOME/.local/share/sailor-emoji. The base directory has to
 +// be initialized from QML, as this script cannot access the StandardPaths object.
-+var dataBaseDirectory = '' // e.g. /home/nemo/.local/share; base path to emoji sources
++var dataBaseDirectory = '' // e.g. $HOME/.local/share; base path to emoji sources
 +var emojiSubDirectory = 'sailor-emoji' // subdirectory below DataBaseDirectory
 +
 +// Emoji styles: emojis can be in raster or vector format. Raster emojis are
 +// required in multiple resolutions.
-+// Path: base/subdir/<style>/<version>/[<resolution>/]<codepoint>.<ext>
++// Path: base/subdir/<key>/<version>/[if type==r: <resolution>/]<codepoint>.<ext>
 +var Style = { // could be initialized on startup with user-configured values
-+    'openmoji': { name: 'OpenMoji', dir: 'openmoji/13.0.0', ext: 'svg', type: 'v' }, // CC-BY-SA 4.0
-+    'twemoji': { name: 'Twemoji', dir: 'twemoji/13.0.1', ext: 'svg', type: 'v' }, // CC-BY-SA 4.0
-+    'whatsapp': { name: 'Whatsapp', dir: 'whatsapp/2.20.206.24', ext: 'png', type: 'r' }, // proprietary
-+    'system': { name: 'System', dir: '', ext: '', type: 's' }
++    'openmoji': {
++      name: 'OpenMoji',
++      key: 'openmoji',
++      versions: ['14.0.0', '13.1.0', '13.0.0'],
++      ext: 'svg',
++      type: 'v',
++      url: 'https://github.com/hfg-gmuend/openmoji/releases/',
++      license: 'CC-BY-SA 4.0'
++    },
++    'twemoji': {
++      name: 'Twemoji',
++      key: 'twemoji',
++      versions: ['14.0.2', '13.0.1'],
++      ext: 'svg',
++      type: 'v',
++      url: 'https://github.com/twitter/twemoji/releases',
++      license: 'CC-BY-SA 4.0'
++    },
++    'twitter-emoji-stickers': {
++      name: 'Twitter (glossy)',
++      key: 'twitter-emoji-stickers',
++      versions: ['13.1'],
++      ext: 'png',
++      type: 'r',
++      url: 'https://emojipedia.org/twitter-emoji-stickers',
++      license: 'proprietary'
++    },
++    'google': {
++      name: 'Google Noto',
++      key: 'google',
++      versions: ['15.0', 'android-12l'],
++      ext: 'png',
++      type: 'r',
++      url: 'https://emojipedia.org/google',
++      license: 'OpenFontLicense'
++    },
++    'whatsapp': {
++      name: 'WhatsApp',
++      key: 'whatsapp',
++      versions: ['2.22.8.79', '2.20.206.24'],
++      ext: 'png',
++      type: 'r',
++      url: 'https://emojipedia.org/whatsapp',
++      license: 'proprietary'
++    },
++    'apple': {
++      name: 'Apple',
++      key: 'apple',
++      versions: ['ios-15.4', 'ios-14.2'],
++      ext: 'png',
++      type: 'r',
++      url: 'https://emojipedia.org/apple',
++      license: 'proprietary'
++    },
++    // >>> ADD NEW STYLES HERE <<<
++    'system': {
++      name: 'System',
++      key: '',
++      versions: [],
++      ext: '',
++      type: 's',
++      url: '',
++      license: ''
++    }
 +}
++
++// >>> ADD NEW STYLES HERE <<<
++// >>> Use this to generate a list of supported styles for the download script. <<<
++// >>> Comment the ".pragma library" line, uncomment the loop, and run the script. <<<
++//
++// for (var i in Style) {
++//   if (i == 'system') continue
++//
++//   var type = '?'
++//   if (/emojipedia\.org/.test(Style[i].url)) type = 'e'
++//   else if (/github\.com/.test(Style[i].url)) type = 'g'
++//   // >>> ADD NEW STYLES HERE <<<
++//   // >>> if a new type is required, make sure to update the emoji-dl.sh script! <<<
++//
++//   print('supported_sets[' + Style[i].key + ']=' + type + ':' + Style[i].versions.join(':'))
++// }
 +
 +// Required raster resolutions: Qt cannot scale inline images up, only down.
 +// Sizes available from Emojipedia: [160, 144, 120, 72, 60]; maybe [120, 60] is enough?
 +//var rasterSizes = [144, 120, 72, 60] // decreasing
-+var rasterSizes = [144, 72, 60] // decreasing
++var rasterSizes = [144, 72] // decreasing
 +var rasterSizesCache = {}
 +
 +// Styles are checked once (raster styles once per resolution) and the results
@@ -1087,34 +1426,156 @@ index 0000000..6b60420
 +// i.e. the system font will be used. Emojis are always counted, though.
 +var styleStatusCache = {}
 +
-+function checkStyle(path, style) {
++// Clear all caches.
++// This is useful after updating a raster emoji set to the latest version.
++// Otherwise, cached paths will still point to the old outdated version.
++function flushCaches() {
++  rasterSizesCache = {}
++  styleStatusCache = {}
++}
++
++// Check if a style is installed.
++// Return:
++// - <0 = not installed
++// -  0 = fully installed
++// -  1 = incomplete (raster sizes missing)
++// -  2 = outdated
++// -  3 = outdated and incomplete
++function isInstalled(style, noCache) {
++    if (style.type === 's') return 0
++
++    var missingCount = 0, outdated = false, checkPath = '', expectedSizes = [null]
++    if (style.type === 'r') expectedSizes = rasterSizes
++
++    for (var i in expectedSizes) {
++      var checkPath = getStylePath(style, expectedSizes[i], noCache)
++      if (!checkPath.found) {
++        missingCount += 1
++      } else if (!checkPath.uptodate) {
++        outdated = true
++      }
++    }
++
++    if (missingCount === expectedSizes.length) {
++      // no sizes found, i.e. not installed
++      return -1
++    } else if (missingCount > 0) {
++      if (outdated) {
++        return 3
++      } else {
++        return 1
++      }
++    } else if (outdated) {
++      return 2
++    } else {
++      return 0
++    }
++}
++
++function getStylePath(style, rasterSize, noCache) {
 +  // TODO This is a hack and should be implemented in rust for better checks
 +  // and better performance. Ideally we should check if a set is complete...
-+  if (styleStatusCache.hasOwnProperty(path)) {
-+    return styleStatusCache[path];
-+  }
-+  if (style.dir === '') { // use system font
-+      styleStatusCache[path] = false;
-+      return false;
++  var cacheKey = style.key + '-' + rasterSize
++  var notFound = {found: false, path: '', uptodate: true};
++
++  if ((!noCache) && styleStatusCache.hasOwnProperty(cacheKey)) {
++    return styleStatusCache[cacheKey];
 +  }
 +
-+  var cleanPath = path;
-+  if (/^file:\/\//.test(path)) cleanPath = path.substr(7);
-+  var xhr = new XMLHttpRequest, success = false;
-+  xhr.open("GET", cleanPath+'/2764.'+style.ext, false); // fetch 'heart' synchronously
-+  xhr.send();
++  if (style.type === 's') { // use system font
++      styleStatusCache[path] = notFound;
++      return notFound;
++  }
 +
-+  if (xhr.status === 200) success = true;
-+  if (!success) console.error("failed to load emoji style at", cleanPath+'/2764.'+style.ext);
-+  styleStatusCache[path] = success;
-+  return success;
++  var basePath = ''.concat(dataBaseDirectory, '/', emojiSubDirectory, '/', style.key)
++  var isRaster = (style.type === 'r' ? true : false)
++
++  for (var i in style.versions) {
++    if (isRaster) {
++      var path = Qt.resolvedUrl(''.concat(basePath, '/', style.versions[i], '/', rasterSize))
++    } else {
++      var path = Qt.resolvedUrl(''.concat(basePath, '/', style.versions[i]))
++    }
++
++    if (/^file:\/\//.test(path)) path = path.substr(7);
++    var xhr = new XMLHttpRequest, success = false;
++    xhr.open("GET", path + '/2764.' + style.ext, false); // fetch 'heart' synchronously
++    xhr.send();
++
++    if (xhr.status === 200) {
++      styleStatusCache[cacheKey] = {found: true, path: path, uptodate: (i == 0)};
++      return styleStatusCache[cacheKey];
++    } else {
++      console.error("failed to load emoji style at", path + '/2764.' + style.ext);
++    }
++  }
++
++  return notFound;
++}
++
++function getParseSettings(style, size, maxRasterSize, noGrow, noCache) {
++    var sourceSize = -1, stylePath = '', useSystem = false, effectiveSize = 0;
++    if (noGrow === true) {
++      effectiveSize = Math.round(size);
++    } else {
++      effectiveSize = Math.round(1.15*size);
++    }
++
++    if (style.type === 'r' /* raster */) {
++      if (maxRasterSize > 0) {
++        effectiveSize = maxRasterSize
++      }
++
++      // We have to choose the best source resolution for raster emojis.
++      // Qt only supports downscaling of inline images, so we select the
++      // closest resolution above the desired size.
++
++      var cacheKey = style.key + '-' + effectiveSize
++      var cached = (!!noCache) ? undefined : rasterSizesCache[cacheKey]
++
++      if (cached !== undefined) {
++        sourceSize = cached.source
++        stylePath = cached.path
++        effectiveSize = cached.effective
++      } else {
++        // Reset the desired size to the largest available size.
++        if (effectiveSize > rasterSizes[0]) effectiveSize = rasterSizes[0]
++
++        for (var i in rasterSizes) {
++          // Select the new size if it is >= the desired size.
++          if (rasterSizes[i] >= effectiveSize) sourceSize = rasterSizes[i]
++        }
++
++        // Reset the source size to the smallest available size if none was found.
++        // Reset the effective size if the fallback resolution too small.
++        if (sourceSize < 0) sourceSize = rasterSizes[rasterSizes.length-1]
++        if (effectiveSize > sourceSize) effectiveSize = sourceSize
++
++        // cache the result
++        stylePath = getStylePath(style, sourceSize, noCache).path
++        rasterSizesCache[cacheKey] = {source: sourceSize, effective: effectiveSize, path: stylePath}
++      }
++    } else if (style.type === 's') {
++      useSystem = true
++    } else {
++      stylePath = getStylePath(style, null, noCache).path
++    }
++
++    if (stylePath === '') {
++      useSystem = true;
++    }
++
++    return {
++        useSystem: useSystem,
++        stylePath: stylePath,
++        effectiveSize: effectiveSize,
++    }
 +}
 +// +++ WF: ↑↑ Whisperfish configuration
 +
 +// +++ WF: added 'var', removed comma
-+// RegExp based on emoji's official Unicode standards
-+// http://www.unicode.org/Public/UNIDATA/EmojiSources.txt
-+var re = /(?:\ud83d\udc68\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc68\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc68\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffe]|\ud83e\uddd1\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1|\ud83d\udc6b\ud83c[\udffb-\udfff]|\ud83d\udc6c\ud83c[\udffb-\udfff]|\ud83d\udc6d\ud83c[\udffb-\udfff]|\ud83d[\udc6b-\udc6d])|(?:\ud83d[\udc68\udc69]|\ud83e\uddd1)(?:\ud83c[\udffb-\udfff])?\u200d(?:\u2695\ufe0f|\u2696\ufe0f|\u2708\ufe0f|\ud83c[\udf3e\udf73\udf7c\udf84\udf93\udfa4\udfa8\udfeb\udfed]|\ud83d[\udcbb\udcbc\udd27\udd2c\ude80\ude92]|\ud83e[\uddaf-\uddb3\uddbc\uddbd])|(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75]|\u26f9)((?:\ud83c[\udffb-\udfff]|\ufe0f)\u200d[\u2640\u2642]\ufe0f)|(?:\ud83c[\udfc3\udfc4\udfca]|\ud83d[\udc6e\udc70\udc71\udc73\udc77\udc81\udc82\udc86\udc87\ude45-\ude47\ude4b\ude4d\ude4e\udea3\udeb4-\udeb6]|\ud83e[\udd26\udd35\udd37-\udd39\udd3d\udd3e\uddb8\uddb9\uddcd-\uddcf\uddd6-\udddd])(?:\ud83c[\udffb-\udfff])?\u200d[\u2640\u2642]\ufe0f|(?:\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f|\ud83c\udff3\ufe0f\u200d\ud83c\udf08|\ud83c\udff4\u200d\u2620\ufe0f|\ud83d\udc15\u200d\ud83e\uddba|\ud83d\udc3b\u200d\u2744\ufe0f|\ud83d\udc41\u200d\ud83d\udde8|\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc6f\u200d\u2640\ufe0f|\ud83d\udc6f\u200d\u2642\ufe0f|\ud83e\udd3c\u200d\u2640\ufe0f|\ud83e\udd3c\u200d\u2642\ufe0f|\ud83e\uddde\u200d\u2640\ufe0f|\ud83e\uddde\u200d\u2642\ufe0f|\ud83e\udddf\u200d\u2640\ufe0f|\ud83e\udddf\u200d\u2642\ufe0f|\ud83d\udc08\u200d\u2b1b)|[#*0-9]\ufe0f?\u20e3|(?:[©®\u2122\u265f]\ufe0f)|(?:\ud83c[\udc04\udd70\udd71\udd7e\udd7f\ude02\ude1a\ude2f\ude37\udf21\udf24-\udf2c\udf36\udf7d\udf96\udf97\udf99-\udf9b\udf9e\udf9f\udfcd\udfce\udfd4-\udfdf\udff3\udff5\udff7]|\ud83d[\udc3f\udc41\udcfd\udd49\udd4a\udd6f\udd70\udd73\udd76-\udd79\udd87\udd8a-\udd8d\udda5\udda8\uddb1\uddb2\uddbc\uddc2-\uddc4\uddd1-\uddd3\udddc-\uddde\udde1\udde3\udde8\uddef\uddf3\uddfa\udecb\udecd-\udecf\udee0-\udee5\udee9\udef0\udef3]|[\u203c\u2049\u2139\u2194-\u2199\u21a9\u21aa\u231a\u231b\u2328\u23cf\u23ed-\u23ef\u23f1\u23f2\u23f8-\u23fa\u24c2\u25aa\u25ab\u25b6\u25c0\u25fb-\u25fe\u2600-\u2604\u260e\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262a\u262e\u262f\u2638-\u263a\u2640\u2642\u2648-\u2653\u2660\u2663\u2665\u2666\u2668\u267b\u267f\u2692-\u2697\u2699\u269b\u269c\u26a0\u26a1\u26a7\u26aa\u26ab\u26b0\u26b1\u26bd\u26be\u26c4\u26c5\u26c8\u26cf\u26d1\u26d3\u26d4\u26e9\u26ea\u26f0-\u26f5\u26f8\u26fa\u26fd\u2702\u2708\u2709\u270f\u2712\u2714\u2716\u271d\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u2764\u27a1\u2934\u2935\u2b05-\u2b07\u2b1b\u2b1c\u2b50\u2b55\u3030\u303d\u3297\u3299])(?:\ufe0f|(?!\ufe0e))|(?:(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75\udd90]|[\u261d\u26f7\u26f9\u270c\u270d])(?:\ufe0f|(?!\ufe0e))|(?:\ud83c[\udf85\udfc2-\udfc4\udfc7\udfca]|\ud83d[\udc42\udc43\udc46-\udc50\udc66-\udc69\udc6e\udc70-\udc78\udc7c\udc81-\udc83\udc85-\udc87\udcaa\udd7a\udd95\udd96\ude45-\ude47\ude4b-\ude4f\udea3\udeb4-\udeb6\udec0\udecc]|\ud83e[\udd0c\udd0f\udd18-\udd1c\udd1e\udd1f\udd26\udd30-\udd39\udd3d\udd3e\udd77\uddb5\uddb6\uddb8\uddb9\uddbb\uddcd-\uddcf\uddd1-\udddd]|[\u270a\u270b]))(?:\ud83c[\udffb-\udfff])?|(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc77\udb40\udc6c\udb40\udc73\udb40\udc7f|\ud83c\udde6\ud83c[\udde8-\uddec\uddee\uddf1\uddf2\uddf4\uddf6-\uddfa\uddfc\uddfd\uddff]|\ud83c\udde7\ud83c[\udde6\udde7\udde9-\uddef\uddf1-\uddf4\uddf6-\uddf9\uddfb\uddfc\uddfe\uddff]|\ud83c\udde8\ud83c[\udde6\udde8\udde9\uddeb-\uddee\uddf0-\uddf5\uddf7\uddfa-\uddff]|\ud83c\udde9\ud83c[\uddea\uddec\uddef\uddf0\uddf2\uddf4\uddff]|\ud83c\uddea\ud83c[\udde6\udde8\uddea\uddec\udded\uddf7-\uddfa]|\ud83c\uddeb\ud83c[\uddee-\uddf0\uddf2\uddf4\uddf7]|\ud83c\uddec\ud83c[\udde6\udde7\udde9-\uddee\uddf1-\uddf3\uddf5-\uddfa\uddfc\uddfe]|\ud83c\udded\ud83c[\uddf0\uddf2\uddf3\uddf7\uddf9\uddfa]|\ud83c\uddee\ud83c[\udde8-\uddea\uddf1-\uddf4\uddf6-\uddf9]|\ud83c\uddef\ud83c[\uddea\uddf2\uddf4\uddf5]|\ud83c\uddf0\ud83c[\uddea\uddec-\uddee\uddf2\uddf3\uddf5\uddf7\uddfc\uddfe\uddff]|\ud83c\uddf1\ud83c[\udde6-\udde8\uddee\uddf0\uddf7-\uddfb\uddfe]|\ud83c\uddf2\ud83c[\udde6\udde8-\udded\uddf0-\uddff]|\ud83c\uddf3\ud83c[\udde6\udde8\uddea-\uddec\uddee\uddf1\uddf4\uddf5\uddf7\uddfa\uddff]|\ud83c\uddf4\ud83c\uddf2|\ud83c\uddf5\ud83c[\udde6\uddea-\udded\uddf0-\uddf3\uddf7-\uddf9\uddfc\uddfe]|\ud83c\uddf6\ud83c\udde6|\ud83c\uddf7\ud83c[\uddea\uddf4\uddf8\uddfa\uddfc]|\ud83c\uddf8\ud83c[\udde6-\uddea\uddec-\uddf4\uddf7-\uddf9\uddfb\uddfd-\uddff]|\ud83c\uddf9\ud83c[\udde6\udde8\udde9\uddeb-\udded\uddef-\uddf4\uddf7\uddf9\uddfb\uddfc\uddff]|\ud83c\uddfa\ud83c[\udde6\uddec\uddf2\uddf3\uddf8\uddfe\uddff]|\ud83c\uddfb\ud83c[\udde6\udde8\uddea\uddec\uddee\uddf3\uddfa]|\ud83c\uddfc\ud83c[\uddeb\uddf8]|\ud83c\uddfd\ud83c\uddf0|\ud83c\uddfe\ud83c[\uddea\uddf9]|\ud83c\uddff\ud83c[\udde6\uddf2\uddfc]|\ud83c[\udccf\udd8e\udd91-\udd9a\udde6-\uddff\ude01\ude32-\ude36\ude38-\ude3a\ude50\ude51\udf00-\udf20\udf2d-\udf35\udf37-\udf7c\udf7e-\udf84\udf86-\udf93\udfa0-\udfc1\udfc5\udfc6\udfc8\udfc9\udfcf-\udfd3\udfe0-\udff0\udff4\udff8-\udfff]|\ud83d[\udc00-\udc3e\udc40\udc44\udc45\udc51-\udc65\udc6a\udc6f\udc79-\udc7b\udc7d-\udc80\udc84\udc88-\udca9\udcab-\udcfc\udcff-\udd3d\udd4b-\udd4e\udd50-\udd67\udda4\uddfb-\ude44\ude48-\ude4a\ude80-\udea2\udea4-\udeb3\udeb7-\udebf\udec1-\udec5\uded0-\uded2\uded5-\uded7\udeeb\udeec\udef4-\udefc\udfe0-\udfeb]|\ud83e[\udd0d\udd0e\udd10-\udd17\udd1d\udd20-\udd25\udd27-\udd2f\udd3a\udd3c\udd3f-\udd45\udd47-\udd76\udd78\udd7a-\uddb4\uddb7\uddba\uddbc-\uddcb\uddd0\uddde-\uddff\ude70-\ude74\ude78-\ude7a\ude80-\ude86\ude90-\udea8\udeb0-\udeb6\udec0-\udec2\uded0-\uded6]|[\u23e9-\u23ec\u23f0\u23f3\u267e\u26ce\u2705\u2728\u274c\u274e\u2753-\u2755\u2795-\u2797\u27b0\u27bf\ue50a])|\ufe0f/g
++// RegExp for Emoji 14 from https://github.com/twitter/twemoji-parser/blob/f8312f35fdee0e79874bb50213c4544c14fa759b/src/lib/regex.js
++var re = /(?:\ud83d\udc68\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83e\uddd1\ud83c[\udffc-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83e\uddd1\ud83c[\udffb\udffd-\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83e\uddd1\ud83c[\udffb\udffc\udffe\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83e\uddd1\ud83c[\udffb-\udffd\udfff]|\ud83e\uddd1\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83e\uddd1\ud83c[\udffb-\udffe]|\ud83d\udc68\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc68\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc68\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc68\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc68\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83d\udc69\ud83c[\udffb-\udfff]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffe]|\ud83e\uddd1\ud83c\udffb\u200d\u2764\ufe0f\u200d\ud83e\uddd1\ud83c[\udffc-\udfff]|\ud83e\uddd1\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\u2764\ufe0f\u200d\ud83e\uddd1\ud83c[\udffb\udffd-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\u2764\ufe0f\u200d\ud83e\uddd1\ud83c[\udffb\udffc\udffe\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\u2764\ufe0f\u200d\ud83e\uddd1\ud83c[\udffb-\udffd\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udfff\u200d\u2764\ufe0f\u200d\ud83e\uddd1\ud83c[\udffb-\udffe]|\ud83e\uddd1\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d[\udc68\udc69]|\ud83e\udef1\ud83c\udffb\u200d\ud83e\udef2\ud83c[\udffc-\udfff]|\ud83e\udef1\ud83c\udffc\u200d\ud83e\udef2\ud83c[\udffb\udffd-\udfff]|\ud83e\udef1\ud83c\udffd\u200d\ud83e\udef2\ud83c[\udffb\udffc\udffe\udfff]|\ud83e\udef1\ud83c\udffe\u200d\ud83e\udef2\ud83c[\udffb-\udffd\udfff]|\ud83e\udef1\ud83c\udfff\u200d\ud83e\udef2\ud83c[\udffb-\udffe]|\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc68|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d[\udc68\udc69]|\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1|\ud83d\udc6b\ud83c[\udffb-\udfff]|\ud83d\udc6c\ud83c[\udffb-\udfff]|\ud83d\udc6d\ud83c[\udffb-\udfff]|\ud83d\udc8f\ud83c[\udffb-\udfff]|\ud83d\udc91\ud83c[\udffb-\udfff]|\ud83e\udd1d\ud83c[\udffb-\udfff]|\ud83d[\udc6b-\udc6d\udc8f\udc91]|\ud83e\udd1d)|(?:\ud83d[\udc68\udc69]|\ud83e\uddd1)(?:\ud83c[\udffb-\udfff])?\u200d(?:\u2695\ufe0f|\u2696\ufe0f|\u2708\ufe0f|\ud83c[\udf3e\udf73\udf7c\udf84\udf93\udfa4\udfa8\udfeb\udfed]|\ud83d[\udcbb\udcbc\udd27\udd2c\ude80\ude92]|\ud83e[\uddaf-\uddb3\uddbc\uddbd])|(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75]|\u26f9)((?:\ud83c[\udffb-\udfff]|\ufe0f)\u200d[\u2640\u2642]\ufe0f)|(?:\ud83c[\udfc3\udfc4\udfca]|\ud83d[\udc6e\udc70\udc71\udc73\udc77\udc81\udc82\udc86\udc87\ude45-\ude47\ude4b\ude4d\ude4e\udea3\udeb4-\udeb6]|\ud83e[\udd26\udd35\udd37-\udd39\udd3d\udd3e\uddb8\uddb9\uddcd-\uddcf\uddd4\uddd6-\udddd])(?:\ud83c[\udffb-\udfff])?\u200d[\u2640\u2642]\ufe0f|(?:\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f|\ud83c\udff3\ufe0f\u200d\ud83c\udf08|\ud83d\ude36\u200d\ud83c\udf2b\ufe0f|\u2764\ufe0f\u200d\ud83d\udd25|\u2764\ufe0f\u200d\ud83e\ude79|\ud83c\udff4\u200d\u2620\ufe0f|\ud83d\udc15\u200d\ud83e\uddba|\ud83d\udc3b\u200d\u2744\ufe0f|\ud83d\udc41\u200d\ud83d\udde8|\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc6f\u200d\u2640\ufe0f|\ud83d\udc6f\u200d\u2642\ufe0f|\ud83d\ude2e\u200d\ud83d\udca8|\ud83d\ude35\u200d\ud83d\udcab|\ud83e\udd3c\u200d\u2640\ufe0f|\ud83e\udd3c\u200d\u2642\ufe0f|\ud83e\uddde\u200d\u2640\ufe0f|\ud83e\uddde\u200d\u2642\ufe0f|\ud83e\udddf\u200d\u2640\ufe0f|\ud83e\udddf\u200d\u2642\ufe0f|\ud83d\udc08\u200d\u2b1b)|[#*0-9]\ufe0f?\u20e3|(?:[©®\u2122\u265f]\ufe0f)|(?:\ud83c[\udc04\udd70\udd71\udd7e\udd7f\ude02\ude1a\ude2f\ude37\udf21\udf24-\udf2c\udf36\udf7d\udf96\udf97\udf99-\udf9b\udf9e\udf9f\udfcd\udfce\udfd4-\udfdf\udff3\udff5\udff7]|\ud83d[\udc3f\udc41\udcfd\udd49\udd4a\udd6f\udd70\udd73\udd76-\udd79\udd87\udd8a-\udd8d\udda5\udda8\uddb1\uddb2\uddbc\uddc2-\uddc4\uddd1-\uddd3\udddc-\uddde\udde1\udde3\udde8\uddef\uddf3\uddfa\udecb\udecd-\udecf\udee0-\udee5\udee9\udef0\udef3]|[\u203c\u2049\u2139\u2194-\u2199\u21a9\u21aa\u231a\u231b\u2328\u23cf\u23ed-\u23ef\u23f1\u23f2\u23f8-\u23fa\u24c2\u25aa\u25ab\u25b6\u25c0\u25fb-\u25fe\u2600-\u2604\u260e\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262a\u262e\u262f\u2638-\u263a\u2640\u2642\u2648-\u2653\u2660\u2663\u2665\u2666\u2668\u267b\u267f\u2692-\u2697\u2699\u269b\u269c\u26a0\u26a1\u26a7\u26aa\u26ab\u26b0\u26b1\u26bd\u26be\u26c4\u26c5\u26c8\u26cf\u26d1\u26d3\u26d4\u26e9\u26ea\u26f0-\u26f5\u26f8\u26fa\u26fd\u2702\u2708\u2709\u270f\u2712\u2714\u2716\u271d\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u2764\u27a1\u2934\u2935\u2b05-\u2b07\u2b1b\u2b1c\u2b50\u2b55\u3030\u303d\u3297\u3299])(?:\ufe0f|(?!\ufe0e))|(?:(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75\udd90]|[\u261d\u26f7\u26f9\u270c\u270d])(?:\ufe0f|(?!\ufe0e))|(?:\ud83c[\udf85\udfc2-\udfc4\udfc7\udfca]|\ud83d[\udc42\udc43\udc46-\udc50\udc66-\udc69\udc6e\udc70-\udc78\udc7c\udc81-\udc83\udc85-\udc87\udcaa\udd7a\udd95\udd96\ude45-\ude47\ude4b-\ude4f\udea3\udeb4-\udeb6\udec0\udecc]|\ud83e[\udd0c\udd0f\udd18-\udd1c\udd1e\udd1f\udd26\udd30-\udd39\udd3d\udd3e\udd77\uddb5\uddb6\uddb8\uddb9\uddbb\uddcd-\uddcf\uddd1-\udddd\udec3-\udec5\udef0-\udef6]|[\u270a\u270b]))(?:\ud83c[\udffb-\udfff])?|(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc77\udb40\udc6c\udb40\udc73\udb40\udc7f|\ud83c\udde6\ud83c[\udde8-\uddec\uddee\uddf1\uddf2\uddf4\uddf6-\uddfa\uddfc\uddfd\uddff]|\ud83c\udde7\ud83c[\udde6\udde7\udde9-\uddef\uddf1-\uddf4\uddf6-\uddf9\uddfb\uddfc\uddfe\uddff]|\ud83c\udde8\ud83c[\udde6\udde8\udde9\uddeb-\uddee\uddf0-\uddf5\uddf7\uddfa-\uddff]|\ud83c\udde9\ud83c[\uddea\uddec\uddef\uddf0\uddf2\uddf4\uddff]|\ud83c\uddea\ud83c[\udde6\udde8\uddea\uddec\udded\uddf7-\uddfa]|\ud83c\uddeb\ud83c[\uddee-\uddf0\uddf2\uddf4\uddf7]|\ud83c\uddec\ud83c[\udde6\udde7\udde9-\uddee\uddf1-\uddf3\uddf5-\uddfa\uddfc\uddfe]|\ud83c\udded\ud83c[\uddf0\uddf2\uddf3\uddf7\uddf9\uddfa]|\ud83c\uddee\ud83c[\udde8-\uddea\uddf1-\uddf4\uddf6-\uddf9]|\ud83c\uddef\ud83c[\uddea\uddf2\uddf4\uddf5]|\ud83c\uddf0\ud83c[\uddea\uddec-\uddee\uddf2\uddf3\uddf5\uddf7\uddfc\uddfe\uddff]|\ud83c\uddf1\ud83c[\udde6-\udde8\uddee\uddf0\uddf7-\uddfb\uddfe]|\ud83c\uddf2\ud83c[\udde6\udde8-\udded\uddf0-\uddff]|\ud83c\uddf3\ud83c[\udde6\udde8\uddea-\uddec\uddee\uddf1\uddf4\uddf5\uddf7\uddfa\uddff]|\ud83c\uddf4\ud83c\uddf2|\ud83c\uddf5\ud83c[\udde6\uddea-\udded\uddf0-\uddf3\uddf7-\uddf9\uddfc\uddfe]|\ud83c\uddf6\ud83c\udde6|\ud83c\uddf7\ud83c[\uddea\uddf4\uddf8\uddfa\uddfc]|\ud83c\uddf8\ud83c[\udde6-\uddea\uddec-\uddf4\uddf7-\uddf9\uddfb\uddfd-\uddff]|\ud83c\uddf9\ud83c[\udde6\udde8\udde9\uddeb-\udded\uddef-\uddf4\uddf7\uddf9\uddfb\uddfc\uddff]|\ud83c\uddfa\ud83c[\udde6\uddec\uddf2\uddf3\uddf8\uddfe\uddff]|\ud83c\uddfb\ud83c[\udde6\udde8\uddea\uddec\uddee\uddf3\uddfa]|\ud83c\uddfc\ud83c[\uddeb\uddf8]|\ud83c\uddfd\ud83c\uddf0|\ud83c\uddfe\ud83c[\uddea\uddf9]|\ud83c\uddff\ud83c[\udde6\uddf2\uddfc]|\ud83c[\udccf\udd8e\udd91-\udd9a\udde6-\uddff\ude01\ude32-\ude36\ude38-\ude3a\ude50\ude51\udf00-\udf20\udf2d-\udf35\udf37-\udf7c\udf7e-\udf84\udf86-\udf93\udfa0-\udfc1\udfc5\udfc6\udfc8\udfc9\udfcf-\udfd3\udfe0-\udff0\udff4\udff8-\udfff]|\ud83d[\udc00-\udc3e\udc40\udc44\udc45\udc51-\udc65\udc6a\udc6f\udc79-\udc7b\udc7d-\udc80\udc84\udc88-\udc8e\udc90\udc92-\udca9\udcab-\udcfc\udcff-\udd3d\udd4b-\udd4e\udd50-\udd67\udda4\uddfb-\ude44\ude48-\ude4a\ude80-\udea2\udea4-\udeb3\udeb7-\udebf\udec1-\udec5\uded0-\uded2\uded5-\uded7\udedd-\udedf\udeeb\udeec\udef4-\udefc\udfe0-\udfeb\udff0]|\ud83e[\udd0d\udd0e\udd10-\udd17\udd20-\udd25\udd27-\udd2f\udd3a\udd3c\udd3f-\udd45\udd47-\udd76\udd78-\uddb4\uddb7\uddba\uddbc-\uddcc\uddd0\uddde-\uddff\ude70-\ude74\ude78-\ude7c\ude80-\ude86\ude90-\udeac\udeb0-\udeba\udec0-\udec2\uded0-\uded9\udee0-\udee7]|[\u23e9-\u23ec\u23f0\u23f3\u267e\u26ce\u2705\u2728\u274c\u274e\u2753-\u2755\u2795-\u2797\u27b0\u27bf\ue50a])|\ufe0f/g;
 +
 +// +++ WF: added 'var', removed comma
 +// avoid runtime RegExp creation for not so smart,
@@ -1189,7 +1650,7 @@ index 0000000..6b60420
 +    return ret;
 +  });
 +  plainCount = String(str).replace(re, '').length; // +++ WF: remove emojis
-+  return { 'emojiCount': emojiCount, 'plainCount': plainCount, 'text': ret}; // +++ WF: added
++  return { 'emojiCount': emojiCount, 'plainCount': plainCount, 'text': ret }; // +++ WF: added
 +}
 +
 +// +++ WF: unchanged
@@ -1223,65 +1684,15 @@ index 0000000..6b60420
 +
 +// +++ WF: Adapted from the original parse(what, how) function.
 +function parse(what, size, style, noGrow, maxRasterSize, includePlain, asMarkup) {
-+  var sourceSize = -1, stylePath = '', useSystem = false, effectiveSize = 0;
-+  if (noGrow === true) {
-+    effectiveSize = Math.round(size);
-+  } else {
-+    effectiveSize = Math.round(1.15*size);
-+  }
-+
-+  if (style.type === 'r' /* raster */) {
-+    if (maxRasterSize > 0) {
-+      effectiveSize = maxRasterSize
-+    }
-+
-+    // We have to choose the best source resolution for raster emojis.
-+    // Qt only supports downscaling of inline images, so we select the
-+    // closest resolution above the desired size.
-+
-+    var cached = rasterSizesCache[effectiveSize]
-+    if (cached !== undefined) {
-+      sourceSize = cached.source
-+      stylePath = cached.path
-+      effectiveSize = cached.effective
-+    } else {
-+      var key = effectiveSize
-+      // Reset the desired size to the largest available size.
-+      if (effectiveSize > rasterSizes[0]) effectiveSize = rasterSizes[0]
-+
-+      for (var i in rasterSizes) {
-+        // Select the new size if it is >= the desired size.
-+        if (rasterSizes[i] >= effectiveSize) sourceSize = rasterSizes[i]
-+      }
-+
-+      // Reset the source size to the smallest available size if none was found.
-+      // Reset the effective size if the fallback resolution too small.
-+      if (sourceSize < 0) sourceSize = rasterSizes[rasterSizes.length-1]
-+      if (effectiveSize > sourceSize) effectiveSize = sourceSize
-+
-+      stylePath = Qt.resolvedUrl(''.concat(dataBaseDirectory, '/', emojiSubDirectory, '/',
-+                                           style.dir, '/', sourceSize))
-+
-+      // cache the result using the original effectiveSize as key
-+      rasterSizesCache[key] = {source: sourceSize, effective: effectiveSize, path: stylePath}
-+    }
-+  } else if (style.type === 's') {
-+    useSystem = true
-+  } else {
-+    stylePath = Qt.resolvedUrl(''.concat(dataBaseDirectory, '/', emojiSubDirectory, '/',
-+                                         style.dir))
-+  }
-+
-+  if (!useSystem && !checkStyle(stylePath, style)) {
-+      useSystem = true;
-+  }
-+
++  if(typeof style !== "object" || !style.hasOwnProperty('ext'))
++    return null
++  var settings = getParseSettings(style, size, maxRasterSize, noGrow)
 +  return parseString(what, {
 +    callback: function(icon, options) {
-+      if (useSystem) return null
-+      else return ''.concat(stylePath, '/', icon, '.', style.ext)
++      if (settings.useSystem) return null
++      else return ''.concat(settings.stylePath, '/', icon, '.', style.ext)
 +    },
-+    size: effectiveSize,
++    size: settings.effectiveSize,
 +    includePlain: (includePlain !== false),
 +    asMarkup: (asMarkup !== false)
 +  });
@@ -1295,10 +1706,10 @@ index 0000000..706e72e
 +EmojiGroupKey 1.0 EmojiGroupKey.qml
 +EmojiKey 1.0 EmojiKey.qml
 diff --git a/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml b/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
-index 3580703..37d5ac5 100644
+index 3580703..6dc1867 100644
 --- a/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
 +++ b/usr/share/maliit/plugins/com/jolla/layouts/emojis.qml
-@@ -27,73 +27,222 @@
+@@ -27,73 +27,246 @@
   *
   */
  
@@ -1335,16 +1746,22 @@ index 3580703..37d5ac5 100644
 +    property string currentCategory: 'smileys-emotion'
 +    property int currentPage: 0
 +
-+    readonly property int lessKeysInLastRow: 6
 +    readonly property int keysPerRow: Math.ceil(root.width/emojiKeyWidth)
-+    readonly property int keysPerPage: keysPerRow*4 - lessKeysInLastRow
-+    readonly property real emojiKeyWidth: punctuationKeyWidthNarrow
++//     readonly property int keysInLastRow: Math.floor((root.width-3*innerSettingsKeyWidth-
++//                                                      2*outerSettingsKeyWidth)/emojiKeyWidth)
++    readonly property int keysInLastRow: Math.floor((root.width-2*innerSettingsKeyWidth-
++                                                     2*outerSettingsKeyWidth)/emojiKeyWidth)
++    readonly property int keysPerPage: (keysPerRow*(emojiConfigItem.layoutRows-1)) + keysInLastRow
++//     readonly property real innerSettingsKeyWidth: 0.9*punctuationKeyWidth
++    readonly property real innerSettingsKeyWidth: punctuationKeyWidth
++    readonly property real outerSettingsKeyWidth: shiftKeyWidth
++    readonly property real emojiKeyWidth: emojiConfigItem.keyWidth
 +    readonly property int pageCount: Math.ceil(EmojiData.list[currentCategory].length / keysPerPage)
 +    readonly property int pageIndicatorHeight: 4
 +
-+    function showConfigOverlay() {
-+        if (!configOverlayLoader.item) return
-+        configOverlayLoader.item.open = true
++    function enableSearchMode() {
++        // TODO
++        return
      }
  
 -    KeyboardRow {
@@ -1360,6 +1777,11 @@ index 3580703..37d5ac5 100644
 -        CharacterKey { caption: "😭" }
 -        CharacterKey { caption: "😠" }
 -        CharacterKey { caption: "😣" }
++    function showConfigOverlay() {
++        if (!configOverlayLoader.item) return
++        configOverlayLoader.item.open = true
++    }
++
 +    function defaultFor(what, fallback) {
 +        return (what === '' || typeof what === 'undefined') ? fallback : what
 +    }
@@ -1388,6 +1810,7 @@ index 3580703..37d5ac5 100644
 +    // x fix missing emojis
 +    // o split -- no: would require too many patches
 +    // o page for last used -- no: use suggestion bar
++    // - search feature
 +
 +    Timer {
 +        id: pageRepeatTimer
@@ -1407,7 +1830,7 @@ index 3580703..37d5ac5 100644
 +
 +    Repeater {
 +        id: mainRowsRepeater
-+        model: emojiConfigItem.layoutRows - 1
++        model: emojiConfigItem.layoutRows-1
 +        KeyboardRow {
 +            separateButtonSizes: true
 +            property int rowIndex: index
@@ -1447,7 +1870,7 @@ index 3580703..37d5ac5 100644
 +            icon.source: "image://theme/icon-m-left" + (pressed ? ("?" + Theme.highlightColor) : "")
 +            repeat: true
 +            key: Qt.Key_unknown
-+            implicitWidth: shiftKeyWidth
++            implicitWidth: outerSettingsKeyWidth
 +            background.visible: false
 +            onClicked: {
 +                pageRepeatTimer.stop()
@@ -1460,7 +1883,7 @@ index 3580703..37d5ac5 100644
 +            icon.source: "image://theme/icon-m-right" + (pressed ? ("?" + Theme.highlightColor) : "")
 +            repeat: true
 +            key: Qt.Key_unknown
-+            implicitWidth: emojiKeyWidth
++            implicitWidth: innerSettingsKeyWidth
 +            background.visible: false
 +            onClicked: {
 +                pageRepeatTimer.stop()
@@ -1469,7 +1892,7 @@ index 3580703..37d5ac5 100644
 +        }
 +
 +        Repeater {
-+            model: keysPerRow - lessKeysInLastRow
++            model: keysInLastRow
 +            EmojiKey {
 +                property int emojiIndex: currentPage*keysPerPage + parent.rowIndex*keysPerRow + index
 +                property var keyData: defaultFor(EmojiData.list[currentCategory][emojiIndex], {e:''})
@@ -1480,17 +1903,29 @@ index 3580703..37d5ac5 100644
 +            }
 +        }
 +
++        //FunctionKey { // search button
++            //repeat: false
++            //key: Qt.Key_unknown
++            //implicitWidth: innerSettingsKeyWidth
++            //background.visible: false
++            //// TODO Remove the highlight hack once FunctionKey uses Icon instead of Image
++            //icon.source: "image://theme/icon-cover-search" + (pressed ? ("?" + Theme.highlightColor) : "")
++            //onClicked: enableSearchMode()
++        //}
++
 +        FunctionKey { // config button
 +            repeat: false
 +            key: Qt.Key_unknown
-+            implicitWidth: punctuationKeyWidth
++            implicitWidth: innerSettingsKeyWidth
 +            background.visible: false
 +            // TODO Remove the highlight hack once FunctionKey uses Icon instead of Image
 +            icon.source: "image://theme/icon-lock-settings" + (pressed ? ("?" + Theme.highlightColor) : "")
 +            onClicked: showConfigOverlay()
 +        }
 +
-+        BackspaceKey {}
++        BackspaceKey {
++            implicitHeight: outerSettingsKeyWidth
++        }
 +    }
 +
 +    Item {
@@ -1570,9 +2005,9 @@ index 3580703..37d5ac5 100644
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/layouts/patch_ichthyo_emoji_data.js b/usr/share/maliit/plugins/com/jolla/layouts/patch_ichthyo_emoji_data.js
 new file mode 100644
-index 0000000..174a01d
+index 0000000..a7d8fee
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/layouts/patch_ichthyo_emoji_data.js
 @@ -0,0 +1,2 @@
 +var groups = [{n:"smileys-emotion",i:"🙂"},{n:"people-body",i:"👋"},{n:"animals-nature",i:"🐶"},{n:"food-drink",i:"🍏"},{n:"travel-places",i:"🌍"},{n:"activities",i:"🎉"},{n:"objects",i:"🖨"},{n:"symbols",i:"☮"},{n:"flags",i:"🚩"}]
-+var list = {"smileys-emotion":[{"e":"😀","opts":["😀"]},{"e":"😃","opts":["😃"]},{"e":"😄","opts":["😄"]},{"e":"😁","opts":["😁"]},{"e":"😆","opts":["😆"]},{"e":"😅","opts":["😅"]},{"e":"🤣","opts":["🤣"]},{"e":"😂","opts":["😂"]},{"e":"🙂","opts":["🙂"]},{"e":"🙃","opts":["🙃"]},{"e":"😉","opts":["😉"]},{"e":"😊","opts":["😊"]},{"e":"😇","opts":["😇"]},{"e":"🥰","opts":["🥰"]},{"e":"😍","opts":["😍"]},{"e":"🤩","opts":["🤩"]},{"e":"😘","opts":["😘"]},{"e":"😗","opts":["😗"]},{"e":"☺️","opts":["☺️"]},{"e":"😚","opts":["😚"]},{"e":"😙","opts":["😙"]},{"e":"🥲","opts":["🥲"]},{"e":"😋","opts":["😋"]},{"e":"😛","opts":["😛"]},{"e":"😜","opts":["😜"]},{"e":"🤪","opts":["🤪"]},{"e":"😝","opts":["😝"]},{"e":"🤑","opts":["🤑"]},{"e":"🤗","opts":["🤗"]},{"e":"🤭","opts":["🤭"]},{"e":"🤫","opts":["🤫"]},{"e":"🤔","opts":["🤔"]},{"e":"🤐","opts":["🤐"]},{"e":"🤨","opts":["🤨"]},{"e":"😐️","opts":["😐️"]},{"e":"😑","opts":["😑"]},{"e":"😶","opts":["😶"]},{"e":"😏","opts":["😏"]},{"e":"😒","opts":["😒"]},{"e":"🙄","opts":["🙄"]},{"e":"😬","opts":["😬"]},{"e":"🤥","opts":["🤥"]},{"e":"😌","opts":["😌"]},{"e":"😔","opts":["😔"]},{"e":"😪","opts":["😪"]},{"e":"🤤","opts":["🤤"]},{"e":"😴","opts":["😴"]},{"e":"😷","opts":["😷"]},{"e":"🤒","opts":["🤒"]},{"e":"🤕","opts":["🤕"]},{"e":"🤢","opts":["🤢"]},{"e":"🤮","opts":["🤮"]},{"e":"🤧","opts":["🤧"]},{"e":"🥵","opts":["🥵"]},{"e":"🥶","opts":["🥶"]},{"e":"🥴","opts":["🥴"]},{"e":"😵","opts":["😵"]},{"e":"🤯","opts":["🤯"]},{"e":"🤠","opts":["🤠"]},{"e":"🥳","opts":["🥳"]},{"e":"🥸","opts":["🥸"]},{"e":"😎","opts":["😎"]},{"e":"🤓","opts":["🤓"]},{"e":"🧐","opts":["🧐"]},{"e":"😕","opts":["😕"]},{"e":"😟","opts":["😟"]},{"e":"🙁","opts":["🙁"]},{"e":"☹️","opts":["☹️"]},{"e":"😮","opts":["😮"]},{"e":"😯","opts":["😯"]},{"e":"😲","opts":["😲"]},{"e":"😳","opts":["😳"]},{"e":"🥺","opts":["🥺"]},{"e":"😦","opts":["😦"]},{"e":"😧","opts":["😧"]},{"e":"😨","opts":["😨"]},{"e":"😰","opts":["😰"]},{"e":"😥","opts":["😥"]},{"e":"😢","opts":["😢"]},{"e":"😭","opts":["😭"]},{"e":"😱","opts":["😱"]},{"e":"😖","opts":["😖"]},{"e":"😣","opts":["😣"]},{"e":"😞","opts":["😞"]},{"e":"😓","opts":["😓"]},{"e":"😩","opts":["😩"]},{"e":"😫","opts":["😫"]},{"e":"🥱","opts":["🥱"]},{"e":"😤","opts":["😤"]},{"e":"😡","opts":["😡"]},{"e":"😠","opts":["😠"]},{"e":"🤬","opts":["🤬"]},{"e":"😈","opts":["😈"]},{"e":"👿","opts":["👿"]},{"e":"💀","opts":["💀"]},{"e":"☠️","opts":["☠️"]},{"e":"💩","opts":["💩"]},{"e":"🤡","opts":["🤡"]},{"e":"👹","opts":["👹"]},{"e":"👺","opts":["👺"]},{"e":"👻","opts":["👻"]},{"e":"👽️","opts":["👽️"]},{"e":"👾","opts":["👾"]},{"e":"🤖","opts":["🤖"]},{"e":"😺","opts":["😺"]},{"e":"😸","opts":["😸"]},{"e":"😹","opts":["😹"]},{"e":"😻","opts":["😻"]},{"e":"😼","opts":["😼"]},{"e":"😽","opts":["😽"]},{"e":"🙀","opts":["🙀"]},{"e":"😿","opts":["😿"]},{"e":"😾","opts":["😾"]},{"e":"🙈","opts":["🙈"]},{"e":"🙉","opts":["🙉"]},{"e":"🙊","opts":["🙊"]},{"e":"💋","opts":["💋"]},{"e":"💌","opts":["💌"]},{"e":"💘","opts":["💘"]},{"e":"💝","opts":["💝"]},{"e":"💖","opts":["💖"]},{"e":"💗","opts":["💗"]},{"e":"💓","opts":["💓"]},{"e":"💞","opts":["💞"]},{"e":"💕","opts":["💕"]},{"e":"💟","opts":["💟"]},{"e":"❣️","opts":["❣️"]},{"e":"💔","opts":["💔"]},{"e":"❤️","opts":["❤️"]},{"e":"🧡","opts":["🧡"]},{"e":"💛","opts":["💛"]},{"e":"💚","opts":["💚"]},{"e":"💙","opts":["💙"]},{"e":"💜","opts":["💜"]},{"e":"🤎","opts":["🤎"]},{"e":"🖤","opts":["🖤"]},{"e":"🤍","opts":["🤍"]},{"e":"💯","opts":["💯"]},{"e":"💢","opts":["💢"]},{"e":"💥","opts":["💥"]},{"e":"💫","opts":["💫"]},{"e":"💦","opts":["💦"]},{"e":"💨","opts":["💨"]},{"e":"🕳️","opts":["🕳️"]},{"e":"💣️","opts":["💣️"]},{"e":"💬","opts":["💬"]},{"e":"👁️‍🗨️","opts":["👁️‍🗨️"]},{"e":"🗨️","opts":["🗨️"]},{"e":"🗯️","opts":["🗯️"]},{"e":"💭","opts":["💭"]},{"e":"💤","opts":["💤"]}],"people-body":[{"e":"👋","opts":["👋","👋🏻","👋🏼","👋🏽","👋🏾","👋🏿"]},{"e":"🤚","opts":["🤚","🤚🏻","🤚🏼","🤚🏽","🤚🏾","🤚🏿"]},{"e":"🖐️","opts":["🖐️","🖐🏻","🖐🏼","🖐🏽","🖐🏾","🖐🏿"]},{"e":"✋","opts":["✋","✋🏻","✋🏼","✋🏽","✋🏾","✋🏿"]},{"e":"🖖","opts":["🖖","🖖🏻","🖖🏼","🖖🏽","🖖🏾","🖖🏿"]},{"e":"👌","opts":["👌","👌🏻","👌🏼","👌🏽","👌🏾","👌🏿"]},{"e":"🤌","opts":["🤌","🤌🏻","🤌🏼","🤌🏽","🤌🏾","🤌🏿"]},{"e":"🤏","opts":["🤏","🤏🏻","🤏🏼","🤏🏽","🤏🏾","🤏🏿"]},{"e":"✌️","opts":["✌️","✌🏻","✌🏼","✌🏽","✌🏾","✌🏿"]},{"e":"🤞","opts":["🤞","🤞🏻","🤞🏼","🤞🏽","🤞🏾","🤞🏿"]},{"e":"🤟","opts":["🤟","🤟🏻","🤟🏼","🤟🏽","🤟🏾","🤟🏿"]},{"e":"🤘","opts":["🤘","🤘🏻","🤘🏼","🤘🏽","🤘🏾","🤘🏿"]},{"e":"🤙","opts":["🤙","🤙🏻","🤙🏼","🤙🏽","🤙🏾","🤙🏿"]},{"e":"👈️","opts":["👈️","👈🏻","👈🏼","👈🏽","👈🏾","👈🏿"]},{"e":"👉️","opts":["👉️","👉🏻","👉🏼","👉🏽","👉🏾","👉🏿"]},{"e":"👆️","opts":["👆️","👆🏻","👆🏼","👆🏽","👆🏾","👆🏿"]},{"e":"🖕","opts":["🖕","🖕🏻","🖕🏼","🖕🏽","🖕🏾","🖕🏿"]},{"e":"👇️","opts":["👇️","👇🏻","👇🏼","👇🏽","👇🏾","👇🏿"]},{"e":"☝️","opts":["☝️","☝🏻","☝🏼","☝🏽","☝🏾","☝🏿"]},{"e":"👍️","opts":["👍️","👍🏻","👍🏼","👍🏽","👍🏾","👍🏿"]},{"e":"👎️","opts":["👎️","👎🏻","👎🏼","👎🏽","👎🏾","👎🏿"]},{"e":"✊","opts":["✊","✊🏻","✊🏼","✊🏽","✊🏾","✊🏿"]},{"e":"👊","opts":["👊","👊🏻","👊🏼","👊🏽","👊🏾","👊🏿"]},{"e":"🤛","opts":["🤛","🤛🏻","🤛🏼","🤛🏽","🤛🏾","🤛🏿"]},{"e":"🤜","opts":["🤜","🤜🏻","🤜🏼","🤜🏽","🤜🏾","🤜🏿"]},{"e":"👏","opts":["👏","👏🏻","👏🏼","👏🏽","👏🏾","👏🏿"]},{"e":"🙌","opts":["🙌","🙌🏻","🙌🏼","🙌🏽","🙌🏾","🙌🏿"]},{"e":"👐","opts":["👐","👐🏻","👐🏼","👐🏽","👐🏾","👐🏿"]},{"e":"🤲","opts":["🤲","🤲🏻","🤲🏼","🤲🏽","🤲🏾","🤲🏿"]},{"e":"🤝","opts":["🤝"]},{"e":"🙏","opts":["🙏","🙏🏻","🙏🏼","🙏🏽","🙏🏾","🙏🏿"]},{"e":"✍️","opts":["✍️","✍🏻","✍🏼","✍🏽","✍🏾","✍🏿"]},{"e":"💅","opts":["💅","💅🏻","💅🏼","💅🏽","💅🏾","💅🏿"]},{"e":"🤳","opts":["🤳","🤳🏻","🤳🏼","🤳🏽","🤳🏾","🤳🏿"]},{"e":"💪","opts":["💪","💪🏻","💪🏼","💪🏽","💪🏾","💪🏿"]},{"e":"🦾","opts":["🦾"]},{"e":"🦿","opts":["🦿"]},{"e":"🦵","opts":["🦵","🦵🏻","🦵🏼","🦵🏽","🦵🏾","🦵🏿"]},{"e":"🦶","opts":["🦶","🦶🏻","🦶🏼","🦶🏽","🦶🏾","🦶🏿"]},{"e":"👂️","opts":["👂️","👂🏻","👂🏼","👂🏽","👂🏾","👂🏿"]},{"e":"🦻","opts":["🦻","🦻🏻","🦻🏼","🦻🏽","🦻🏾","🦻🏿"]},{"e":"👃","opts":["👃","👃🏻","👃🏼","👃🏽","👃🏾","👃🏿"]},{"e":"🧠","opts":["🧠"]},{"e":"🫀","opts":["🫀"]},{"e":"🫁","opts":["🫁"]},{"e":"🦷","opts":["🦷"]},{"e":"🦴","opts":["🦴"]},{"e":"👀","opts":["👀"]},{"e":"👁️","opts":["👁️"]},{"e":"👅","opts":["👅"]},{"e":"👄","opts":["👄"]},{"e":"👶","opts":["👶","👶🏻","👶🏼","👶🏽","👶🏾","👶🏿"]},{"e":"🧒","opts":["🧒","🧒🏻","🧒🏼","🧒🏽","🧒🏾","🧒🏿"]},{"e":"👦","opts":["👦","👦🏻","👦🏼","👦🏽","👦🏾","👦🏿"]},{"e":"👧","opts":["👧","👧🏻","👧🏼","👧🏽","👧🏾","👧🏿"]},{"e":"🧑","opts":["🧑","🧑🏻","🧑🏼","🧑🏽","🧑🏾","🧑🏿"]},{"e":"👱","opts":["👱","👱🏻","👱🏼","👱🏽","👱🏾","👱🏿"]},{"e":"👨","opts":["👨","👨🏻","👨🏼","👨🏽","👨🏾","👨🏿"]},{"e":"🧔","opts":["🧔","🧔🏻","🧔🏼","🧔🏽","🧔🏾","🧔🏿"]},{"e":"👨‍🦰","opts":["👨‍🦰","👨🏻‍🦰","👨🏼‍🦰","👨🏽‍🦰","👨🏾‍🦰","👨🏿‍🦰"]},{"e":"👨‍🦱","opts":["👨‍🦱","👨🏻‍🦱","👨🏼‍🦱","👨🏽‍🦱","👨🏾‍🦱","👨🏿‍🦱"]},{"e":"👨‍🦳","opts":["👨‍🦳","👨🏻‍🦳","👨🏼‍🦳","👨🏽‍🦳","👨🏾‍🦳","👨🏿‍🦳"]},{"e":"👨‍🦲","opts":["👨‍🦲","👨🏻‍🦲","👨🏼‍🦲","👨🏽‍🦲","👨🏾‍🦲","👨🏿‍🦲"]},{"e":"👩","opts":["👩","👩🏻","👩🏼","👩🏽","👩🏾","👩🏿"]},{"e":"👩‍🦰","opts":["👩‍🦰","👩🏻‍🦰","👩🏼‍🦰","👩🏽‍🦰","👩🏾‍🦰","👩🏿‍🦰"]},{"e":"🧑‍🦰","opts":["🧑‍🦰","🧑🏻‍🦰","🧑🏼‍🦰","🧑🏽‍🦰","🧑🏾‍🦰","🧑🏿‍🦰"]},{"e":"👩‍🦱","opts":["👩‍🦱","👩🏻‍🦱","👩🏼‍🦱","👩🏽‍🦱","👩🏾‍🦱","👩🏿‍🦱"]},{"e":"🧑‍🦱","opts":["🧑‍🦱","🧑🏻‍🦱","🧑🏼‍🦱","🧑🏽‍🦱","🧑🏾‍🦱","🧑🏿‍🦱"]},{"e":"👩‍🦳","opts":["👩‍🦳","👩🏻‍🦳","👩🏼‍🦳","👩🏽‍🦳","👩🏾‍🦳","👩🏿‍🦳"]},{"e":"🧑‍🦳","opts":["🧑‍🦳","🧑🏻‍🦳","🧑🏼‍🦳","🧑🏽‍🦳","🧑🏾‍🦳","🧑🏿‍🦳"]},{"e":"👩‍🦲","opts":["👩‍🦲","👩🏻‍🦲","👩🏼‍🦲","👩🏽‍🦲","👩🏾‍🦲","👩🏿‍🦲"]},{"e":"🧑‍🦲","opts":["🧑‍🦲","🧑🏻‍🦲","🧑🏼‍🦲","🧑🏽‍🦲","🧑🏾‍🦲","🧑🏿‍🦲"]},{"e":"👱‍♀️","opts":["👱‍♀️","👱🏻‍♀️","👱🏼‍♀️","👱🏽‍♀️","👱🏾‍♀️","👱🏿‍♀️"]},{"e":"👱‍♂️","opts":["👱‍♂️","👱🏻‍♂️","👱🏼‍♂️","👱🏽‍♂️","👱🏾‍♂️","👱🏿‍♂️"]},{"e":"🧓","opts":["🧓","🧓🏻","🧓🏼","🧓🏽","🧓🏾","🧓🏿"]},{"e":"👴","opts":["👴","👴🏻","👴🏼","👴🏽","👴🏾","👴🏿"]},{"e":"👵","opts":["👵","👵🏻","👵🏼","👵🏽","👵🏾","👵🏿"]},{"e":"🙍","opts":["🙍","🙍🏻","🙍🏼","🙍🏽","🙍🏾","🙍🏿"]},{"e":"🙍‍♂️","opts":["🙍‍♂️","🙍🏻‍♂️","🙍🏼‍♂️","🙍🏽‍♂️","🙍🏾‍♂️","🙍🏿‍♂️"]},{"e":"🙍‍♀️","opts":["🙍‍♀️","🙍🏻‍♀️","🙍🏼‍♀️","🙍🏽‍♀️","🙍🏾‍♀️","🙍🏿‍♀️"]},{"e":"🙎","opts":["🙎","🙎🏻","🙎🏼","🙎🏽","🙎🏾","🙎🏿"]},{"e":"🙎‍♂️","opts":["🙎‍♂️","🙎🏻‍♂️","🙎🏼‍♂️","🙎🏽‍♂️","🙎🏾‍♂️","🙎🏿‍♂️"]},{"e":"🙎‍♀️","opts":["🙎‍♀️","🙎🏻‍♀️","🙎🏼‍♀️","🙎🏽‍♀️","🙎🏾‍♀️","🙎🏿‍♀️"]},{"e":"🙅","opts":["🙅","🙅🏻","🙅🏼","🙅🏽","🙅🏾","🙅🏿"]},{"e":"🙅‍♂️","opts":["🙅‍♂️","🙅🏻‍♂️","🙅🏼‍♂️","🙅🏽‍♂️","🙅🏾‍♂️","🙅🏿‍♂️"]},{"e":"🙅‍♀️","opts":["🙅‍♀️","🙅🏻‍♀️","🙅🏼‍♀️","🙅🏽‍♀️","🙅🏾‍♀️","🙅🏿‍♀️"]},{"e":"🙆","opts":["🙆","🙆🏻","🙆🏼","🙆🏽","🙆🏾","🙆🏿"]},{"e":"🙆‍♂️","opts":["🙆‍♂️","🙆🏻‍♂️","🙆🏼‍♂️","🙆🏽‍♂️","🙆🏾‍♂️","🙆🏿‍♂️"]},{"e":"🙆‍♀️","opts":["🙆‍♀️","🙆🏻‍♀️","🙆🏼‍♀️","🙆🏽‍♀️","🙆🏾‍♀️","🙆🏿‍♀️"]},{"e":"💁","opts":["💁","💁🏻","💁🏼","💁🏽","💁🏾","💁🏿"]},{"e":"💁‍♂️","opts":["💁‍♂️","💁🏻‍♂️","💁🏼‍♂️","💁🏽‍♂️","💁🏾‍♂️","💁🏿‍♂️"]},{"e":"💁‍♀️","opts":["💁‍♀️","💁🏻‍♀️","💁🏼‍♀️","💁🏽‍♀️","💁🏾‍♀️","💁🏿‍♀️"]},{"e":"🙋","opts":["🙋","🙋🏻","🙋🏼","🙋🏽","🙋🏾","🙋🏿"]},{"e":"🙋‍♂️","opts":["🙋‍♂️","🙋🏻‍♂️","🙋🏼‍♂️","🙋🏽‍♂️","🙋🏾‍♂️","🙋🏿‍♂️"]},{"e":"🙋‍♀️","opts":["🙋‍♀️","🙋🏻‍♀️","🙋🏼‍♀️","🙋🏽‍♀️","🙋🏾‍♀️","🙋🏿‍♀️"]},{"e":"🧏","opts":["🧏","🧏🏻","🧏🏼","🧏🏽","🧏🏾","🧏🏿"]},{"e":"🧏‍♂️","opts":["🧏‍♂️","🧏🏻‍♂️","🧏🏼‍♂️","🧏🏽‍♂️","🧏🏾‍♂️","🧏🏿‍♂️"]},{"e":"🧏‍♀️","opts":["🧏‍♀️","🧏🏻‍♀️","🧏🏼‍♀️","🧏🏽‍♀️","🧏🏾‍♀️","🧏🏿‍♀️"]},{"e":"🙇","opts":["🙇","🙇🏻","🙇🏼","🙇🏽","🙇🏾","🙇🏿"]},{"e":"🙇‍♂️","opts":["🙇‍♂️","🙇🏻‍♂️","🙇🏼‍♂️","🙇🏽‍♂️","🙇🏾‍♂️","🙇🏿‍♂️"]},{"e":"🙇‍♀️","opts":["🙇‍♀️","🙇🏻‍♀️","🙇🏼‍♀️","🙇🏽‍♀️","🙇🏾‍♀️","🙇🏿‍♀️"]},{"e":"🤦","opts":["🤦","🤦🏻","🤦🏼","🤦🏽","🤦🏾","🤦🏿"]},{"e":"🤦‍♂️","opts":["🤦‍♂️","🤦🏻‍♂️","🤦🏼‍♂️","🤦🏽‍♂️","🤦🏾‍♂️","🤦🏿‍♂️"]},{"e":"🤦‍♀️","opts":["🤦‍♀️","🤦🏻‍♀️","🤦🏼‍♀️","🤦🏽‍♀️","🤦🏾‍♀️","🤦🏿‍♀️"]},{"e":"🤷","opts":["🤷","🤷🏻","🤷🏼","🤷🏽","🤷🏾","🤷🏿"]},{"e":"🤷‍♂️","opts":["🤷‍♂️","🤷🏻‍♂️","🤷🏼‍♂️","🤷🏽‍♂️","🤷🏾‍♂️","🤷🏿‍♂️"]},{"e":"🤷‍♀️","opts":["🤷‍♀️","🤷🏻‍♀️","🤷🏼‍♀️","🤷🏽‍♀️","🤷🏾‍♀️","🤷🏿‍♀️"]},{"e":"🧑‍⚕️","opts":["🧑‍⚕️","🧑🏻‍⚕️","🧑🏼‍⚕️","🧑🏽‍⚕️","🧑🏾‍⚕️","🧑🏿‍⚕️"]},{"e":"👨‍⚕️","opts":["👨‍⚕️","👨🏻‍⚕️","👨🏼‍⚕️","👨🏽‍⚕️","👨🏾‍⚕️","👨🏿‍⚕️"]},{"e":"👩‍⚕️","opts":["👩‍⚕️","👩🏻‍⚕️","👩🏼‍⚕️","👩🏽‍⚕️","👩🏾‍⚕️","👩🏿‍⚕️"]},{"e":"🧑‍🎓","opts":["🧑‍🎓","🧑🏻‍🎓","🧑🏼‍🎓","🧑🏽‍🎓","🧑🏾‍🎓","🧑🏿‍🎓"]},{"e":"👨‍🎓","opts":["👨‍🎓","👨🏻‍🎓","👨🏼‍🎓","👨🏽‍🎓","👨🏾‍🎓","👨🏿‍🎓"]},{"e":"👩‍🎓","opts":["👩‍🎓","👩🏻‍🎓","👩🏼‍🎓","👩🏽‍🎓","👩🏾‍🎓","👩🏿‍🎓"]},{"e":"🧑‍🏫","opts":["🧑‍🏫","🧑🏻‍🏫","🧑🏼‍🏫","🧑🏽‍🏫","🧑🏾‍🏫","🧑🏿‍🏫"]},{"e":"👨‍🏫","opts":["👨‍🏫","👨🏻‍🏫","👨🏼‍🏫","👨🏽‍🏫","👨🏾‍🏫","👨🏿‍🏫"]},{"e":"👩‍🏫","opts":["👩‍🏫","👩🏻‍🏫","👩🏼‍🏫","👩🏽‍🏫","👩🏾‍🏫","👩🏿‍🏫"]},{"e":"🧑‍⚖️","opts":["🧑‍⚖️","🧑🏻‍⚖️","🧑🏼‍⚖️","🧑🏽‍⚖️","🧑🏾‍⚖️","🧑🏿‍⚖️"]},{"e":"👨‍⚖️","opts":["👨‍⚖️","👨🏻‍⚖️","👨🏼‍⚖️","👨🏽‍⚖️","👨🏾‍⚖️","👨🏿‍⚖️"]},{"e":"👩‍⚖️","opts":["👩‍⚖️","👩🏻‍⚖️","👩🏼‍⚖️","👩🏽‍⚖️","👩🏾‍⚖️","👩🏿‍⚖️"]},{"e":"🧑‍🌾","opts":["🧑‍🌾","🧑🏻‍🌾","🧑🏼‍🌾","🧑🏽‍🌾","🧑🏾‍🌾","🧑🏿‍🌾"]},{"e":"👨‍🌾","opts":["👨‍🌾","👨🏻‍🌾","👨🏼‍🌾","👨🏽‍🌾","👨🏾‍🌾","👨🏿‍🌾"]},{"e":"👩‍🌾","opts":["👩‍🌾","👩🏻‍🌾","👩🏼‍🌾","👩🏽‍🌾","👩🏾‍🌾","👩🏿‍🌾"]},{"e":"🧑‍🍳","opts":["🧑‍🍳","🧑🏻‍🍳","🧑🏼‍🍳","🧑🏽‍🍳","🧑🏾‍🍳","🧑🏿‍🍳"]},{"e":"👨‍🍳","opts":["👨‍🍳","👨🏻‍🍳","👨🏼‍🍳","👨🏽‍🍳","👨🏾‍🍳","👨🏿‍🍳"]},{"e":"👩‍🍳","opts":["👩‍🍳","👩🏻‍🍳","👩🏼‍🍳","👩🏽‍🍳","👩🏾‍🍳","👩🏿‍🍳"]},{"e":"🧑‍🔧","opts":["🧑‍🔧","🧑🏻‍🔧","🧑🏼‍🔧","🧑🏽‍🔧","🧑🏾‍🔧","🧑🏿‍🔧"]},{"e":"👨‍🔧","opts":["👨‍🔧","👨🏻‍🔧","👨🏼‍🔧","👨🏽‍🔧","👨🏾‍🔧","👨🏿‍🔧"]},{"e":"👩‍🔧","opts":["👩‍🔧","👩🏻‍🔧","👩🏼‍🔧","👩🏽‍🔧","👩🏾‍🔧","👩🏿‍🔧"]},{"e":"🧑‍🏭","opts":["🧑‍🏭","🧑🏻‍🏭","🧑🏼‍🏭","🧑🏽‍🏭","🧑🏾‍🏭","🧑🏿‍🏭"]},{"e":"👨‍🏭","opts":["👨‍🏭","👨🏻‍🏭","👨🏼‍🏭","👨🏽‍🏭","👨🏾‍🏭","👨🏿‍🏭"]},{"e":"👩‍🏭","opts":["👩‍🏭","👩🏻‍🏭","👩🏼‍🏭","👩🏽‍🏭","👩🏾‍🏭","👩🏿‍🏭"]},{"e":"🧑‍💼","opts":["🧑‍💼","🧑🏻‍💼","🧑🏼‍💼","🧑🏽‍💼","🧑🏾‍💼","🧑🏿‍💼"]},{"e":"👨‍💼","opts":["👨‍💼","👨🏻‍💼","👨🏼‍💼","👨🏽‍💼","👨🏾‍💼","👨🏿‍💼"]},{"e":"👩‍💼","opts":["👩‍💼","👩🏻‍💼","👩🏼‍💼","👩🏽‍💼","👩🏾‍💼","👩🏿‍💼"]},{"e":"🧑‍🔬","opts":["🧑‍🔬","🧑🏻‍🔬","🧑🏼‍🔬","🧑🏽‍🔬","🧑🏾‍🔬","🧑🏿‍🔬"]},{"e":"👨‍🔬","opts":["👨‍🔬","👨🏻‍🔬","👨🏼‍🔬","👨🏽‍🔬","👨🏾‍🔬","👨🏿‍🔬"]},{"e":"👩‍🔬","opts":["👩‍🔬","👩🏻‍🔬","👩🏼‍🔬","👩🏽‍🔬","👩🏾‍🔬","👩🏿‍🔬"]},{"e":"🧑‍💻","opts":["🧑‍💻","🧑🏻‍💻","🧑🏼‍💻","🧑🏽‍💻","🧑🏾‍💻","🧑🏿‍💻"]},{"e":"👨‍💻","opts":["👨‍💻","👨🏻‍💻","👨🏼‍💻","👨🏽‍💻","👨🏾‍💻","👨🏿‍💻"]},{"e":"👩‍💻","opts":["👩‍💻","👩🏻‍💻","👩🏼‍💻","👩🏽‍💻","👩🏾‍💻","👩🏿‍💻"]},{"e":"🧑‍🎤","opts":["🧑‍🎤","🧑🏻‍🎤","🧑🏼‍🎤","🧑🏽‍🎤","🧑🏾‍🎤","🧑🏿‍🎤"]},{"e":"👨‍🎤","opts":["👨‍🎤","👨🏻‍🎤","👨🏼‍🎤","👨🏽‍🎤","👨🏾‍🎤","👨🏿‍🎤"]},{"e":"👩‍🎤","opts":["👩‍🎤","👩🏻‍🎤","👩🏼‍🎤","👩🏽‍🎤","👩🏾‍🎤","👩🏿‍🎤"]},{"e":"🧑‍🎨","opts":["🧑‍🎨","🧑🏻‍🎨","🧑🏼‍🎨","🧑🏽‍🎨","🧑🏾‍🎨","🧑🏿‍🎨"]},{"e":"👨‍🎨","opts":["👨‍🎨","👨🏻‍🎨","👨🏼‍🎨","👨🏽‍🎨","👨🏾‍🎨","👨🏿‍🎨"]},{"e":"👩‍🎨","opts":["👩‍🎨","👩🏻‍🎨","👩🏼‍🎨","👩🏽‍🎨","👩🏾‍🎨","👩🏿‍🎨"]},{"e":"🧑‍✈️","opts":["🧑‍✈️","🧑🏻‍✈️","🧑🏼‍✈️","🧑🏽‍✈️","🧑🏾‍✈️","🧑🏿‍✈️"]},{"e":"👨‍✈️","opts":["👨‍✈️","👨🏻‍✈️","👨🏼‍✈️","👨🏽‍✈️","👨🏾‍✈️","👨🏿‍✈️"]},{"e":"👩‍✈️","opts":["👩‍✈️","👩🏻‍✈️","👩🏼‍✈️","👩🏽‍✈️","👩🏾‍✈️","👩🏿‍✈️"]},{"e":"🧑‍🚀","opts":["🧑‍🚀","🧑🏻‍🚀","🧑🏼‍🚀","🧑🏽‍🚀","🧑🏾‍🚀","🧑🏿‍🚀"]},{"e":"👨‍🚀","opts":["👨‍🚀","👨🏻‍🚀","👨🏼‍🚀","👨🏽‍🚀","👨🏾‍🚀","👨🏿‍🚀"]},{"e":"👩‍🚀","opts":["👩‍🚀","👩🏻‍🚀","👩🏼‍🚀","👩🏽‍🚀","👩🏾‍🚀","👩🏿‍🚀"]},{"e":"🧑‍🚒","opts":["🧑‍🚒","🧑🏻‍🚒","🧑🏼‍🚒","🧑🏽‍🚒","🧑🏾‍🚒","🧑🏿‍🚒"]},{"e":"👨‍🚒","opts":["👨‍🚒","👨🏻‍🚒","👨🏼‍🚒","👨🏽‍🚒","👨🏾‍🚒","👨🏿‍🚒"]},{"e":"👩‍🚒","opts":["👩‍🚒","👩🏻‍🚒","👩🏼‍🚒","👩🏽‍🚒","👩🏾‍🚒","👩🏿‍🚒"]},{"e":"👮","opts":["👮","👮🏻","👮🏼","👮🏽","👮🏾","👮🏿"]},{"e":"👮‍♂️","opts":["👮‍♂️","👮🏻‍♂️","👮🏼‍♂️","👮🏽‍♂️","👮🏾‍♂️","👮🏿‍♂️"]},{"e":"👮‍♀️","opts":["👮‍♀️","👮🏻‍♀️","👮🏼‍♀️","👮🏽‍♀️","👮🏾‍♀️","👮🏿‍♀️"]},{"e":"🕵️","opts":["🕵️","🕵🏻","🕵🏼","🕵🏽","🕵🏾","🕵🏿"]},{"e":"🕵️‍♂️","opts":["🕵️‍♂️","🕵🏻‍♂️","🕵🏼‍♂️","🕵🏽‍♂️","🕵🏾‍♂️","🕵🏿‍♂️"]},{"e":"🕵️‍♀️","opts":["🕵️‍♀️","🕵🏻‍♀️","🕵🏼‍♀️","🕵🏽‍♀️","🕵🏾‍♀️","🕵🏿‍♀️"]},{"e":"💂","opts":["💂","💂🏻","💂🏼","💂🏽","💂🏾","💂🏿"]},{"e":"💂‍♂️","opts":["💂‍♂️","💂🏻‍♂️","💂🏼‍♂️","💂🏽‍♂️","💂🏾‍♂️","💂🏿‍♂️"]},{"e":"💂‍♀️","opts":["💂‍♀️","💂🏻‍♀️","💂🏼‍♀️","💂🏽‍♀️","💂🏾‍♀️","💂🏿‍♀️"]},{"e":"🥷","opts":["🥷","🥷🏻","🥷🏼","🥷🏽","🥷🏾","🥷🏿"]},{"e":"👷","opts":["👷","👷🏻","👷🏼","👷🏽","👷🏾","👷🏿"]},{"e":"👷‍♂️","opts":["👷‍♂️","👷🏻‍♂️","👷🏼‍♂️","👷🏽‍♂️","👷🏾‍♂️","👷🏿‍♂️"]},{"e":"👷‍♀️","opts":["👷‍♀️","👷🏻‍♀️","👷🏼‍♀️","👷🏽‍♀️","👷🏾‍♀️","👷🏿‍♀️"]},{"e":"🤴","opts":["🤴","🤴🏻","🤴🏼","🤴🏽","🤴🏾","🤴🏿"]},{"e":"👸","opts":["👸","👸🏻","👸🏼","👸🏽","👸🏾","👸🏿"]},{"e":"👳","opts":["👳","👳🏻","👳🏼","👳🏽","👳🏾","👳🏿"]},{"e":"👳‍♂️","opts":["👳‍♂️","👳🏻‍♂️","👳🏼‍♂️","👳🏽‍♂️","👳🏾‍♂️","👳🏿‍♂️"]},{"e":"👳‍♀️","opts":["👳‍♀️","👳🏻‍♀️","👳🏼‍♀️","👳🏽‍♀️","👳🏾‍♀️","👳🏿‍♀️"]},{"e":"👲","opts":["👲","👲🏻","👲🏼","👲🏽","👲🏾","👲🏿"]},{"e":"🧕","opts":["🧕","🧕🏻","🧕🏼","🧕🏽","🧕🏾","🧕🏿"]},{"e":"🤵","opts":["🤵","🤵🏻","🤵🏼","🤵🏽","🤵🏾","🤵🏿"]},{"e":"🤵‍♂️","opts":["🤵‍♂️","🤵🏻‍♂️","🤵🏼‍♂️","🤵🏽‍♂️","🤵🏾‍♂️","🤵🏿‍♂️"]},{"e":"🤵‍♀️","opts":["🤵‍♀️","🤵🏻‍♀️","🤵🏼‍♀️","🤵🏽‍♀️","🤵🏾‍♀️","🤵🏿‍♀️"]},{"e":"👰","opts":["👰","👰🏻","👰🏼","👰🏽","👰🏾","👰🏿"]},{"e":"👰‍♂️","opts":["👰‍♂️","👰🏻‍♂️","👰🏼‍♂️","👰🏽‍♂️","👰🏾‍♂️","👰🏿‍♂️"]},{"e":"👰‍♀️","opts":["👰‍♀️","👰🏻‍♀️","👰🏼‍♀️","👰🏽‍♀️","👰🏾‍♀️","👰🏿‍♀️"]},{"e":"🤰","opts":["🤰","🤰🏻","🤰🏼","🤰🏽","🤰🏾","🤰🏿"]},{"e":"🤱","opts":["🤱","🤱🏻","🤱🏼","🤱🏽","🤱🏾","🤱🏿"]},{"e":"👩‍🍼","opts":["👩‍🍼","👩🏻‍🍼","👩🏼‍🍼","👩🏽‍🍼","👩🏾‍🍼","👩🏿‍🍼"]},{"e":"👨‍🍼","opts":["👨‍🍼","👨🏻‍🍼","👨🏼‍🍼","👨🏽‍🍼","👨🏾‍🍼","👨🏿‍🍼"]},{"e":"🧑‍🍼","opts":["🧑‍🍼","🧑🏻‍🍼","🧑🏼‍🍼","🧑🏽‍🍼","🧑🏾‍🍼","🧑🏿‍🍼"]},{"e":"👼","opts":["👼","👼🏻","👼🏼","👼🏽","👼🏾","👼🏿"]},{"e":"🎅","opts":["🎅","🎅🏻","🎅🏼","🎅🏽","🎅🏾","🎅🏿"]},{"e":"🤶","opts":["🤶","🤶🏻","🤶🏼","🤶🏽","🤶🏾","🤶🏿"]},{"e":"🧑‍🎄","opts":["🧑‍🎄","🧑🏻‍🎄","🧑🏼‍🎄","🧑🏽‍🎄","🧑🏾‍🎄","🧑🏿‍🎄"]},{"e":"🦸","opts":["🦸","🦸🏻","🦸🏼","🦸🏽","🦸🏾","🦸🏿"]},{"e":"🦸‍♂️","opts":["🦸‍♂️","🦸🏻‍♂️","🦸🏼‍♂️","🦸🏽‍♂️","🦸🏾‍♂️","🦸🏿‍♂️"]},{"e":"🦸‍♀️","opts":["🦸‍♀️","🦸🏻‍♀️","🦸🏼‍♀️","🦸🏽‍♀️","🦸🏾‍♀️","🦸🏿‍♀️"]},{"e":"🦹","opts":["🦹","🦹🏻","🦹🏼","🦹🏽","🦹🏾","🦹🏿"]},{"e":"🦹‍♂️","opts":["🦹‍♂️","🦹🏻‍♂️","🦹🏼‍♂️","🦹🏽‍♂️","🦹🏾‍♂️","🦹🏿‍♂️"]},{"e":"🦹‍♀️","opts":["🦹‍♀️","🦹🏻‍♀️","🦹🏼‍♀️","🦹🏽‍♀️","🦹🏾‍♀️","🦹🏿‍♀️"]},{"e":"🧙","opts":["🧙","🧙🏻","🧙🏼","🧙🏽","🧙🏾","🧙🏿"]},{"e":"🧙‍♂️","opts":["🧙‍♂️","🧙🏻‍♂️","🧙🏼‍♂️","🧙🏽‍♂️","🧙🏾‍♂️","🧙🏿‍♂️"]},{"e":"🧙‍♀️","opts":["🧙‍♀️","🧙🏻‍♀️","🧙🏼‍♀️","🧙🏽‍♀️","🧙🏾‍♀️","🧙🏿‍♀️"]},{"e":"🧚","opts":["🧚","🧚🏻","🧚🏼","🧚🏽","🧚🏾","🧚🏿"]},{"e":"🧚‍♂️","opts":["🧚‍♂️","🧚🏻‍♂️","🧚🏼‍♂️","🧚🏽‍♂️","🧚🏾‍♂️","🧚🏿‍♂️"]},{"e":"🧚‍♀️","opts":["🧚‍♀️","🧚🏻‍♀️","🧚🏼‍♀️","🧚🏽‍♀️","🧚🏾‍♀️","🧚🏿‍♀️"]},{"e":"🧛","opts":["🧛","🧛🏻","🧛🏼","🧛🏽","🧛🏾","🧛🏿"]},{"e":"🧛‍♂️","opts":["🧛‍♂️","🧛🏻‍♂️","🧛🏼‍♂️","🧛🏽‍♂️","🧛🏾‍♂️","🧛🏿‍♂️"]},{"e":"🧛‍♀️","opts":["🧛‍♀️","🧛🏻‍♀️","🧛🏼‍♀️","🧛🏽‍♀️","🧛🏾‍♀️","🧛🏿‍♀️"]},{"e":"🧜","opts":["🧜","🧜🏻","🧜🏼","🧜🏽","🧜🏾","🧜🏿"]},{"e":"🧜‍♂️","opts":["🧜‍♂️","🧜🏻‍♂️","🧜🏼‍♂️","🧜🏽‍♂️","🧜🏾‍♂️","🧜🏿‍♂️"]},{"e":"🧜‍♀️","opts":["🧜‍♀️","🧜🏻‍♀️","🧜🏼‍♀️","🧜🏽‍♀️","🧜🏾‍♀️","🧜🏿‍♀️"]},{"e":"🧝","opts":["🧝","🧝🏻","🧝🏼","🧝🏽","🧝🏾","🧝🏿"]},{"e":"🧝‍♂️","opts":["🧝‍♂️","🧝🏻‍♂️","🧝🏼‍♂️","🧝🏽‍♂️","🧝🏾‍♂️","🧝🏿‍♂️"]},{"e":"🧝‍♀️","opts":["🧝‍♀️","🧝🏻‍♀️","🧝🏼‍♀️","🧝🏽‍♀️","🧝🏾‍♀️","🧝🏿‍♀️"]},{"e":"🧞","opts":["🧞"]},{"e":"🧞‍♂️","opts":["🧞‍♂️"]},{"e":"🧞‍♀️","opts":["🧞‍♀️"]},{"e":"🧟","opts":["🧟"]},{"e":"🧟‍♂️","opts":["🧟‍♂️"]},{"e":"🧟‍♀️","opts":["🧟‍♀️"]},{"e":"💆","opts":["💆","💆🏻","💆🏼","💆🏽","💆🏾","💆🏿"]},{"e":"💆‍♂️","opts":["💆‍♂️","💆🏻‍♂️","💆🏼‍♂️","💆🏽‍♂️","💆🏾‍♂️","💆🏿‍♂️"]},{"e":"💆‍♀️","opts":["💆‍♀️","💆🏻‍♀️","💆🏼‍♀️","💆🏽‍♀️","💆🏾‍♀️","💆🏿‍♀️"]},{"e":"💇","opts":["💇","💇🏻","💇🏼","💇🏽","💇🏾","💇🏿"]},{"e":"💇‍♂️","opts":["💇‍♂️","💇🏻‍♂️","💇🏼‍♂️","💇🏽‍♂️","💇🏾‍♂️","💇🏿‍♂️"]},{"e":"💇‍♀️","opts":["💇‍♀️","💇🏻‍♀️","💇🏼‍♀️","💇🏽‍♀️","💇🏾‍♀️","💇🏿‍♀️"]},{"e":"🚶","opts":["🚶","🚶🏻","🚶🏼","🚶🏽","🚶🏾","🚶🏿"]},{"e":"🚶‍♂️","opts":["🚶‍♂️","🚶🏻‍♂️","🚶🏼‍♂️","🚶🏽‍♂️","🚶🏾‍♂️","🚶🏿‍♂️"]},{"e":"🚶‍♀️","opts":["🚶‍♀️","🚶🏻‍♀️","🚶🏼‍♀️","🚶🏽‍♀️","🚶🏾‍♀️","🚶🏿‍♀️"]},{"e":"🧍","opts":["🧍","🧍🏻","🧍🏼","🧍🏽","🧍🏾","🧍🏿"]},{"e":"🧍‍♂️","opts":["🧍‍♂️","🧍🏻‍♂️","🧍🏼‍♂️","🧍🏽‍♂️","🧍🏾‍♂️","🧍🏿‍♂️"]},{"e":"🧍‍♀️","opts":["🧍‍♀️","🧍🏻‍♀️","🧍🏼‍♀️","🧍🏽‍♀️","🧍🏾‍♀️","🧍🏿‍♀️"]},{"e":"🧎","opts":["🧎","🧎🏻","🧎🏼","🧎🏽","🧎🏾","🧎🏿"]},{"e":"🧎‍♂️","opts":["🧎‍♂️","🧎🏻‍♂️","🧎🏼‍♂️","🧎🏽‍♂️","🧎🏾‍♂️","🧎🏿‍♂️"]},{"e":"🧎‍♀️","opts":["🧎‍♀️","🧎🏻‍♀️","🧎🏼‍♀️","🧎🏽‍♀️","🧎🏾‍♀️","🧎🏿‍♀️"]},{"e":"🧑‍🦯","opts":["🧑‍🦯","🧑🏻‍🦯","🧑🏼‍🦯","🧑🏽‍🦯","🧑🏾‍🦯","🧑🏿‍🦯"]},{"e":"👨‍🦯","opts":["👨‍🦯","👨🏻‍🦯","👨🏼‍🦯","👨🏽‍🦯","👨🏾‍🦯","👨🏿‍🦯"]},{"e":"👩‍🦯","opts":["👩‍🦯","👩🏻‍🦯","👩🏼‍🦯","👩🏽‍🦯","👩🏾‍🦯","👩🏿‍🦯"]},{"e":"🧑‍🦼","opts":["🧑‍🦼","🧑🏻‍🦼","🧑🏼‍🦼","🧑🏽‍🦼","🧑🏾‍🦼","🧑🏿‍🦼"]},{"e":"👨‍🦼","opts":["👨‍🦼","👨🏻‍🦼","👨🏼‍🦼","👨🏽‍🦼","👨🏾‍🦼","👨🏿‍🦼"]},{"e":"👩‍🦼","opts":["👩‍🦼","👩🏻‍🦼","👩🏼‍🦼","👩🏽‍🦼","👩🏾‍🦼","👩🏿‍🦼"]},{"e":"🧑‍🦽","opts":["🧑‍🦽","🧑🏻‍🦽","🧑🏼‍🦽","🧑🏽‍🦽","🧑🏾‍🦽","🧑🏿‍🦽"]},{"e":"👨‍🦽","opts":["👨‍🦽","👨🏻‍🦽","👨🏼‍🦽","👨🏽‍🦽","👨🏾‍🦽","👨🏿‍🦽"]},{"e":"👩‍🦽","opts":["👩‍🦽","👩🏻‍🦽","👩🏼‍🦽","👩🏽‍🦽","👩🏾‍🦽","👩🏿‍🦽"]},{"e":"🏃","opts":["🏃","🏃🏻","🏃🏼","🏃🏽","🏃🏾","🏃🏿"]},{"e":"🏃‍♂️","opts":["🏃‍♂️","🏃🏻‍♂️","🏃🏼‍♂️","🏃🏽‍♂️","🏃🏾‍♂️","🏃🏿‍♂️"]},{"e":"🏃‍♀️","opts":["🏃‍♀️","🏃🏻‍♀️","🏃🏼‍♀️","🏃🏽‍♀️","🏃🏾‍♀️","🏃🏿‍♀️"]},{"e":"💃","opts":["💃","💃🏻","💃🏼","💃🏽","💃🏾","💃🏿"]},{"e":"🕺","opts":["🕺","🕺🏻","🕺🏼","🕺🏽","🕺🏾","🕺🏿"]},{"e":"🕴️","opts":["🕴️","🕴🏻","🕴🏼","🕴🏽","🕴🏾","🕴🏿"]},{"e":"👯","opts":["👯"]},{"e":"👯‍♂️","opts":["👯‍♂️"]},{"e":"👯‍♀️","opts":["👯‍♀️"]},{"e":"🧖","opts":["🧖","🧖🏻","🧖🏼","🧖🏽","🧖🏾","🧖🏿"]},{"e":"🧖‍♂️","opts":["🧖‍♂️","🧖🏻‍♂️","🧖🏼‍♂️","🧖🏽‍♂️","🧖🏾‍♂️","🧖🏿‍♂️"]},{"e":"🧖‍♀️","opts":["🧖‍♀️","🧖🏻‍♀️","🧖🏼‍♀️","🧖🏽‍♀️","🧖🏾‍♀️","🧖🏿‍♀️"]},{"e":"🧗","opts":["🧗","🧗🏻","🧗🏼","🧗🏽","🧗🏾","🧗🏿"]},{"e":"🧗‍♂️","opts":["🧗‍♂️","🧗🏻‍♂️","🧗🏼‍♂️","🧗🏽‍♂️","🧗🏾‍♂️","🧗🏿‍♂️"]},{"e":"🧗‍♀️","opts":["🧗‍♀️","🧗🏻‍♀️","🧗🏼‍♀️","🧗🏽‍♀️","🧗🏾‍♀️","🧗🏿‍♀️"]},{"e":"🤺","opts":["🤺"]},{"e":"🏇","opts":["🏇","🏇🏻","🏇🏼","🏇🏽","🏇🏾","🏇🏿"]},{"e":"⛷️","opts":["⛷️"]},{"e":"🏂️","opts":["🏂️","🏂🏻","🏂🏼","🏂🏽","🏂🏾","🏂🏿"]},{"e":"🏌️","opts":["🏌️","🏌🏻","🏌🏼","🏌🏽","🏌🏾","🏌🏿"]},{"e":"🏌️‍♂️","opts":["🏌️‍♂️","🏌🏻‍♂️","🏌🏼‍♂️","🏌🏽‍♂️","🏌🏾‍♂️","🏌🏿‍♂️"]},{"e":"🏌️‍♀️","opts":["🏌️‍♀️","🏌🏻‍♀️","🏌🏼‍♀️","🏌🏽‍♀️","🏌🏾‍♀️","🏌🏿‍♀️"]},{"e":"🏄️","opts":["🏄️","🏄🏻","🏄🏼","🏄🏽","🏄🏾","🏄🏿"]},{"e":"🏄‍♂️","opts":["🏄‍♂️","🏄🏻‍♂️","🏄🏼‍♂️","🏄🏽‍♂️","🏄🏾‍♂️","🏄🏿‍♂️"]},{"e":"🏄‍♀️","opts":["🏄‍♀️","🏄🏻‍♀️","🏄🏼‍♀️","🏄🏽‍♀️","🏄🏾‍♀️","🏄🏿‍♀️"]},{"e":"🚣","opts":["🚣","🚣🏻","🚣🏼","🚣🏽","🚣🏾","🚣🏿"]},{"e":"🚣‍♂️","opts":["🚣‍♂️","🚣🏻‍♂️","🚣🏼‍♂️","🚣🏽‍♂️","🚣🏾‍♂️","🚣🏿‍♂️"]},{"e":"🚣‍♀️","opts":["🚣‍♀️","🚣🏻‍♀️","🚣🏼‍♀️","🚣🏽‍♀️","🚣🏾‍♀️","🚣🏿‍♀️"]},{"e":"🏊️","opts":["🏊️","🏊🏻","🏊🏼","🏊🏽","🏊🏾","🏊🏿"]},{"e":"🏊‍♂️","opts":["🏊‍♂️","🏊🏻‍♂️","🏊🏼‍♂️","🏊🏽‍♂️","🏊🏾‍♂️","🏊🏿‍♂️"]},{"e":"🏊‍♀️","opts":["🏊‍♀️","🏊🏻‍♀️","🏊🏼‍♀️","🏊🏽‍♀️","🏊🏾‍♀️","🏊🏿‍♀️"]},{"e":"⛹️","opts":["⛹️","⛹🏻","⛹🏼","⛹🏽","⛹🏾","⛹🏿"]},{"e":"⛹️‍♂️","opts":["⛹️‍♂️","⛹🏻‍♂️","⛹🏼‍♂️","⛹🏽‍♂️","⛹🏾‍♂️","⛹🏿‍♂️"]},{"e":"⛹️‍♀️","opts":["⛹️‍♀️","⛹🏻‍♀️","⛹🏼‍♀️","⛹🏽‍♀️","⛹🏾‍♀️","⛹🏿‍♀️"]},{"e":"🏋️","opts":["🏋️","🏋🏻","🏋🏼","🏋🏽","🏋🏾","🏋🏿"]},{"e":"🏋️‍♂️","opts":["🏋️‍♂️","🏋🏻‍♂️","🏋🏼‍♂️","🏋🏽‍♂️","🏋🏾‍♂️","🏋🏿‍♂️"]},{"e":"🏋️‍♀️","opts":["🏋️‍♀️","🏋🏻‍♀️","🏋🏼‍♀️","🏋🏽‍♀️","🏋🏾‍♀️","🏋🏿‍♀️"]},{"e":"🚴","opts":["🚴","🚴🏻","🚴🏼","🚴🏽","🚴🏾","🚴🏿"]},{"e":"🚴‍♂️","opts":["🚴‍♂️","🚴🏻‍♂️","🚴🏼‍♂️","🚴🏽‍♂️","🚴🏾‍♂️","🚴🏿‍♂️"]},{"e":"🚴‍♀️","opts":["🚴‍♀️","🚴🏻‍♀️","🚴🏼‍♀️","🚴🏽‍♀️","🚴🏾‍♀️","🚴🏿‍♀️"]},{"e":"🚵","opts":["🚵","🚵🏻","🚵🏼","🚵🏽","🚵🏾","🚵🏿"]},{"e":"🚵‍♂️","opts":["🚵‍♂️","🚵🏻‍♂️","🚵🏼‍♂️","🚵🏽‍♂️","🚵🏾‍♂️","🚵🏿‍♂️"]},{"e":"🚵‍♀️","opts":["🚵‍♀️","🚵🏻‍♀️","🚵🏼‍♀️","🚵🏽‍♀️","🚵🏾‍♀️","🚵🏿‍♀️"]},{"e":"🤸","opts":["🤸","🤸🏻","🤸🏼","🤸🏽","🤸🏾","🤸🏿"]},{"e":"🤸‍♂️","opts":["🤸‍♂️","🤸🏻‍♂️","🤸🏼‍♂️","🤸🏽‍♂️","🤸🏾‍♂️","🤸🏿‍♂️"]},{"e":"🤸‍♀️","opts":["🤸‍♀️","🤸🏻‍♀️","🤸🏼‍♀️","🤸🏽‍♀️","🤸🏾‍♀️","🤸🏿‍♀️"]},{"e":"🤼","opts":["🤼"]},{"e":"🤼‍♂️","opts":["🤼‍♂️"]},{"e":"🤼‍♀️","opts":["🤼‍♀️"]},{"e":"🤽","opts":["🤽","🤽🏻","🤽🏼","🤽🏽","🤽🏾","🤽🏿"]},{"e":"🤽‍♂️","opts":["🤽‍♂️","🤽🏻‍♂️","🤽🏼‍♂️","🤽🏽‍♂️","🤽🏾‍♂️","🤽🏿‍♂️"]},{"e":"🤽‍♀️","opts":["🤽‍♀️","🤽🏻‍♀️","🤽🏼‍♀️","🤽🏽‍♀️","🤽🏾‍♀️","🤽🏿‍♀️"]},{"e":"🤾","opts":["🤾","🤾🏻","🤾🏼","🤾🏽","🤾🏾","🤾🏿"]},{"e":"🤾‍♂️","opts":["🤾‍♂️","🤾🏻‍♂️","🤾🏼‍♂️","🤾🏽‍♂️","🤾🏾‍♂️","🤾🏿‍♂️"]},{"e":"🤾‍♀️","opts":["🤾‍♀️","🤾🏻‍♀️","🤾🏼‍♀️","🤾🏽‍♀️","🤾🏾‍♀️","🤾🏿‍♀️"]},{"e":"🤹","opts":["🤹","🤹🏻","🤹🏼","🤹🏽","🤹🏾","🤹🏿"]},{"e":"🤹‍♂️","opts":["🤹‍♂️","🤹🏻‍♂️","🤹🏼‍♂️","🤹🏽‍♂️","🤹🏾‍♂️","🤹🏿‍♂️"]},{"e":"🤹‍♀️","opts":["🤹‍♀️","🤹🏻‍♀️","🤹🏼‍♀️","🤹🏽‍♀️","🤹🏾‍♀️","🤹🏿‍♀️"]},{"e":"🧘","opts":["🧘","🧘🏻","🧘🏼","🧘🏽","🧘🏾","🧘🏿"]},{"e":"🧘‍♂️","opts":["🧘‍♂️","🧘🏻‍♂️","🧘🏼‍♂️","🧘🏽‍♂️","🧘🏾‍♂️","🧘🏿‍♂️"]},{"e":"🧘‍♀️","opts":["🧘‍♀️","🧘🏻‍♀️","🧘🏼‍♀️","🧘🏽‍♀️","🧘🏾‍♀️","🧘🏿‍♀️"]},{"e":"🛀","opts":["🛀","🛀🏻","🛀🏼","🛀🏽","🛀🏾","🛀🏿"]},{"e":"🛌","opts":["🛌","🛌🏻","🛌🏼","🛌🏽","🛌🏾","🛌🏿"]},{"e":"🧑‍🤝‍🧑","opts":["🧑‍🤝‍🧑","🧑🏻‍🤝‍🧑🏻","🧑🏻‍🤝‍🧑🏼","🧑🏻‍🤝‍🧑🏽","🧑🏻‍🤝‍🧑🏾","🧑🏻‍🤝‍🧑🏿","🧑🏼‍🤝‍🧑🏻","🧑🏼‍🤝‍🧑🏼","🧑🏼‍🤝‍🧑🏽","🧑🏼‍🤝‍🧑🏾","🧑🏼‍🤝‍🧑🏿","🧑🏽‍🤝‍🧑🏻","🧑🏽‍🤝‍🧑🏼","🧑🏽‍🤝‍🧑🏽","🧑🏽‍🤝‍🧑🏾","🧑🏽‍🤝‍🧑🏿","🧑🏾‍🤝‍🧑🏻","🧑🏾‍🤝‍🧑🏼","🧑🏾‍🤝‍🧑🏽","🧑🏾‍🤝‍🧑🏾","🧑🏾‍🤝‍🧑🏿","🧑🏿‍🤝‍🧑🏻","🧑🏿‍🤝‍🧑🏼","🧑🏿‍🤝‍🧑🏽","🧑🏿‍🤝‍🧑🏾","🧑🏿‍🤝‍🧑🏿"]},{"e":"👭","opts":["👭","👭🏻","👩🏻‍🤝‍👩🏼","👩🏻‍🤝‍👩🏽","👩🏻‍🤝‍👩🏾","👩🏻‍🤝‍👩🏿","👩🏼‍🤝‍👩🏻","👭🏼","👩🏼‍🤝‍👩🏽","👩🏼‍🤝‍👩🏾","👩🏼‍🤝‍👩🏿","👩🏽‍🤝‍👩🏻","👩🏽‍🤝‍👩🏼","👭🏽","👩🏽‍🤝‍👩🏾","👩🏽‍🤝‍👩🏿","👩🏾‍🤝‍👩🏻","👩🏾‍🤝‍👩🏼","👩🏾‍🤝‍👩🏽","👭🏾","👩🏾‍🤝‍👩🏿","👩🏿‍🤝‍👩🏻","👩🏿‍🤝‍👩🏼","👩🏿‍🤝‍👩🏽","👩🏿‍🤝‍👩🏾","👭🏿"]},{"e":"👫","opts":["👫","👫🏻","👩🏻‍🤝‍👨🏼","👩🏻‍🤝‍👨🏽","👩🏻‍🤝‍👨🏾","👩🏻‍🤝‍👨🏿","👩🏼‍🤝‍👨🏻","👫🏼","👩🏼‍🤝‍👨🏽","👩🏼‍🤝‍👨🏾","👩🏼‍🤝‍👨🏿","👩🏽‍🤝‍👨🏻","👩🏽‍🤝‍👨🏼","👫🏽","👩🏽‍🤝‍👨🏾","👩🏽‍🤝‍👨🏿","👩🏾‍🤝‍👨🏻","👩🏾‍🤝‍👨🏼","👩🏾‍🤝‍👨🏽","👫🏾","👩🏾‍🤝‍👨🏿","👩🏿‍🤝‍👨🏻","👩🏿‍🤝‍👨🏼","👩🏿‍🤝‍👨🏽","👩🏿‍🤝‍👨🏾","👫🏿"]},{"e":"👬","opts":["👬","👬🏻","👨🏻‍🤝‍👨🏼","👨🏻‍🤝‍👨🏽","👨🏻‍🤝‍👨🏾","👨🏻‍🤝‍👨🏿","👨🏼‍🤝‍👨🏻","👬🏼","👨🏼‍🤝‍👨🏽","👨🏼‍🤝‍👨🏾","👨🏼‍🤝‍👨🏿","👨🏽‍🤝‍👨🏻","👨🏽‍🤝‍👨🏼","👬🏽","👨🏽‍🤝‍👨🏾","👨🏽‍🤝‍👨🏿","👨🏾‍🤝‍👨🏻","👨🏾‍🤝‍👨🏼","👨🏾‍🤝‍👨🏽","👬🏾","👨🏾‍🤝‍👨🏿","👨🏿‍🤝‍👨🏻","👨🏿‍🤝‍👨🏼","👨🏿‍🤝‍👨🏽","👨🏿‍🤝‍👨🏾","👬🏿"]},{"e":"💏","opts":["💏"]},{"e":"👩‍❤️‍💋‍👨","opts":["👩‍❤️‍💋‍👨"]},{"e":"👨‍❤️‍💋‍👨","opts":["👨‍❤️‍💋‍👨"]},{"e":"👩‍❤️‍💋‍👩","opts":["👩‍❤️‍💋‍👩"]},{"e":"💑","opts":["💑"]},{"e":"👩‍❤️‍👨","opts":["👩‍❤️‍👨"]},{"e":"👨‍❤️‍👨","opts":["👨‍❤️‍👨"]},{"e":"👩‍❤️‍👩","opts":["👩‍❤️‍👩"]},{"e":"👪️","opts":["👪️"]},{"e":"👨‍👩‍👦","opts":["👨‍👩‍👦"]},{"e":"👨‍👩‍👧","opts":["👨‍👩‍👧"]},{"e":"👨‍👩‍👧‍👦","opts":["👨‍👩‍👧‍👦"]},{"e":"👨‍👩‍👦‍👦","opts":["👨‍👩‍👦‍👦"]},{"e":"👨‍👩‍👧‍👧","opts":["👨‍👩‍👧‍👧"]},{"e":"👨‍👨‍👦","opts":["👨‍👨‍👦"]},{"e":"👨‍👨‍👧","opts":["👨‍👨‍👧"]},{"e":"👨‍👨‍👧‍👦","opts":["👨‍👨‍👧‍👦"]},{"e":"👨‍👨‍👦‍👦","opts":["👨‍👨‍👦‍👦"]},{"e":"👨‍👨‍👧‍👧","opts":["👨‍👨‍👧‍👧"]},{"e":"👩‍👩‍👦","opts":["👩‍👩‍👦"]},{"e":"👩‍👩‍👧","opts":["👩‍👩‍👧"]},{"e":"👩‍👩‍👧‍👦","opts":["👩‍👩‍👧‍👦"]},{"e":"👩‍👩‍👦‍👦","opts":["👩‍👩‍👦‍👦"]},{"e":"👩‍👩‍👧‍👧","opts":["👩‍👩‍👧‍👧"]},{"e":"👨‍👦","opts":["👨‍👦"]},{"e":"👨‍👦‍👦","opts":["👨‍👦‍👦"]},{"e":"👨‍👧","opts":["👨‍👧"]},{"e":"👨‍👧‍👦","opts":["👨‍👧‍👦"]},{"e":"👨‍👧‍👧","opts":["👨‍👧‍👧"]},{"e":"👩‍👦","opts":["👩‍👦"]},{"e":"👩‍👦‍👦","opts":["👩‍👦‍👦"]},{"e":"👩‍👧","opts":["👩‍👧"]},{"e":"👩‍👧‍👦","opts":["👩‍👧‍👦"]},{"e":"👩‍👧‍👧","opts":["👩‍👧‍👧"]},{"e":"🗣️","opts":["🗣️"]},{"e":"👤","opts":["👤"]},{"e":"👥","opts":["👥"]},{"e":"🫂","opts":["🫂"]},{"e":"👣","opts":["👣"]}],"animals-nature":[{"e":"🐵","opts":["🐵"]},{"e":"🐒","opts":["🐒"]},{"e":"🦍","opts":["🦍"]},{"e":"🦧","opts":["🦧"]},{"e":"🐶","opts":["🐶"]},{"e":"🐕️","opts":["🐕️"]},{"e":"🦮","opts":["🦮"]},{"e":"🐕‍🦺","opts":["🐕‍🦺"]},{"e":"🐩","opts":["🐩"]},{"e":"🐺","opts":["🐺"]},{"e":"🦊","opts":["🦊"]},{"e":"🦝","opts":["🦝"]},{"e":"🐱","opts":["🐱"]},{"e":"🐈️","opts":["🐈️"]},{"e":"🐈‍⬛","opts":["🐈‍⬛"]},{"e":"🦁","opts":["🦁"]},{"e":"🐯","opts":["🐯"]},{"e":"🐅","opts":["🐅"]},{"e":"🐆","opts":["🐆"]},{"e":"🐴","opts":["🐴"]},{"e":"🐎","opts":["🐎"]},{"e":"🦄","opts":["🦄"]},{"e":"🦓","opts":["🦓"]},{"e":"🦌","opts":["🦌"]},{"e":"🦬","opts":["🦬"]},{"e":"🐮","opts":["🐮"]},{"e":"🐂","opts":["🐂"]},{"e":"🐃","opts":["🐃"]},{"e":"🐄","opts":["🐄"]},{"e":"🐷","opts":["🐷"]},{"e":"🐖","opts":["🐖"]},{"e":"🐗","opts":["🐗"]},{"e":"🐽","opts":["🐽"]},{"e":"🐏","opts":["🐏"]},{"e":"🐑","opts":["🐑"]},{"e":"🐐","opts":["🐐"]},{"e":"🐪","opts":["🐪"]},{"e":"🐫","opts":["🐫"]},{"e":"🦙","opts":["🦙"]},{"e":"🦒","opts":["🦒"]},{"e":"🐘","opts":["🐘"]},{"e":"🦣","opts":["🦣"]},{"e":"🦏","opts":["🦏"]},{"e":"🦛","opts":["🦛"]},{"e":"🐭","opts":["🐭"]},{"e":"🐁","opts":["🐁"]},{"e":"🐀","opts":["🐀"]},{"e":"🐹","opts":["🐹"]},{"e":"🐰","opts":["🐰"]},{"e":"🐇","opts":["🐇"]},{"e":"🐿️","opts":["🐿️"]},{"e":"🦫","opts":["🦫"]},{"e":"🦔","opts":["🦔"]},{"e":"🦇","opts":["🦇"]},{"e":"🐻","opts":["🐻"]},{"e":"🐻‍❄️","opts":["🐻‍❄️"]},{"e":"🐨","opts":["🐨"]},{"e":"🐼","opts":["🐼"]},{"e":"🦥","opts":["🦥"]},{"e":"🦦","opts":["🦦"]},{"e":"🦨","opts":["🦨"]},{"e":"🦘","opts":["🦘"]},{"e":"🦡","opts":["🦡"]},{"e":"🐾","opts":["🐾"]},{"e":"🦃","opts":["🦃"]},{"e":"🐔","opts":["🐔"]},{"e":"🐓","opts":["🐓"]},{"e":"🐣","opts":["🐣"]},{"e":"🐤","opts":["🐤"]},{"e":"🐥","opts":["🐥"]},{"e":"🐦️","opts":["🐦️"]},{"e":"🐧","opts":["🐧"]},{"e":"🕊️","opts":["🕊️"]},{"e":"🦅","opts":["🦅"]},{"e":"🦆","opts":["🦆"]},{"e":"🦢","opts":["🦢"]},{"e":"🦉","opts":["🦉"]},{"e":"🦤","opts":["🦤"]},{"e":"🪶","opts":["🪶"]},{"e":"🦩","opts":["🦩"]},{"e":"🦚","opts":["🦚"]},{"e":"🦜","opts":["🦜"]},{"e":"🐸","opts":["🐸"]},{"e":"🐊","opts":["🐊"]},{"e":"🐢","opts":["🐢"]},{"e":"🦎","opts":["🦎"]},{"e":"🐍","opts":["🐍"]},{"e":"🐲","opts":["🐲"]},{"e":"🐉","opts":["🐉"]},{"e":"🦕","opts":["🦕"]},{"e":"🦖","opts":["🦖"]},{"e":"🐳","opts":["🐳"]},{"e":"🐋","opts":["🐋"]},{"e":"🐬","opts":["🐬"]},{"e":"🦭","opts":["🦭"]},{"e":"🐟️","opts":["🐟️"]},{"e":"🐠","opts":["🐠"]},{"e":"🐡","opts":["🐡"]},{"e":"🦈","opts":["🦈"]},{"e":"🐙","opts":["🐙"]},{"e":"🐚","opts":["🐚"]},{"e":"🐌","opts":["🐌"]},{"e":"🦋","opts":["🦋"]},{"e":"🐛","opts":["🐛"]},{"e":"🐜","opts":["🐜"]},{"e":"🐝","opts":["🐝"]},{"e":"🪲","opts":["🪲"]},{"e":"🐞","opts":["🐞"]},{"e":"🦗","opts":["🦗"]},{"e":"🪳","opts":["🪳"]},{"e":"🕷️","opts":["🕷️"]},{"e":"🕸️","opts":["🕸️"]},{"e":"🦂","opts":["🦂"]},{"e":"🦟","opts":["🦟"]},{"e":"🪰","opts":["🪰"]},{"e":"🪱","opts":["🪱"]},{"e":"🦠","opts":["🦠"]},{"e":"💐","opts":["💐"]},{"e":"🌸","opts":["🌸"]},{"e":"💮","opts":["💮"]},{"e":"🏵️","opts":["🏵️"]},{"e":"🌹","opts":["🌹"]},{"e":"🥀","opts":["🥀"]},{"e":"🌺","opts":["🌺"]},{"e":"🌻","opts":["🌻"]},{"e":"🌼","opts":["🌼"]},{"e":"🌷","opts":["🌷"]},{"e":"🌱","opts":["🌱"]},{"e":"🪴","opts":["🪴"]},{"e":"🌲","opts":["🌲"]},{"e":"🌳","opts":["🌳"]},{"e":"🌴","opts":["🌴"]},{"e":"🌵","opts":["🌵"]},{"e":"🌾","opts":["🌾"]},{"e":"🌿","opts":["🌿"]},{"e":"☘️","opts":["☘️"]},{"e":"🍀","opts":["🍀"]},{"e":"🍁","opts":["🍁"]},{"e":"🍂","opts":["🍂"]},{"e":"🍃","opts":["🍃"]}],"food-drink":[{"e":"🍇","opts":["🍇"]},{"e":"🍈","opts":["🍈"]},{"e":"🍉","opts":["🍉"]},{"e":"🍊","opts":["🍊"]},{"e":"🍋","opts":["🍋"]},{"e":"🍌","opts":["🍌"]},{"e":"🍍","opts":["🍍"]},{"e":"🥭","opts":["🥭"]},{"e":"🍎","opts":["🍎"]},{"e":"🍏","opts":["🍏"]},{"e":"🍐","opts":["🍐"]},{"e":"🍑","opts":["🍑"]},{"e":"🍒","opts":["🍒"]},{"e":"🍓","opts":["🍓"]},{"e":"🫐","opts":["🫐"]},{"e":"🥝","opts":["🥝"]},{"e":"🍅","opts":["🍅"]},{"e":"🫒","opts":["🫒"]},{"e":"🥥","opts":["🥥"]},{"e":"🥑","opts":["🥑"]},{"e":"🍆","opts":["🍆"]},{"e":"🥔","opts":["🥔"]},{"e":"🥕","opts":["🥕"]},{"e":"🌽","opts":["🌽"]},{"e":"🌶️","opts":["🌶️"]},{"e":"🫑","opts":["🫑"]},{"e":"🥒","opts":["🥒"]},{"e":"🥬","opts":["🥬"]},{"e":"🥦","opts":["🥦"]},{"e":"🧄","opts":["🧄"]},{"e":"🧅","opts":["🧅"]},{"e":"🍄","opts":["🍄"]},{"e":"🥜","opts":["🥜"]},{"e":"🌰","opts":["🌰"]},{"e":"🍞","opts":["🍞"]},{"e":"🥐","opts":["🥐"]},{"e":"🥖","opts":["🥖"]},{"e":"🫓","opts":["🫓"]},{"e":"🥨","opts":["🥨"]},{"e":"🥯","opts":["🥯"]},{"e":"🥞","opts":["🥞"]},{"e":"🧇","opts":["🧇"]},{"e":"🧀","opts":["🧀"]},{"e":"🍖","opts":["🍖"]},{"e":"🍗","opts":["🍗"]},{"e":"🥩","opts":["🥩"]},{"e":"🥓","opts":["🥓"]},{"e":"🍔","opts":["🍔"]},{"e":"🍟","opts":["🍟"]},{"e":"🍕","opts":["🍕"]},{"e":"🌭","opts":["🌭"]},{"e":"🥪","opts":["🥪"]},{"e":"🌮","opts":["🌮"]},{"e":"🌯","opts":["🌯"]},{"e":"🫔","opts":["🫔"]},{"e":"🥙","opts":["🥙"]},{"e":"🧆","opts":["🧆"]},{"e":"🥚","opts":["🥚"]},{"e":"🍳","opts":["🍳"]},{"e":"🥘","opts":["🥘"]},{"e":"🍲","opts":["🍲"]},{"e":"🫕","opts":["🫕"]},{"e":"🥣","opts":["🥣"]},{"e":"🥗","opts":["🥗"]},{"e":"🍿","opts":["🍿"]},{"e":"🧈","opts":["🧈"]},{"e":"🧂","opts":["🧂"]},{"e":"🥫","opts":["🥫"]},{"e":"🍱","opts":["🍱"]},{"e":"🍘","opts":["🍘"]},{"e":"🍙","opts":["🍙"]},{"e":"🍚","opts":["🍚"]},{"e":"🍛","opts":["🍛"]},{"e":"🍜","opts":["🍜"]},{"e":"🍝","opts":["🍝"]},{"e":"🍠","opts":["🍠"]},{"e":"🍢","opts":["🍢"]},{"e":"🍣","opts":["🍣"]},{"e":"🍤","opts":["🍤"]},{"e":"🍥","opts":["🍥"]},{"e":"🥮","opts":["🥮"]},{"e":"🍡","opts":["🍡"]},{"e":"🥟","opts":["🥟"]},{"e":"🥠","opts":["🥠"]},{"e":"🥡","opts":["🥡"]},{"e":"🦀","opts":["🦀"]},{"e":"🦞","opts":["🦞"]},{"e":"🦐","opts":["🦐"]},{"e":"🦑","opts":["🦑"]},{"e":"🦪","opts":["🦪"]},{"e":"🍦","opts":["🍦"]},{"e":"🍧","opts":["🍧"]},{"e":"🍨","opts":["🍨"]},{"e":"🍩","opts":["🍩"]},{"e":"🍪","opts":["🍪"]},{"e":"🎂","opts":["🎂"]},{"e":"🍰","opts":["🍰"]},{"e":"🧁","opts":["🧁"]},{"e":"🥧","opts":["🥧"]},{"e":"🍫","opts":["🍫"]},{"e":"🍬","opts":["🍬"]},{"e":"🍭","opts":["🍭"]},{"e":"🍮","opts":["🍮"]},{"e":"🍯","opts":["🍯"]},{"e":"🍼","opts":["🍼"]},{"e":"🥛","opts":["🥛"]},{"e":"☕️","opts":["☕️"]},{"e":"🫖","opts":["🫖"]},{"e":"🍵","opts":["🍵"]},{"e":"🍶","opts":["🍶"]},{"e":"🍾","opts":["🍾"]},{"e":"🍷","opts":["🍷"]},{"e":"🍸️","opts":["🍸️"]},{"e":"🍹","opts":["🍹"]},{"e":"🍺","opts":["🍺"]},{"e":"🍻","opts":["🍻"]},{"e":"🥂","opts":["🥂"]},{"e":"🥃","opts":["🥃"]},{"e":"🥤","opts":["🥤"]},{"e":"🧋","opts":["🧋"]},{"e":"🧃","opts":["🧃"]},{"e":"🧉","opts":["🧉"]},{"e":"🧊","opts":["🧊"]},{"e":"🥢","opts":["🥢"]},{"e":"🍽️","opts":["🍽️"]},{"e":"🍴","opts":["🍴"]},{"e":"🥄","opts":["🥄"]},{"e":"🔪","opts":["🔪"]},{"e":"🏺","opts":["🏺"]}],"travel-places":[{"e":"🌍️","opts":["🌍️"]},{"e":"🌎️","opts":["🌎️"]},{"e":"🌏️","opts":["🌏️"]},{"e":"🌐","opts":["🌐"]},{"e":"🗺️","opts":["🗺️"]},{"e":"🗾","opts":["🗾"]},{"e":"🧭","opts":["🧭"]},{"e":"🏔️","opts":["🏔️"]},{"e":"⛰️","opts":["⛰️"]},{"e":"🌋","opts":["🌋"]},{"e":"🗻","opts":["🗻"]},{"e":"🏕️","opts":["🏕️"]},{"e":"🏖️","opts":["🏖️"]},{"e":"🏜️","opts":["🏜️"]},{"e":"🏝️","opts":["🏝️"]},{"e":"🏞️","opts":["🏞️"]},{"e":"🏟️","opts":["🏟️"]},{"e":"🏛️","opts":["🏛️"]},{"e":"🏗️","opts":["🏗️"]},{"e":"🧱","opts":["🧱"]},{"e":"🪨","opts":["🪨"]},{"e":"🪵","opts":["🪵"]},{"e":"🛖","opts":["🛖"]},{"e":"🏘️","opts":["🏘️"]},{"e":"🏚️","opts":["🏚️"]},{"e":"🏠️","opts":["🏠️"]},{"e":"🏡","opts":["🏡"]},{"e":"🏢","opts":["🏢"]},{"e":"🏣","opts":["🏣"]},{"e":"🏤","opts":["🏤"]},{"e":"🏥","opts":["🏥"]},{"e":"🏦","opts":["🏦"]},{"e":"🏨","opts":["🏨"]},{"e":"🏩","opts":["🏩"]},{"e":"🏪","opts":["🏪"]},{"e":"🏫","opts":["🏫"]},{"e":"🏬","opts":["🏬"]},{"e":"🏭️","opts":["🏭️"]},{"e":"🏯","opts":["🏯"]},{"e":"🏰","opts":["🏰"]},{"e":"💒","opts":["💒"]},{"e":"🗼","opts":["🗼"]},{"e":"🗽","opts":["🗽"]},{"e":"⛪️","opts":["⛪️"]},{"e":"🕌","opts":["🕌"]},{"e":"🛕","opts":["🛕"]},{"e":"🕍","opts":["🕍"]},{"e":"⛩️","opts":["⛩️"]},{"e":"🕋","opts":["🕋"]},{"e":"⛲️","opts":["⛲️"]},{"e":"⛺️","opts":["⛺️"]},{"e":"🌁","opts":["🌁"]},{"e":"🌃","opts":["🌃"]},{"e":"🏙️","opts":["🏙️"]},{"e":"🌄","opts":["🌄"]},{"e":"🌅","opts":["🌅"]},{"e":"🌆","opts":["🌆"]},{"e":"🌇","opts":["🌇"]},{"e":"🌉","opts":["🌉"]},{"e":"♨️","opts":["♨️"]},{"e":"🎠","opts":["🎠"]},{"e":"🎡","opts":["🎡"]},{"e":"🎢","opts":["🎢"]},{"e":"💈","opts":["💈"]},{"e":"🎪","opts":["🎪"]},{"e":"🚂","opts":["🚂"]},{"e":"🚃","opts":["🚃"]},{"e":"🚄","opts":["🚄"]},{"e":"🚅","opts":["🚅"]},{"e":"🚆","opts":["🚆"]},{"e":"🚇️","opts":["🚇️"]},{"e":"🚈","opts":["🚈"]},{"e":"🚉","opts":["🚉"]},{"e":"🚊","opts":["🚊"]},{"e":"🚝","opts":["🚝"]},{"e":"🚞","opts":["🚞"]},{"e":"🚋","opts":["🚋"]},{"e":"🚌","opts":["🚌"]},{"e":"🚍️","opts":["🚍️"]},{"e":"🚎","opts":["🚎"]},{"e":"🚐","opts":["🚐"]},{"e":"🚑️","opts":["🚑️"]},{"e":"🚒","opts":["🚒"]},{"e":"🚓","opts":["🚓"]},{"e":"🚔️","opts":["🚔️"]},{"e":"🚕","opts":["🚕"]},{"e":"🚖","opts":["🚖"]},{"e":"🚗","opts":["🚗"]},{"e":"🚘️","opts":["🚘️"]},{"e":"🚙","opts":["🚙"]},{"e":"🛻","opts":["🛻"]},{"e":"🚚","opts":["🚚"]},{"e":"🚛","opts":["🚛"]},{"e":"🚜","opts":["🚜"]},{"e":"🏎️","opts":["🏎️"]},{"e":"🏍️","opts":["🏍️"]},{"e":"🛵","opts":["🛵"]},{"e":"🦽","opts":["🦽"]},{"e":"🦼","opts":["🦼"]},{"e":"🛺","opts":["🛺"]},{"e":"🚲️","opts":["🚲️"]},{"e":"🛴","opts":["🛴"]},{"e":"🛹","opts":["🛹"]},{"e":"🛼","opts":["🛼"]},{"e":"🚏","opts":["🚏"]},{"e":"🛣️","opts":["🛣️"]},{"e":"🛤️","opts":["🛤️"]},{"e":"🛢️","opts":["🛢️"]},{"e":"⛽️","opts":["⛽️"]},{"e":"🚨","opts":["🚨"]},{"e":"🚥","opts":["🚥"]},{"e":"🚦","opts":["🚦"]},{"e":"🛑","opts":["🛑"]},{"e":"🚧","opts":["🚧"]},{"e":"⚓️","opts":["⚓️"]},{"e":"⛵️","opts":["⛵️"]},{"e":"🛶","opts":["🛶"]},{"e":"🚤","opts":["🚤"]},{"e":"🛳️","opts":["🛳️"]},{"e":"⛴️","opts":["⛴️"]},{"e":"🛥️","opts":["🛥️"]},{"e":"🚢","opts":["🚢"]},{"e":"✈️","opts":["✈️"]},{"e":"🛩️","opts":["🛩️"]},{"e":"🛫","opts":["🛫"]},{"e":"🛬","opts":["🛬"]},{"e":"🪂","opts":["🪂"]},{"e":"💺","opts":["💺"]},{"e":"🚁","opts":["🚁"]},{"e":"🚟","opts":["🚟"]},{"e":"🚠","opts":["🚠"]},{"e":"🚡","opts":["🚡"]},{"e":"🛰️","opts":["🛰️"]},{"e":"🚀","opts":["🚀"]},{"e":"🛸","opts":["🛸"]},{"e":"🛎️","opts":["🛎️"]},{"e":"🧳","opts":["🧳"]},{"e":"⌛️","opts":["⌛️"]},{"e":"⏳️","opts":["⏳️"]},{"e":"⌚️","opts":["⌚️"]},{"e":"⏰","opts":["⏰"]},{"e":"⏱️","opts":["⏱️"]},{"e":"⏲️","opts":["⏲️"]},{"e":"🕰️","opts":["🕰️"]},{"e":"🕛️","opts":["🕛️"]},{"e":"🕧️","opts":["🕧️"]},{"e":"🕐️","opts":["🕐️"]},{"e":"🕜️","opts":["🕜️"]},{"e":"🕑️","opts":["🕑️"]},{"e":"🕝️","opts":["🕝️"]},{"e":"🕒️","opts":["🕒️"]},{"e":"🕞️","opts":["🕞️"]},{"e":"🕓️","opts":["🕓️"]},{"e":"🕟️","opts":["🕟️"]},{"e":"🕔️","opts":["🕔️"]},{"e":"🕠️","opts":["🕠️"]},{"e":"🕕️","opts":["🕕️"]},{"e":"🕡️","opts":["🕡️"]},{"e":"🕖️","opts":["🕖️"]},{"e":"🕢️","opts":["🕢️"]},{"e":"🕗️","opts":["🕗️"]},{"e":"🕣️","opts":["🕣️"]},{"e":"🕘️","opts":["🕘️"]},{"e":"🕤️","opts":["🕤️"]},{"e":"🕙️","opts":["🕙️"]},{"e":"🕥️","opts":["🕥️"]},{"e":"🕚️","opts":["🕚️"]},{"e":"🕦️","opts":["🕦️"]},{"e":"🌑","opts":["🌑"]},{"e":"🌒","opts":["🌒"]},{"e":"🌓","opts":["🌓"]},{"e":"🌔","opts":["🌔"]},{"e":"🌕️","opts":["🌕️"]},{"e":"🌖","opts":["🌖"]},{"e":"🌗","opts":["🌗"]},{"e":"🌘","opts":["🌘"]},{"e":"🌙","opts":["🌙"]},{"e":"🌚","opts":["🌚"]},{"e":"🌛","opts":["🌛"]},{"e":"🌜️","opts":["🌜️"]},{"e":"🌡️","opts":["🌡️"]},{"e":"☀️","opts":["☀️"]},{"e":"🌝","opts":["🌝"]},{"e":"🌞","opts":["🌞"]},{"e":"🪐","opts":["🪐"]},{"e":"⭐️","opts":["⭐️"]},{"e":"🌟","opts":["🌟"]},{"e":"🌠","opts":["🌠"]},{"e":"🌌","opts":["🌌"]},{"e":"☁️","opts":["☁️"]},{"e":"⛅️","opts":["⛅️"]},{"e":"⛈️","opts":["⛈️"]},{"e":"🌤️","opts":["🌤️"]},{"e":"🌥️","opts":["🌥️"]},{"e":"🌦️","opts":["🌦️"]},{"e":"🌧️","opts":["🌧️"]},{"e":"🌨️","opts":["🌨️"]},{"e":"🌩️","opts":["🌩️"]},{"e":"🌪️","opts":["🌪️"]},{"e":"🌫️","opts":["🌫️"]},{"e":"🌬️","opts":["🌬️"]},{"e":"🌀","opts":["🌀"]},{"e":"🌈","opts":["🌈"]},{"e":"🌂","opts":["🌂"]},{"e":"☂️","opts":["☂️"]},{"e":"☔️","opts":["☔️"]},{"e":"⛱️","opts":["⛱️"]},{"e":"⚡️","opts":["⚡️"]},{"e":"❄️","opts":["❄️"]},{"e":"☃️","opts":["☃️"]},{"e":"⛄️","opts":["⛄️"]},{"e":"☄️","opts":["☄️"]},{"e":"🔥","opts":["🔥"]},{"e":"💧","opts":["💧"]},{"e":"🌊","opts":["🌊"]}],"activities":[{"e":"🎃","opts":["🎃"]},{"e":"🎄","opts":["🎄"]},{"e":"🎆","opts":["🎆"]},{"e":"🎇","opts":["🎇"]},{"e":"🧨","opts":["🧨"]},{"e":"✨","opts":["✨"]},{"e":"🎈","opts":["🎈"]},{"e":"🎉","opts":["🎉"]},{"e":"🎊","opts":["🎊"]},{"e":"🎋","opts":["🎋"]},{"e":"🎍","opts":["🎍"]},{"e":"🎎","opts":["🎎"]},{"e":"🎏","opts":["🎏"]},{"e":"🎐","opts":["🎐"]},{"e":"🎑","opts":["🎑"]},{"e":"🧧","opts":["🧧"]},{"e":"🎀","opts":["🎀"]},{"e":"🎁","opts":["🎁"]},{"e":"🎗️","opts":["🎗️"]},{"e":"🎟️","opts":["🎟️"]},{"e":"🎫","opts":["🎫"]},{"e":"🎖️","opts":["🎖️"]},{"e":"🏆️","opts":["🏆️"]},{"e":"🏅","opts":["🏅"]},{"e":"🥇","opts":["🥇"]},{"e":"🥈","opts":["🥈"]},{"e":"🥉","opts":["🥉"]},{"e":"⚽️","opts":["⚽️"]},{"e":"⚾️","opts":["⚾️"]},{"e":"🥎","opts":["🥎"]},{"e":"🏀","opts":["🏀"]},{"e":"🏐","opts":["🏐"]},{"e":"🏈","opts":["🏈"]},{"e":"🏉","opts":["🏉"]},{"e":"🎾","opts":["🎾"]},{"e":"🥏","opts":["🥏"]},{"e":"🎳","opts":["🎳"]},{"e":"🏏","opts":["🏏"]},{"e":"🏑","opts":["🏑"]},{"e":"🏒","opts":["🏒"]},{"e":"🥍","opts":["🥍"]},{"e":"🏓","opts":["🏓"]},{"e":"🏸","opts":["🏸"]},{"e":"🥊","opts":["🥊"]},{"e":"🥋","opts":["🥋"]},{"e":"🥅","opts":["🥅"]},{"e":"⛳️","opts":["⛳️"]},{"e":"⛸️","opts":["⛸️"]},{"e":"🎣","opts":["🎣"]},{"e":"🤿","opts":["🤿"]},{"e":"🎽","opts":["🎽"]},{"e":"🎿","opts":["🎿"]},{"e":"🛷","opts":["🛷"]},{"e":"🥌","opts":["🥌"]},{"e":"🎯","opts":["🎯"]},{"e":"🪀","opts":["🪀"]},{"e":"🪁","opts":["🪁"]},{"e":"🎱","opts":["🎱"]},{"e":"🔮","opts":["🔮"]},{"e":"🪄","opts":["🪄"]},{"e":"🧿","opts":["🧿"]},{"e":"🎮️","opts":["🎮️"]},{"e":"🕹️","opts":["🕹️"]},{"e":"🎰","opts":["🎰"]},{"e":"🎲","opts":["🎲"]},{"e":"🧩","opts":["🧩"]},{"e":"🧸","opts":["🧸"]},{"e":"🪅","opts":["🪅"]},{"e":"🪆","opts":["🪆"]},{"e":"♠️","opts":["♠️"]},{"e":"♥️","opts":["♥️"]},{"e":"♦️","opts":["♦️"]},{"e":"♣️","opts":["♣️"]},{"e":"♟️","opts":["♟️"]},{"e":"🃏","opts":["🃏"]},{"e":"🀄️","opts":["🀄️"]},{"e":"🎴","opts":["🎴"]},{"e":"🎭️","opts":["🎭️"]},{"e":"🖼️","opts":["🖼️"]},{"e":"🎨","opts":["🎨"]},{"e":"🧵","opts":["🧵"]},{"e":"🪡","opts":["🪡"]},{"e":"🧶","opts":["🧶"]},{"e":"🪢","opts":["🪢"]}],"objects":[{"e":"👓️","opts":["👓️"]},{"e":"🕶️","opts":["🕶️"]},{"e":"🥽","opts":["🥽"]},{"e":"🥼","opts":["🥼"]},{"e":"🦺","opts":["🦺"]},{"e":"👔","opts":["👔"]},{"e":"👕","opts":["👕"]},{"e":"👖","opts":["👖"]},{"e":"🧣","opts":["🧣"]},{"e":"🧤","opts":["🧤"]},{"e":"🧥","opts":["🧥"]},{"e":"🧦","opts":["🧦"]},{"e":"👗","opts":["👗"]},{"e":"👘","opts":["👘"]},{"e":"🥻","opts":["🥻"]},{"e":"🩱","opts":["🩱"]},{"e":"🩲","opts":["🩲"]},{"e":"🩳","opts":["🩳"]},{"e":"👙","opts":["👙"]},{"e":"👚","opts":["👚"]},{"e":"👛","opts":["👛"]},{"e":"👜","opts":["👜"]},{"e":"👝","opts":["👝"]},{"e":"🛍️","opts":["🛍️"]},{"e":"🎒","opts":["🎒"]},{"e":"🩴","opts":["🩴"]},{"e":"👞","opts":["👞"]},{"e":"👟","opts":["👟"]},{"e":"🥾","opts":["🥾"]},{"e":"🥿","opts":["🥿"]},{"e":"👠","opts":["👠"]},{"e":"👡","opts":["👡"]},{"e":"🩰","opts":["🩰"]},{"e":"👢","opts":["👢"]},{"e":"👑","opts":["👑"]},{"e":"👒","opts":["👒"]},{"e":"🎩","opts":["🎩"]},{"e":"🎓️","opts":["🎓️"]},{"e":"🧢","opts":["🧢"]},{"e":"🪖","opts":["🪖"]},{"e":"⛑️","opts":["⛑️"]},{"e":"📿","opts":["📿"]},{"e":"💄","opts":["💄"]},{"e":"💍","opts":["💍"]},{"e":"💎","opts":["💎"]},{"e":"🔇","opts":["🔇"]},{"e":"🔈️","opts":["🔈️"]},{"e":"🔉","opts":["🔉"]},{"e":"🔊","opts":["🔊"]},{"e":"📢","opts":["📢"]},{"e":"📣","opts":["📣"]},{"e":"📯","opts":["📯"]},{"e":"🔔","opts":["🔔"]},{"e":"🔕","opts":["🔕"]},{"e":"🎼","opts":["🎼"]},{"e":"🎵","opts":["🎵"]},{"e":"🎶","opts":["🎶"]},{"e":"🎙️","opts":["🎙️"]},{"e":"🎚️","opts":["🎚️"]},{"e":"🎛️","opts":["🎛️"]},{"e":"🎤","opts":["🎤"]},{"e":"🎧️","opts":["🎧️"]},{"e":"📻️","opts":["📻️"]},{"e":"🎷","opts":["🎷"]},{"e":"🪗","opts":["🪗"]},{"e":"🎸","opts":["🎸"]},{"e":"🎹","opts":["🎹"]},{"e":"🎺","opts":["🎺"]},{"e":"🎻","opts":["🎻"]},{"e":"🪕","opts":["🪕"]},{"e":"🥁","opts":["🥁"]},{"e":"🪘","opts":["🪘"]},{"e":"📱","opts":["📱"]},{"e":"📲","opts":["📲"]},{"e":"☎️","opts":["☎️"]},{"e":"📞","opts":["📞"]},{"e":"📟️","opts":["📟️"]},{"e":"📠","opts":["📠"]},{"e":"🔋","opts":["🔋"]},{"e":"🔌","opts":["🔌"]},{"e":"💻️","opts":["💻️"]},{"e":"🖥️","opts":["🖥️"]},{"e":"🖨️","opts":["🖨️"]},{"e":"⌨️","opts":["⌨️"]},{"e":"🖱️","opts":["🖱️"]},{"e":"🖲️","opts":["🖲️"]},{"e":"💽","opts":["💽"]},{"e":"💾","opts":["💾"]},{"e":"💿️","opts":["💿️"]},{"e":"📀","opts":["📀"]},{"e":"🧮","opts":["🧮"]},{"e":"🎥","opts":["🎥"]},{"e":"🎞️","opts":["🎞️"]},{"e":"📽️","opts":["📽️"]},{"e":"🎬️","opts":["🎬️"]},{"e":"📺️","opts":["📺️"]},{"e":"📷️","opts":["📷️"]},{"e":"📸","opts":["📸"]},{"e":"📹️","opts":["📹️"]},{"e":"📼","opts":["📼"]},{"e":"🔍️","opts":["🔍️"]},{"e":"🔎","opts":["🔎"]},{"e":"🕯️","opts":["🕯️"]},{"e":"💡","opts":["💡"]},{"e":"🔦","opts":["🔦"]},{"e":"🏮","opts":["🏮"]},{"e":"🪔","opts":["🪔"]},{"e":"📔","opts":["📔"]},{"e":"📕","opts":["📕"]},{"e":"📖","opts":["📖"]},{"e":"📗","opts":["📗"]},{"e":"📘","opts":["📘"]},{"e":"📙","opts":["📙"]},{"e":"📚️","opts":["📚️"]},{"e":"📓","opts":["📓"]},{"e":"📒","opts":["📒"]},{"e":"📃","opts":["📃"]},{"e":"📜","opts":["📜"]},{"e":"📄","opts":["📄"]},{"e":"📰","opts":["📰"]},{"e":"🗞️","opts":["🗞️"]},{"e":"📑","opts":["📑"]},{"e":"🔖","opts":["🔖"]},{"e":"🏷️","opts":["🏷️"]},{"e":"💰️","opts":["💰️"]},{"e":"🪙","opts":["🪙"]},{"e":"💴","opts":["💴"]},{"e":"💵","opts":["💵"]},{"e":"💶","opts":["💶"]},{"e":"💷","opts":["💷"]},{"e":"💸","opts":["💸"]},{"e":"💳️","opts":["💳️"]},{"e":"🧾","opts":["🧾"]},{"e":"💹","opts":["💹"]},{"e":"✉️","opts":["✉️"]},{"e":"📧","opts":["📧"]},{"e":"📨","opts":["📨"]},{"e":"📩","opts":["📩"]},{"e":"📤️","opts":["📤️"]},{"e":"📥️","opts":["📥️"]},{"e":"📦️","opts":["📦️"]},{"e":"📫️","opts":["📫️"]},{"e":"📪️","opts":["📪️"]},{"e":"📬️","opts":["📬️"]},{"e":"📭️","opts":["📭️"]},{"e":"📮","opts":["📮"]},{"e":"🗳️","opts":["🗳️"]},{"e":"✏️","opts":["✏️"]},{"e":"✒️","opts":["✒️"]},{"e":"🖋️","opts":["🖋️"]},{"e":"🖊️","opts":["🖊️"]},{"e":"🖌️","opts":["🖌️"]},{"e":"🖍️","opts":["🖍️"]},{"e":"📝","opts":["📝"]},{"e":"💼","opts":["💼"]},{"e":"📁","opts":["📁"]},{"e":"📂","opts":["📂"]},{"e":"🗂️","opts":["🗂️"]},{"e":"📅","opts":["📅"]},{"e":"📆","opts":["📆"]},{"e":"🗒️","opts":["🗒️"]},{"e":"🗓️","opts":["🗓️"]},{"e":"📇","opts":["📇"]},{"e":"📈","opts":["📈"]},{"e":"📉","opts":["📉"]},{"e":"📊","opts":["📊"]},{"e":"📋️","opts":["📋️"]},{"e":"📌","opts":["📌"]},{"e":"📍","opts":["📍"]},{"e":"📎","opts":["📎"]},{"e":"🖇️","opts":["🖇️"]},{"e":"📏","opts":["📏"]},{"e":"📐","opts":["📐"]},{"e":"✂️","opts":["✂️"]},{"e":"🗃️","opts":["🗃️"]},{"e":"🗄️","opts":["🗄️"]},{"e":"🗑️","opts":["🗑️"]},{"e":"🔒️","opts":["🔒️"]},{"e":"🔓️","opts":["🔓️"]},{"e":"🔏","opts":["🔏"]},{"e":"🔐","opts":["🔐"]},{"e":"🔑","opts":["🔑"]},{"e":"🗝️","opts":["🗝️"]},{"e":"🔨","opts":["🔨"]},{"e":"🪓","opts":["🪓"]},{"e":"⛏️","opts":["⛏️"]},{"e":"⚒️","opts":["⚒️"]},{"e":"🛠️","opts":["🛠️"]},{"e":"🗡️","opts":["🗡️"]},{"e":"⚔️","opts":["⚔️"]},{"e":"🔫","opts":["🔫"]},{"e":"🪃","opts":["🪃"]},{"e":"🏹","opts":["🏹"]},{"e":"🛡️","opts":["🛡️"]},{"e":"🪚","opts":["🪚"]},{"e":"🔧","opts":["🔧"]},{"e":"🪛","opts":["🪛"]},{"e":"🔩","opts":["🔩"]},{"e":"⚙️","opts":["⚙️"]},{"e":"🗜️","opts":["🗜️"]},{"e":"⚖️","opts":["⚖️"]},{"e":"🦯","opts":["🦯"]},{"e":"🔗","opts":["🔗"]},{"e":"⛓️","opts":["⛓️"]},{"e":"🪝","opts":["🪝"]},{"e":"🧰","opts":["🧰"]},{"e":"🧲","opts":["🧲"]},{"e":"🪜","opts":["🪜"]},{"e":"⚗️","opts":["⚗️"]},{"e":"🧪","opts":["🧪"]},{"e":"🧫","opts":["🧫"]},{"e":"🧬","opts":["🧬"]},{"e":"🔬","opts":["🔬"]},{"e":"🔭","opts":["🔭"]},{"e":"📡","opts":["📡"]},{"e":"💉","opts":["💉"]},{"e":"🩸","opts":["🩸"]},{"e":"💊","opts":["💊"]},{"e":"🩹","opts":["🩹"]},{"e":"🩺","opts":["🩺"]},{"e":"🚪","opts":["🚪"]},{"e":"🛗","opts":["🛗"]},{"e":"🪞","opts":["🪞"]},{"e":"🪟","opts":["🪟"]},{"e":"🛏️","opts":["🛏️"]},{"e":"🛋️","opts":["🛋️"]},{"e":"🪑","opts":["🪑"]},{"e":"🚽","opts":["🚽"]},{"e":"🪠","opts":["🪠"]},{"e":"🚿","opts":["🚿"]},{"e":"🛁","opts":["🛁"]},{"e":"🪤","opts":["🪤"]},{"e":"🪒","opts":["🪒"]},{"e":"🧴","opts":["🧴"]},{"e":"🧷","opts":["🧷"]},{"e":"🧹","opts":["🧹"]},{"e":"🧺","opts":["🧺"]},{"e":"🧻","opts":["🧻"]},{"e":"🪣","opts":["🪣"]},{"e":"🧼","opts":["🧼"]},{"e":"🪥","opts":["🪥"]},{"e":"🧽","opts":["🧽"]},{"e":"🧯","opts":["🧯"]},{"e":"🛒","opts":["🛒"]},{"e":"🚬","opts":["🚬"]},{"e":"⚰️","opts":["⚰️"]},{"e":"🪦","opts":["🪦"]},{"e":"⚱️","opts":["⚱️"]},{"e":"🗿","opts":["🗿"]},{"e":"🪧","opts":["🪧"]}],"symbols":[{"e":"🏧","opts":["🏧"]},{"e":"🚮","opts":["🚮"]},{"e":"🚰","opts":["🚰"]},{"e":"♿️","opts":["♿️"]},{"e":"🚹️","opts":["🚹️"]},{"e":"🚺️","opts":["🚺️"]},{"e":"🚻","opts":["🚻"]},{"e":"🚼️","opts":["🚼️"]},{"e":"🚾","opts":["🚾"]},{"e":"🛂","opts":["🛂"]},{"e":"🛃","opts":["🛃"]},{"e":"🛄","opts":["🛄"]},{"e":"🛅","opts":["🛅"]},{"e":"⚠️","opts":["⚠️"]},{"e":"🚸","opts":["🚸"]},{"e":"⛔️","opts":["⛔️"]},{"e":"🚫","opts":["🚫"]},{"e":"🚳","opts":["🚳"]},{"e":"🚭️","opts":["🚭️"]},{"e":"🚯","opts":["🚯"]},{"e":"🚱","opts":["🚱"]},{"e":"🚷","opts":["🚷"]},{"e":"📵","opts":["📵"]},{"e":"🔞","opts":["🔞"]},{"e":"☢️","opts":["☢️"]},{"e":"☣️","opts":["☣️"]},{"e":"⬆️","opts":["⬆️"]},{"e":"↗️","opts":["↗️"]},{"e":"➡️","opts":["➡️"]},{"e":"↘️","opts":["↘️"]},{"e":"⬇️","opts":["⬇️"]},{"e":"↙️","opts":["↙️"]},{"e":"⬅️","opts":["⬅️"]},{"e":"↖️","opts":["↖️"]},{"e":"↕️","opts":["↕️"]},{"e":"↔️","opts":["↔️"]},{"e":"↩️","opts":["↩️"]},{"e":"↪️","opts":["↪️"]},{"e":"⤴️","opts":["⤴️"]},{"e":"⤵️","opts":["⤵️"]},{"e":"🔃","opts":["🔃"]},{"e":"🔄","opts":["🔄"]},{"e":"🔙","opts":["🔙"]},{"e":"🔚","opts":["🔚"]},{"e":"🔛","opts":["🔛"]},{"e":"🔜","opts":["🔜"]},{"e":"🔝","opts":["🔝"]},{"e":"🛐","opts":["🛐"]},{"e":"⚛️","opts":["⚛️"]},{"e":"🕉️","opts":["🕉️"]},{"e":"✡️","opts":["✡️"]},{"e":"☸️","opts":["☸️"]},{"e":"☯️","opts":["☯️"]},{"e":"✝️","opts":["✝️"]},{"e":"☦️","opts":["☦️"]},{"e":"☪️","opts":["☪️"]},{"e":"☮️","opts":["☮️"]},{"e":"🕎","opts":["🕎"]},{"e":"🔯","opts":["🔯"]},{"e":"♈️","opts":["♈️"]},{"e":"♉️","opts":["♉️"]},{"e":"♊️","opts":["♊️"]},{"e":"♋️","opts":["♋️"]},{"e":"♌️","opts":["♌️"]},{"e":"♍️","opts":["♍️"]},{"e":"♎️","opts":["♎️"]},{"e":"♏️","opts":["♏️"]},{"e":"♐️","opts":["♐️"]},{"e":"♑️","opts":["♑️"]},{"e":"♒️","opts":["♒️"]},{"e":"♓️","opts":["♓️"]},{"e":"⛎","opts":["⛎"]},{"e":"🔀","opts":["🔀"]},{"e":"🔁","opts":["🔁"]},{"e":"🔂","opts":["🔂"]},{"e":"▶️","opts":["▶️"]},{"e":"⏩️","opts":["⏩️"]},{"e":"⏭️","opts":["⏭️"]},{"e":"⏯️","opts":["⏯️"]},{"e":"◀️","opts":["◀️"]},{"e":"⏪️","opts":["⏪️"]},{"e":"⏮️","opts":["⏮️"]},{"e":"🔼","opts":["🔼"]},{"e":"⏫","opts":["⏫"]},{"e":"🔽","opts":["🔽"]},{"e":"⏬","opts":["⏬"]},{"e":"⏸️","opts":["⏸️"]},{"e":"⏹️","opts":["⏹️"]},{"e":"⏺️","opts":["⏺️"]},{"e":"⏏️","opts":["⏏️"]},{"e":"🎦","opts":["🎦"]},{"e":"🔅","opts":["🔅"]},{"e":"🔆","opts":["🔆"]},{"e":"📶","opts":["📶"]},{"e":"📳","opts":["📳"]},{"e":"📴","opts":["📴"]},{"e":"♀️","opts":["♀️"]},{"e":"♂️","opts":["♂️"]},{"e":"⚧️","opts":["⚧️"]},{"e":"✖️","opts":["✖️"]},{"e":"➕","opts":["➕"]},{"e":"➖","opts":["➖"]},{"e":"➗","opts":["➗"]},{"e":"♾️","opts":["♾️"]},{"e":"‼️","opts":["‼️"]},{"e":"⁉️","opts":["⁉️"]},{"e":"❓️","opts":["❓️"]},{"e":"❔","opts":["❔"]},{"e":"❕","opts":["❕"]},{"e":"❗️","opts":["❗️"]},{"e":"〰️","opts":["〰️"]},{"e":"💱","opts":["💱"]},{"e":"💲","opts":["💲"]},{"e":"⚕️","opts":["⚕️"]},{"e":"♻️","opts":["♻️"]},{"e":"⚜️","opts":["⚜️"]},{"e":"🔱","opts":["🔱"]},{"e":"📛","opts":["📛"]},{"e":"🔰","opts":["🔰"]},{"e":"⭕️","opts":["⭕️"]},{"e":"✅","opts":["✅"]},{"e":"☑️","opts":["☑️"]},{"e":"✔️","opts":["✔️"]},{"e":"❌","opts":["❌"]},{"e":"❎","opts":["❎"]},{"e":"➰","opts":["➰"]},{"e":"➿","opts":["➿"]},{"e":"〽️","opts":["〽️"]},{"e":"✳️","opts":["✳️"]},{"e":"✴️","opts":["✴️"]},{"e":"❇️","opts":["❇️"]},{"e":"©️","opts":["©️"]},{"e":"®️","opts":["®️"]},{"e":"™️","opts":["™️"]},{"e":"#️⃣","opts":["#️⃣"]},{"e":"*️⃣","opts":["*️⃣"]},{"e":"0️⃣","opts":["0️⃣"]},{"e":"1️⃣","opts":["1️⃣"]},{"e":"2️⃣","opts":["2️⃣"]},{"e":"3️⃣","opts":["3️⃣"]},{"e":"4️⃣","opts":["4️⃣"]},{"e":"5️⃣","opts":["5️⃣"]},{"e":"6️⃣","opts":["6️⃣"]},{"e":"7️⃣","opts":["7️⃣"]},{"e":"8️⃣","opts":["8️⃣"]},{"e":"9️⃣","opts":["9️⃣"]},{"e":"🔟","opts":["🔟"]},{"e":"🔠","opts":["🔠"]},{"e":"🔡","opts":["🔡"]},{"e":"🔢","opts":["🔢"]},{"e":"🔣","opts":["🔣"]},{"e":"🔤","opts":["🔤"]},{"e":"🅰️","opts":["🅰️"]},{"e":"🆎","opts":["🆎"]},{"e":"🅱️","opts":["🅱️"]},{"e":"🆑","opts":["🆑"]},{"e":"🆒","opts":["🆒"]},{"e":"🆓","opts":["🆓"]},{"e":"ℹ️","opts":["ℹ️"]},{"e":"🆔","opts":["🆔"]},{"e":"Ⓜ️","opts":["Ⓜ️"]},{"e":"🆕","opts":["🆕"]},{"e":"🆖","opts":["🆖"]},{"e":"🅾️","opts":["🅾️"]},{"e":"🆗","opts":["🆗"]},{"e":"🅿️","opts":["🅿️"]},{"e":"🆘","opts":["🆘"]},{"e":"🆙","opts":["🆙"]},{"e":"🆚","opts":["🆚"]},{"e":"🈁","opts":["🈁"]},{"e":"🈂️","opts":["🈂️"]},{"e":"🈷️","opts":["🈷️"]},{"e":"🈶","opts":["🈶"]},{"e":"🈯️","opts":["🈯️"]},{"e":"🉐","opts":["🉐"]},{"e":"🈹","opts":["🈹"]},{"e":"🈚️","opts":["🈚️"]},{"e":"🈲","opts":["🈲"]},{"e":"🉑","opts":["🉑"]},{"e":"🈸","opts":["🈸"]},{"e":"🈴","opts":["🈴"]},{"e":"🈳","opts":["🈳"]},{"e":"㊗️","opts":["㊗️"]},{"e":"㊙️","opts":["㊙️"]},{"e":"🈺","opts":["🈺"]},{"e":"🈵","opts":["🈵"]},{"e":"🔴","opts":["🔴"]},{"e":"🟠","opts":["🟠"]},{"e":"🟡","opts":["🟡"]},{"e":"🟢","opts":["🟢"]},{"e":"🔵","opts":["🔵"]},{"e":"🟣","opts":["🟣"]},{"e":"🟤","opts":["🟤"]},{"e":"⚫️","opts":["⚫️"]},{"e":"⚪️","opts":["⚪️"]},{"e":"🟥","opts":["🟥"]},{"e":"🟧","opts":["🟧"]},{"e":"🟨","opts":["🟨"]},{"e":"🟩","opts":["🟩"]},{"e":"🟦","opts":["🟦"]},{"e":"🟪","opts":["🟪"]},{"e":"🟫","opts":["🟫"]},{"e":"⬛️","opts":["⬛️"]},{"e":"⬜️","opts":["⬜️"]},{"e":"◼️","opts":["◼️"]},{"e":"◻️","opts":["◻️"]},{"e":"◾️","opts":["◾️"]},{"e":"◽️","opts":["◽️"]},{"e":"▪️","opts":["▪️"]},{"e":"▫️","opts":["▫️"]},{"e":"🔶","opts":["🔶"]},{"e":"🔷","opts":["🔷"]},{"e":"🔸","opts":["🔸"]},{"e":"🔹","opts":["🔹"]},{"e":"🔺","opts":["🔺"]},{"e":"🔻","opts":["🔻"]},{"e":"💠","opts":["💠"]},{"e":"🔘","opts":["🔘"]},{"e":"🔳","opts":["🔳"]},{"e":"🔲","opts":["🔲"]}],"flags":[{"e":"🏁","opts":["🏁"]},{"e":"🚩","opts":["🚩"]},{"e":"🎌","opts":["🎌"]},{"e":"🏴","opts":["🏴"]},{"e":"🏳️","opts":["🏳️"]},{"e":"🏳️‍🌈","opts":["🏳️‍🌈"]},{"e":"🏳️‍⚧️","opts":["🏳️‍⚧️"]},{"e":"🏴‍☠️","opts":["🏴‍☠️"]},{"e":"🇦🇨","opts":["🇦🇨"]},{"e":"🇦🇩","opts":["🇦🇩"]},{"e":"🇦🇪","opts":["🇦🇪"]},{"e":"🇦🇫","opts":["🇦🇫"]},{"e":"🇦🇬","opts":["🇦🇬"]},{"e":"🇦🇮","opts":["🇦🇮"]},{"e":"🇦🇱","opts":["🇦🇱"]},{"e":"🇦🇲","opts":["🇦🇲"]},{"e":"🇦🇴","opts":["🇦🇴"]},{"e":"🇦🇶","opts":["🇦🇶"]},{"e":"🇦🇷","opts":["🇦🇷"]},{"e":"🇦🇸","opts":["🇦🇸"]},{"e":"🇦🇹","opts":["🇦🇹"]},{"e":"🇦🇺","opts":["🇦🇺"]},{"e":"🇦🇼","opts":["🇦🇼"]},{"e":"🇦🇽","opts":["🇦🇽"]},{"e":"🇦🇿","opts":["🇦🇿"]},{"e":"🇧🇦","opts":["🇧🇦"]},{"e":"🇧🇧","opts":["🇧🇧"]},{"e":"🇧🇩","opts":["🇧🇩"]},{"e":"🇧🇪","opts":["🇧🇪"]},{"e":"🇧🇫","opts":["🇧🇫"]},{"e":"🇧🇬","opts":["🇧🇬"]},{"e":"🇧🇭","opts":["🇧🇭"]},{"e":"🇧🇮","opts":["🇧🇮"]},{"e":"🇧🇯","opts":["🇧🇯"]},{"e":"🇧🇱","opts":["🇧🇱"]},{"e":"🇧🇲","opts":["🇧🇲"]},{"e":"🇧🇳","opts":["🇧🇳"]},{"e":"🇧🇴","opts":["🇧🇴"]},{"e":"🇧🇶","opts":["🇧🇶"]},{"e":"🇧🇷","opts":["🇧🇷"]},{"e":"🇧🇸","opts":["🇧🇸"]},{"e":"🇧🇹","opts":["🇧🇹"]},{"e":"🇧🇻","opts":["🇧🇻"]},{"e":"🇧🇼","opts":["🇧🇼"]},{"e":"🇧🇾","opts":["🇧🇾"]},{"e":"🇧🇿","opts":["🇧🇿"]},{"e":"🇨🇦","opts":["🇨🇦"]},{"e":"🇨🇨","opts":["🇨🇨"]},{"e":"🇨🇩","opts":["🇨🇩"]},{"e":"🇨🇫","opts":["🇨🇫"]},{"e":"🇨🇬","opts":["🇨🇬"]},{"e":"🇨🇭","opts":["🇨🇭"]},{"e":"🇨🇮","opts":["🇨🇮"]},{"e":"🇨🇰","opts":["🇨🇰"]},{"e":"🇨🇱","opts":["🇨🇱"]},{"e":"🇨🇲","opts":["🇨🇲"]},{"e":"🇨🇳","opts":["🇨🇳"]},{"e":"🇨🇴","opts":["🇨🇴"]},{"e":"🇨🇵","opts":["🇨🇵"]},{"e":"🇨🇷","opts":["🇨🇷"]},{"e":"🇨🇺","opts":["🇨🇺"]},{"e":"🇨🇻","opts":["🇨🇻"]},{"e":"🇨🇼","opts":["🇨🇼"]},{"e":"🇨🇽","opts":["🇨🇽"]},{"e":"🇨🇾","opts":["🇨🇾"]},{"e":"🇨🇿","opts":["🇨🇿"]},{"e":"🇩🇪","opts":["🇩🇪"]},{"e":"🇩🇬","opts":["🇩🇬"]},{"e":"🇩🇯","opts":["🇩🇯"]},{"e":"🇩🇰","opts":["🇩🇰"]},{"e":"🇩🇲","opts":["🇩🇲"]},{"e":"🇩🇴","opts":["🇩🇴"]},{"e":"🇩🇿","opts":["🇩🇿"]},{"e":"🇪🇦","opts":["🇪🇦"]},{"e":"🇪🇨","opts":["🇪🇨"]},{"e":"🇪🇪","opts":["🇪🇪"]},{"e":"🇪🇬","opts":["🇪🇬"]},{"e":"🇪🇭","opts":["🇪🇭"]},{"e":"🇪🇷","opts":["🇪🇷"]},{"e":"🇪🇸","opts":["🇪🇸"]},{"e":"🇪🇹","opts":["🇪🇹"]},{"e":"🇪🇺","opts":["🇪🇺"]},{"e":"🇫🇮","opts":["🇫🇮"]},{"e":"🇫🇯","opts":["🇫🇯"]},{"e":"🇫🇰","opts":["🇫🇰"]},{"e":"🇫🇲","opts":["🇫🇲"]},{"e":"🇫🇴","opts":["🇫🇴"]},{"e":"🇫🇷","opts":["🇫🇷"]},{"e":"🇬🇦","opts":["🇬🇦"]},{"e":"🇬🇧","opts":["🇬🇧"]},{"e":"🇬🇩","opts":["🇬🇩"]},{"e":"🇬🇪","opts":["🇬🇪"]},{"e":"🇬🇫","opts":["🇬🇫"]},{"e":"🇬🇬","opts":["🇬🇬"]},{"e":"🇬🇭","opts":["🇬🇭"]},{"e":"🇬🇮","opts":["🇬🇮"]},{"e":"🇬🇱","opts":["🇬🇱"]},{"e":"🇬🇲","opts":["🇬🇲"]},{"e":"🇬🇳","opts":["🇬🇳"]},{"e":"🇬🇵","opts":["🇬🇵"]},{"e":"🇬🇶","opts":["🇬🇶"]},{"e":"🇬🇷","opts":["🇬🇷"]},{"e":"🇬🇸","opts":["🇬🇸"]},{"e":"🇬🇹","opts":["🇬🇹"]},{"e":"🇬🇺","opts":["🇬🇺"]},{"e":"🇬🇼","opts":["🇬🇼"]},{"e":"🇬🇾","opts":["🇬🇾"]},{"e":"🇭🇰","opts":["🇭🇰"]},{"e":"🇭🇲","opts":["🇭🇲"]},{"e":"🇭🇳","opts":["🇭🇳"]},{"e":"🇭🇷","opts":["🇭🇷"]},{"e":"🇭🇹","opts":["🇭🇹"]},{"e":"🇭🇺","opts":["🇭🇺"]},{"e":"🇮🇨","opts":["🇮🇨"]},{"e":"🇮🇩","opts":["🇮🇩"]},{"e":"🇮🇪","opts":["🇮🇪"]},{"e":"🇮🇱","opts":["🇮🇱"]},{"e":"🇮🇲","opts":["🇮🇲"]},{"e":"🇮🇳","opts":["🇮🇳"]},{"e":"🇮🇴","opts":["🇮🇴"]},{"e":"🇮🇶","opts":["🇮🇶"]},{"e":"🇮🇷","opts":["🇮🇷"]},{"e":"🇮🇸","opts":["🇮🇸"]},{"e":"🇮🇹","opts":["🇮🇹"]},{"e":"🇯🇪","opts":["🇯🇪"]},{"e":"🇯🇲","opts":["🇯🇲"]},{"e":"🇯🇴","opts":["🇯🇴"]},{"e":"🇯🇵","opts":["🇯🇵"]},{"e":"🇰🇪","opts":["🇰🇪"]},{"e":"🇰🇬","opts":["🇰🇬"]},{"e":"🇰🇭","opts":["🇰🇭"]},{"e":"🇰🇮","opts":["🇰🇮"]},{"e":"🇰🇲","opts":["🇰🇲"]},{"e":"🇰🇳","opts":["🇰🇳"]},{"e":"🇰🇵","opts":["🇰🇵"]},{"e":"🇰🇷","opts":["🇰🇷"]},{"e":"🇰🇼","opts":["🇰🇼"]},{"e":"🇰🇾","opts":["🇰🇾"]},{"e":"🇰🇿","opts":["🇰🇿"]},{"e":"🇱🇦","opts":["🇱🇦"]},{"e":"🇱🇧","opts":["🇱🇧"]},{"e":"🇱🇨","opts":["🇱🇨"]},{"e":"🇱🇮","opts":["🇱🇮"]},{"e":"🇱🇰","opts":["🇱🇰"]},{"e":"🇱🇷","opts":["🇱🇷"]},{"e":"🇱🇸","opts":["🇱🇸"]},{"e":"🇱🇹","opts":["🇱🇹"]},{"e":"🇱🇺","opts":["🇱🇺"]},{"e":"🇱🇻","opts":["🇱🇻"]},{"e":"🇱🇾","opts":["🇱🇾"]},{"e":"🇲🇦","opts":["🇲🇦"]},{"e":"🇲🇨","opts":["🇲🇨"]},{"e":"🇲🇩","opts":["🇲🇩"]},{"e":"🇲🇪","opts":["🇲🇪"]},{"e":"🇲🇫","opts":["🇲🇫"]},{"e":"🇲🇬","opts":["🇲🇬"]},{"e":"🇲🇭","opts":["🇲🇭"]},{"e":"🇲🇰","opts":["🇲🇰"]},{"e":"🇲🇱","opts":["🇲🇱"]},{"e":"🇲🇲","opts":["🇲🇲"]},{"e":"🇲🇳","opts":["🇲🇳"]},{"e":"🇲🇴","opts":["🇲🇴"]},{"e":"🇲🇵","opts":["🇲🇵"]},{"e":"🇲🇶","opts":["🇲🇶"]},{"e":"🇲🇷","opts":["🇲🇷"]},{"e":"🇲🇸","opts":["🇲🇸"]},{"e":"🇲🇹","opts":["🇲🇹"]},{"e":"🇲🇺","opts":["🇲🇺"]},{"e":"🇲🇻","opts":["🇲🇻"]},{"e":"🇲🇼","opts":["🇲🇼"]},{"e":"🇲🇽","opts":["🇲🇽"]},{"e":"🇲🇾","opts":["🇲🇾"]},{"e":"🇲🇿","opts":["🇲🇿"]},{"e":"🇳🇦","opts":["🇳🇦"]},{"e":"🇳🇨","opts":["🇳🇨"]},{"e":"🇳🇪","opts":["🇳🇪"]},{"e":"🇳🇫","opts":["🇳🇫"]},{"e":"🇳🇬","opts":["🇳🇬"]},{"e":"🇳🇮","opts":["🇳🇮"]},{"e":"🇳🇱","opts":["🇳🇱"]},{"e":"🇳🇴","opts":["🇳🇴"]},{"e":"🇳🇵","opts":["🇳🇵"]},{"e":"🇳🇷","opts":["🇳🇷"]},{"e":"🇳🇺","opts":["🇳🇺"]},{"e":"🇳🇿","opts":["🇳🇿"]},{"e":"🇴🇲","opts":["🇴🇲"]},{"e":"🇵🇦","opts":["🇵🇦"]},{"e":"🇵🇪","opts":["🇵🇪"]},{"e":"🇵🇫","opts":["🇵🇫"]},{"e":"🇵🇬","opts":["🇵🇬"]},{"e":"🇵🇭","opts":["🇵🇭"]},{"e":"🇵🇰","opts":["🇵🇰"]},{"e":"🇵🇱","opts":["🇵🇱"]},{"e":"🇵🇲","opts":["🇵🇲"]},{"e":"🇵🇳","opts":["🇵🇳"]},{"e":"🇵🇷","opts":["🇵🇷"]},{"e":"🇵🇸","opts":["🇵🇸"]},{"e":"🇵🇹","opts":["🇵🇹"]},{"e":"🇵🇼","opts":["🇵🇼"]},{"e":"🇵🇾","opts":["🇵🇾"]},{"e":"🇶🇦","opts":["🇶🇦"]},{"e":"🇷🇪","opts":["🇷🇪"]},{"e":"🇷🇴","opts":["🇷🇴"]},{"e":"🇷🇸","opts":["🇷🇸"]},{"e":"🇷🇺","opts":["🇷🇺"]},{"e":"🇷🇼","opts":["🇷🇼"]},{"e":"🇸🇦","opts":["🇸🇦"]},{"e":"🇸🇧","opts":["🇸🇧"]},{"e":"🇸🇨","opts":["🇸🇨"]},{"e":"🇸🇩","opts":["🇸🇩"]},{"e":"🇸🇪","opts":["🇸🇪"]},{"e":"🇸🇬","opts":["🇸🇬"]},{"e":"🇸🇭","opts":["🇸🇭"]},{"e":"🇸🇮","opts":["🇸🇮"]},{"e":"🇸🇯","opts":["🇸🇯"]},{"e":"🇸🇰","opts":["🇸🇰"]},{"e":"🇸🇱","opts":["🇸🇱"]},{"e":"🇸🇲","opts":["🇸🇲"]},{"e":"🇸🇳","opts":["🇸🇳"]},{"e":"🇸🇴","opts":["🇸🇴"]},{"e":"🇸🇷","opts":["🇸🇷"]},{"e":"🇸🇸","opts":["🇸🇸"]},{"e":"🇸🇹","opts":["🇸🇹"]},{"e":"🇸🇻","opts":["🇸🇻"]},{"e":"🇸🇽","opts":["🇸🇽"]},{"e":"🇸🇾","opts":["🇸🇾"]},{"e":"🇸🇿","opts":["🇸🇿"]},{"e":"🇹🇦","opts":["🇹🇦"]},{"e":"🇹🇨","opts":["🇹🇨"]},{"e":"🇹🇩","opts":["🇹🇩"]},{"e":"🇹🇫","opts":["🇹🇫"]},{"e":"🇹🇬","opts":["🇹🇬"]},{"e":"🇹🇭","opts":["🇹🇭"]},{"e":"🇹🇯","opts":["🇹🇯"]},{"e":"🇹🇰","opts":["🇹🇰"]},{"e":"🇹🇱","opts":["🇹🇱"]},{"e":"🇹🇲","opts":["🇹🇲"]},{"e":"🇹🇳","opts":["🇹🇳"]},{"e":"🇹🇴","opts":["🇹🇴"]},{"e":"🇹🇷","opts":["🇹🇷"]},{"e":"🇹🇹","opts":["🇹🇹"]},{"e":"🇹🇻","opts":["🇹🇻"]},{"e":"🇹🇼","opts":["🇹🇼"]},{"e":"🇹🇿","opts":["🇹🇿"]},{"e":"🇺🇦","opts":["🇺🇦"]},{"e":"🇺🇬","opts":["🇺🇬"]},{"e":"🇺🇲","opts":["🇺🇲"]},{"e":"🇺🇳","opts":["🇺🇳"]},{"e":"🇺🇸","opts":["🇺🇸"]},{"e":"🇺🇾","opts":["🇺🇾"]},{"e":"🇺🇿","opts":["🇺🇿"]},{"e":"🇻🇦","opts":["🇻🇦"]},{"e":"🇻🇨","opts":["🇻🇨"]},{"e":"🇻🇪","opts":["🇻🇪"]},{"e":"🇻🇬","opts":["🇻🇬"]},{"e":"🇻🇮","opts":["🇻🇮"]},{"e":"🇻🇳","opts":["🇻🇳"]},{"e":"🇻🇺","opts":["🇻🇺"]},{"e":"🇼🇫","opts":["🇼🇫"]},{"e":"🇼🇸","opts":["🇼🇸"]},{"e":"🇽🇰","opts":["🇽🇰"]},{"e":"🇾🇪","opts":["🇾🇪"]},{"e":"🇾🇹","opts":["🇾🇹"]},{"e":"🇿🇦","opts":["🇿🇦"]},{"e":"🇿🇲","opts":["🇿🇲"]},{"e":"🇿🇼","opts":["🇿🇼"]},{"e":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","opts":["🏴󠁧󠁢󠁥󠁮󠁧󠁿"]},{"e":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","opts":["🏴󠁧󠁢󠁳󠁣󠁴󠁿"]},{"e":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","opts":["🏴󠁧󠁢󠁷󠁬󠁳󠁿"]}]}
++var list = {"smileys-emotion":[{"e":"😀","opts":["😀"]},{"e":"😃","opts":["😃"]},{"e":"😄","opts":["😄"]},{"e":"😁","opts":["😁"]},{"e":"😆","opts":["😆"]},{"e":"😅","opts":["😅"]},{"e":"🤣","opts":["🤣"]},{"e":"😂","opts":["😂"]},{"e":"🙂","opts":["🙂"]},{"e":"🙃","opts":["🙃"]},{"e":"🫠","opts":["🫠"]},{"e":"😉","opts":["😉"]},{"e":"😊","opts":["😊"]},{"e":"😇","opts":["😇"]},{"e":"🥰","opts":["🥰"]},{"e":"😍","opts":["😍"]},{"e":"🤩","opts":["🤩"]},{"e":"😘","opts":["😘"]},{"e":"😗","opts":["😗"]},{"e":"☺️","opts":["☺️"]},{"e":"😚","opts":["😚"]},{"e":"😙","opts":["😙"]},{"e":"🥲","opts":["🥲"]},{"e":"😋","opts":["😋"]},{"e":"😛","opts":["😛"]},{"e":"😜","opts":["😜"]},{"e":"🤪","opts":["🤪"]},{"e":"😝","opts":["😝"]},{"e":"🤑","opts":["🤑"]},{"e":"🤗","opts":["🤗"]},{"e":"🤭","opts":["🤭"]},{"e":"🫢","opts":["🫢"]},{"e":"🫣","opts":["🫣"]},{"e":"🤫","opts":["🤫"]},{"e":"🤔","opts":["🤔"]},{"e":"🫡","opts":["🫡"]},{"e":"🤐","opts":["🤐"]},{"e":"🤨","opts":["🤨"]},{"e":"😐️","opts":["😐️"]},{"e":"😑","opts":["😑"]},{"e":"😶","opts":["😶"]},{"e":"🫥","opts":["🫥"]},{"e":"😶‍🌫️","opts":["😶‍🌫️"]},{"e":"😏","opts":["😏"]},{"e":"😒","opts":["😒"]},{"e":"🙄","opts":["🙄"]},{"e":"😬","opts":["😬"]},{"e":"😮‍💨","opts":["😮‍💨"]},{"e":"🤥","opts":["🤥"]},{"e":"😌","opts":["😌"]},{"e":"😔","opts":["😔"]},{"e":"😪","opts":["😪"]},{"e":"🤤","opts":["🤤"]},{"e":"😴","opts":["😴"]},{"e":"😷","opts":["😷"]},{"e":"🤒","opts":["🤒"]},{"e":"🤕","opts":["🤕"]},{"e":"🤢","opts":["🤢"]},{"e":"🤮","opts":["🤮"]},{"e":"🤧","opts":["🤧"]},{"e":"🥵","opts":["🥵"]},{"e":"🥶","opts":["🥶"]},{"e":"🥴","opts":["🥴"]},{"e":"😵","opts":["😵"]},{"e":"😵‍💫","opts":["😵‍💫"]},{"e":"🤯","opts":["🤯"]},{"e":"🤠","opts":["🤠"]},{"e":"🥳","opts":["🥳"]},{"e":"🥸","opts":["🥸"]},{"e":"😎","opts":["😎"]},{"e":"🤓","opts":["🤓"]},{"e":"🧐","opts":["🧐"]},{"e":"😕","opts":["😕"]},{"e":"🫤","opts":["🫤"]},{"e":"😟","opts":["😟"]},{"e":"🙁","opts":["🙁"]},{"e":"☹️","opts":["☹️"]},{"e":"😮","opts":["😮"]},{"e":"😯","opts":["😯"]},{"e":"😲","opts":["😲"]},{"e":"😳","opts":["😳"]},{"e":"🥺","opts":["🥺"]},{"e":"🥹","opts":["🥹"]},{"e":"😦","opts":["😦"]},{"e":"😧","opts":["😧"]},{"e":"😨","opts":["😨"]},{"e":"😰","opts":["😰"]},{"e":"😥","opts":["😥"]},{"e":"😢","opts":["😢"]},{"e":"😭","opts":["😭"]},{"e":"😱","opts":["😱"]},{"e":"😖","opts":["😖"]},{"e":"😣","opts":["😣"]},{"e":"😞","opts":["😞"]},{"e":"😓","opts":["😓"]},{"e":"😩","opts":["😩"]},{"e":"😫","opts":["😫"]},{"e":"🥱","opts":["🥱"]},{"e":"😤","opts":["😤"]},{"e":"😡","opts":["😡"]},{"e":"😠","opts":["😠"]},{"e":"🤬","opts":["🤬"]},{"e":"😈","opts":["😈"]},{"e":"👿","opts":["👿"]},{"e":"💀","opts":["💀"]},{"e":"☠️","opts":["☠️"]},{"e":"💩","opts":["💩"]},{"e":"🤡","opts":["🤡"]},{"e":"👹","opts":["👹"]},{"e":"👺","opts":["👺"]},{"e":"👻","opts":["👻"]},{"e":"👽️","opts":["👽️"]},{"e":"👾","opts":["👾"]},{"e":"🤖","opts":["🤖"]},{"e":"😺","opts":["😺"]},{"e":"😸","opts":["😸"]},{"e":"😹","opts":["😹"]},{"e":"😻","opts":["😻"]},{"e":"😼","opts":["😼"]},{"e":"😽","opts":["😽"]},{"e":"🙀","opts":["🙀"]},{"e":"😿","opts":["😿"]},{"e":"😾","opts":["😾"]},{"e":"🙈","opts":["🙈"]},{"e":"🙉","opts":["🙉"]},{"e":"🙊","opts":["🙊"]},{"e":"💋","opts":["💋"]},{"e":"💌","opts":["💌"]},{"e":"💘","opts":["💘"]},{"e":"💝","opts":["💝"]},{"e":"💖","opts":["💖"]},{"e":"💗","opts":["💗"]},{"e":"💓","opts":["💓"]},{"e":"💞","opts":["💞"]},{"e":"💕","opts":["💕"]},{"e":"💟","opts":["💟"]},{"e":"❣️","opts":["❣️"]},{"e":"💔","opts":["💔"]},{"e":"❤️‍🔥","opts":["❤️‍🔥"]},{"e":"❤️‍🩹","opts":["❤️‍🩹"]},{"e":"❤️","opts":["❤️"]},{"e":"🧡","opts":["🧡"]},{"e":"💛","opts":["💛"]},{"e":"💚","opts":["💚"]},{"e":"💙","opts":["💙"]},{"e":"💜","opts":["💜"]},{"e":"🤎","opts":["🤎"]},{"e":"🖤","opts":["🖤"]},{"e":"🤍","opts":["🤍"]},{"e":"💯","opts":["💯"]},{"e":"💢","opts":["💢"]},{"e":"💥","opts":["💥"]},{"e":"💫","opts":["💫"]},{"e":"💦","opts":["💦"]},{"e":"💨","opts":["💨"]},{"e":"🕳️","opts":["🕳️"]},{"e":"💣️","opts":["💣️"]},{"e":"💬","opts":["💬"]},{"e":"👁️‍🗨️","opts":["👁️‍🗨️"]},{"e":"🗨️","opts":["🗨️"]},{"e":"🗯️","opts":["🗯️"]},{"e":"💭","opts":["💭"]},{"e":"💤","opts":["💤"]}],"people-body":[{"e":"👋","opts":["👋","👋🏻","👋🏼","👋🏽","👋🏾","👋🏿"]},{"e":"🤚","opts":["🤚","🤚🏻","🤚🏼","🤚🏽","🤚🏾","🤚🏿"]},{"e":"🖐️","opts":["🖐️","🖐🏻","🖐🏼","🖐🏽","🖐🏾","🖐🏿"]},{"e":"✋","opts":["✋","✋🏻","✋🏼","✋🏽","✋🏾","✋🏿"]},{"e":"🖖","opts":["🖖","🖖🏻","🖖🏼","🖖🏽","🖖🏾","🖖🏿"]},{"e":"🫱","opts":["🫱","🫱🏻","🫱🏼","🫱🏽","🫱🏾","🫱🏿"]},{"e":"🫲","opts":["🫲","🫲🏻","🫲🏼","🫲🏽","🫲🏾","🫲🏿"]},{"e":"🫳","opts":["🫳","🫳🏻","🫳🏼","🫳🏽","🫳🏾","🫳🏿"]},{"e":"🫴","opts":["🫴","🫴🏻","🫴🏼","🫴🏽","🫴🏾","🫴🏿"]},{"e":"👌","opts":["👌","👌🏻","👌🏼","👌🏽","👌🏾","👌🏿"]},{"e":"🤌","opts":["🤌","🤌🏻","🤌🏼","🤌🏽","🤌🏾","🤌🏿"]},{"e":"🤏","opts":["🤏","🤏🏻","🤏🏼","🤏🏽","🤏🏾","🤏🏿"]},{"e":"✌️","opts":["✌️","✌🏻","✌🏼","✌🏽","✌🏾","✌🏿"]},{"e":"🤞","opts":["🤞","🤞🏻","🤞🏼","🤞🏽","🤞🏾","🤞🏿"]},{"e":"🫰","opts":["🫰","🫰🏻","🫰🏼","🫰🏽","🫰🏾","🫰🏿"]},{"e":"🤟","opts":["🤟","🤟🏻","🤟🏼","🤟🏽","🤟🏾","🤟🏿"]},{"e":"🤘","opts":["🤘","🤘🏻","🤘🏼","🤘🏽","🤘🏾","🤘🏿"]},{"e":"🤙","opts":["🤙","🤙🏻","🤙🏼","🤙🏽","🤙🏾","🤙🏿"]},{"e":"👈️","opts":["👈️","👈🏻","👈🏼","👈🏽","👈🏾","👈🏿"]},{"e":"👉️","opts":["👉️","👉🏻","👉🏼","👉🏽","👉🏾","👉🏿"]},{"e":"👆️","opts":["👆️","👆🏻","👆🏼","👆🏽","👆🏾","👆🏿"]},{"e":"🖕","opts":["🖕","🖕🏻","🖕🏼","🖕🏽","🖕🏾","🖕🏿"]},{"e":"👇️","opts":["👇️","👇🏻","👇🏼","👇🏽","👇🏾","👇🏿"]},{"e":"☝️","opts":["☝️","☝🏻","☝🏼","☝🏽","☝🏾","☝🏿"]},{"e":"🫵","opts":["🫵","🫵🏻","🫵🏼","🫵🏽","🫵🏾","🫵🏿"]},{"e":"👍️","opts":["👍️","👍🏻","👍🏼","👍🏽","👍🏾","👍🏿"]},{"e":"👎️","opts":["👎️","👎🏻","👎🏼","👎🏽","👎🏾","👎🏿"]},{"e":"✊","opts":["✊","✊🏻","✊🏼","✊🏽","✊🏾","✊🏿"]},{"e":"👊","opts":["👊","👊🏻","👊🏼","👊🏽","👊🏾","👊🏿"]},{"e":"🤛","opts":["🤛","🤛🏻","🤛🏼","🤛🏽","🤛🏾","🤛🏿"]},{"e":"🤜","opts":["🤜","🤜🏻","🤜🏼","🤜🏽","🤜🏾","🤜🏿"]},{"e":"👏","opts":["👏","👏🏻","👏🏼","👏🏽","👏🏾","👏🏿"]},{"e":"🙌","opts":["🙌","🙌🏻","🙌🏼","🙌🏽","🙌🏾","🙌🏿"]},{"e":"🫶","opts":["🫶","🫶🏻","🫶🏼","🫶🏽","🫶🏾","🫶🏿"]},{"e":"👐","opts":["👐","👐🏻","👐🏼","👐🏽","👐🏾","👐🏿"]},{"e":"🤲","opts":["🤲","🤲🏻","🤲🏼","🤲🏽","🤲🏾","🤲🏿"]},{"e":"🤝","opts":["🤝","🤝🏻","🤝🏼","🤝🏽","🤝🏾","🤝🏿","🫱🏻‍🫲🏼","🫱🏻‍🫲🏽","🫱🏻‍🫲🏾","🫱🏻‍🫲🏿","🫱🏼‍🫲🏻","🫱🏼‍🫲🏽","🫱🏼‍🫲🏾","🫱🏼‍🫲🏿","🫱🏽‍🫲🏻","🫱🏽‍🫲🏼","🫱🏽‍🫲🏾","🫱🏽‍🫲🏿","🫱🏾‍🫲🏻","🫱🏾‍🫲🏼","🫱🏾‍🫲🏽","🫱🏾‍🫲🏿","🫱🏿‍🫲🏻","🫱🏿‍🫲🏼","🫱🏿‍🫲🏽","🫱🏿‍🫲🏾"]},{"e":"🙏","opts":["🙏","🙏🏻","🙏🏼","🙏🏽","🙏🏾","🙏🏿"]},{"e":"✍️","opts":["✍️","✍🏻","✍🏼","✍🏽","✍🏾","✍🏿"]},{"e":"💅","opts":["💅","💅🏻","💅🏼","💅🏽","💅🏾","💅🏿"]},{"e":"🤳","opts":["🤳","🤳🏻","🤳🏼","🤳🏽","🤳🏾","🤳🏿"]},{"e":"💪","opts":["💪","💪🏻","💪🏼","💪🏽","💪🏾","💪🏿"]},{"e":"🦾","opts":["🦾"]},{"e":"🦿","opts":["🦿"]},{"e":"🦵","opts":["🦵","🦵🏻","🦵🏼","🦵🏽","🦵🏾","🦵🏿"]},{"e":"🦶","opts":["🦶","🦶🏻","🦶🏼","🦶🏽","🦶🏾","🦶🏿"]},{"e":"👂️","opts":["👂️","👂🏻","👂🏼","👂🏽","👂🏾","👂🏿"]},{"e":"🦻","opts":["🦻","🦻🏻","🦻🏼","🦻🏽","🦻🏾","🦻🏿"]},{"e":"👃","opts":["👃","👃🏻","👃🏼","👃🏽","👃🏾","👃🏿"]},{"e":"🧠","opts":["🧠"]},{"e":"🫀","opts":["🫀"]},{"e":"🫁","opts":["🫁"]},{"e":"🦷","opts":["🦷"]},{"e":"🦴","opts":["🦴"]},{"e":"👀","opts":["👀"]},{"e":"👁️","opts":["👁️"]},{"e":"👅","opts":["👅"]},{"e":"👄","opts":["👄"]},{"e":"🫦","opts":["🫦"]},{"e":"👶","opts":["👶","👶🏻","👶🏼","👶🏽","👶🏾","👶🏿"]},{"e":"🧒","opts":["🧒","🧒🏻","🧒🏼","🧒🏽","🧒🏾","🧒🏿"]},{"e":"👦","opts":["👦","👦🏻","👦🏼","👦🏽","👦🏾","👦🏿"]},{"e":"👧","opts":["👧","👧🏻","👧🏼","👧🏽","👧🏾","👧🏿"]},{"e":"🧑","opts":["🧑","🧑🏻","🧑🏼","🧑🏽","🧑🏾","🧑🏿"]},{"e":"👱","opts":["👱","👱🏻","👱🏼","👱🏽","👱🏾","👱🏿"]},{"e":"👨","opts":["👨","👨🏻","👨🏼","👨🏽","👨🏾","👨🏿"]},{"e":"🧔","opts":["🧔","🧔🏻","🧔🏼","🧔🏽","🧔🏾","🧔🏿"]},{"e":"🧔‍♂️","opts":["🧔‍♂️","🧔🏻‍♂️","🧔🏼‍♂️","🧔🏽‍♂️","🧔🏾‍♂️","🧔🏿‍♂️"]},{"e":"🧔‍♀️","opts":["🧔‍♀️","🧔🏻‍♀️","🧔🏼‍♀️","🧔🏽‍♀️","🧔🏾‍♀️","🧔🏿‍♀️"]},{"e":"👨‍🦰","opts":["👨‍🦰","👨🏻‍🦰","👨🏼‍🦰","👨🏽‍🦰","👨🏾‍🦰","👨🏿‍🦰"]},{"e":"👨‍🦱","opts":["👨‍🦱","👨🏻‍🦱","👨🏼‍🦱","👨🏽‍🦱","👨🏾‍🦱","👨🏿‍🦱"]},{"e":"👨‍🦳","opts":["👨‍🦳","👨🏻‍🦳","👨🏼‍🦳","👨🏽‍🦳","👨🏾‍🦳","👨🏿‍🦳"]},{"e":"👨‍🦲","opts":["👨‍🦲","👨🏻‍🦲","👨🏼‍🦲","👨🏽‍🦲","👨🏾‍🦲","👨🏿‍🦲"]},{"e":"👩","opts":["👩","👩🏻","👩🏼","👩🏽","👩🏾","👩🏿"]},{"e":"👩‍🦰","opts":["👩‍🦰","👩🏻‍🦰","👩🏼‍🦰","👩🏽‍🦰","👩🏾‍🦰","👩🏿‍🦰"]},{"e":"🧑‍🦰","opts":["🧑‍🦰","🧑🏻‍🦰","🧑🏼‍🦰","🧑🏽‍🦰","🧑🏾‍🦰","🧑🏿‍🦰"]},{"e":"👩‍🦱","opts":["👩‍🦱","👩🏻‍🦱","👩🏼‍🦱","👩🏽‍🦱","👩🏾‍🦱","👩🏿‍🦱"]},{"e":"🧑‍🦱","opts":["🧑‍🦱","🧑🏻‍🦱","🧑🏼‍🦱","🧑🏽‍🦱","🧑🏾‍🦱","🧑🏿‍🦱"]},{"e":"👩‍🦳","opts":["👩‍🦳","👩🏻‍🦳","👩🏼‍🦳","👩🏽‍🦳","👩🏾‍🦳","👩🏿‍🦳"]},{"e":"🧑‍🦳","opts":["🧑‍🦳","🧑🏻‍🦳","🧑🏼‍🦳","🧑🏽‍🦳","🧑🏾‍🦳","🧑🏿‍🦳"]},{"e":"👩‍🦲","opts":["👩‍🦲","👩🏻‍🦲","👩🏼‍🦲","👩🏽‍🦲","👩🏾‍🦲","👩🏿‍🦲"]},{"e":"🧑‍🦲","opts":["🧑‍🦲","🧑🏻‍🦲","🧑🏼‍🦲","🧑🏽‍🦲","🧑🏾‍🦲","🧑🏿‍🦲"]},{"e":"👱‍♀️","opts":["👱‍♀️","👱🏻‍♀️","👱🏼‍♀️","👱🏽‍♀️","👱🏾‍♀️","👱🏿‍♀️"]},{"e":"👱‍♂️","opts":["👱‍♂️","👱🏻‍♂️","👱🏼‍♂️","👱🏽‍♂️","👱🏾‍♂️","👱🏿‍♂️"]},{"e":"🧓","opts":["🧓","🧓🏻","🧓🏼","🧓🏽","🧓🏾","🧓🏿"]},{"e":"👴","opts":["👴","👴🏻","👴🏼","👴🏽","👴🏾","👴🏿"]},{"e":"👵","opts":["👵","👵🏻","👵🏼","👵🏽","👵🏾","👵🏿"]},{"e":"🙍","opts":["🙍","🙍🏻","🙍🏼","🙍🏽","🙍🏾","🙍🏿"]},{"e":"🙍‍♂️","opts":["🙍‍♂️","🙍🏻‍♂️","🙍🏼‍♂️","🙍🏽‍♂️","🙍🏾‍♂️","🙍🏿‍♂️"]},{"e":"🙍‍♀️","opts":["🙍‍♀️","🙍🏻‍♀️","🙍🏼‍♀️","🙍🏽‍♀️","🙍🏾‍♀️","🙍🏿‍♀️"]},{"e":"🙎","opts":["🙎","🙎🏻","🙎🏼","🙎🏽","🙎🏾","🙎🏿"]},{"e":"🙎‍♂️","opts":["🙎‍♂️","🙎🏻‍♂️","🙎🏼‍♂️","🙎🏽‍♂️","🙎🏾‍♂️","🙎🏿‍♂️"]},{"e":"🙎‍♀️","opts":["🙎‍♀️","🙎🏻‍♀️","🙎🏼‍♀️","🙎🏽‍♀️","🙎🏾‍♀️","🙎🏿‍♀️"]},{"e":"🙅","opts":["🙅","🙅🏻","🙅🏼","🙅🏽","🙅🏾","🙅🏿"]},{"e":"🙅‍♂️","opts":["🙅‍♂️","🙅🏻‍♂️","🙅🏼‍♂️","🙅🏽‍♂️","🙅🏾‍♂️","🙅🏿‍♂️"]},{"e":"🙅‍♀️","opts":["🙅‍♀️","🙅🏻‍♀️","🙅🏼‍♀️","🙅🏽‍♀️","🙅🏾‍♀️","🙅🏿‍♀️"]},{"e":"🙆","opts":["🙆","🙆🏻","🙆🏼","🙆🏽","🙆🏾","🙆🏿"]},{"e":"🙆‍♂️","opts":["🙆‍♂️","🙆🏻‍♂️","🙆🏼‍♂️","🙆🏽‍♂️","🙆🏾‍♂️","🙆🏿‍♂️"]},{"e":"🙆‍♀️","opts":["🙆‍♀️","🙆🏻‍♀️","🙆🏼‍♀️","🙆🏽‍♀️","🙆🏾‍♀️","🙆🏿‍♀️"]},{"e":"💁","opts":["💁","💁🏻","💁🏼","💁🏽","💁🏾","💁🏿"]},{"e":"💁‍♂️","opts":["💁‍♂️","💁🏻‍♂️","💁🏼‍♂️","💁🏽‍♂️","💁🏾‍♂️","💁🏿‍♂️"]},{"e":"💁‍♀️","opts":["💁‍♀️","💁🏻‍♀️","💁🏼‍♀️","💁🏽‍♀️","💁🏾‍♀️","💁🏿‍♀️"]},{"e":"🙋","opts":["🙋","🙋🏻","🙋🏼","🙋🏽","🙋🏾","🙋🏿"]},{"e":"🙋‍♂️","opts":["🙋‍♂️","🙋🏻‍♂️","🙋🏼‍♂️","🙋🏽‍♂️","🙋🏾‍♂️","🙋🏿‍♂️"]},{"e":"🙋‍♀️","opts":["🙋‍♀️","🙋🏻‍♀️","🙋🏼‍♀️","🙋🏽‍♀️","🙋🏾‍♀️","🙋🏿‍♀️"]},{"e":"🧏","opts":["🧏","🧏🏻","🧏🏼","🧏🏽","🧏🏾","🧏🏿"]},{"e":"🧏‍♂️","opts":["🧏‍♂️","🧏🏻‍♂️","🧏🏼‍♂️","🧏🏽‍♂️","🧏🏾‍♂️","🧏🏿‍♂️"]},{"e":"🧏‍♀️","opts":["🧏‍♀️","🧏🏻‍♀️","🧏🏼‍♀️","🧏🏽‍♀️","🧏🏾‍♀️","🧏🏿‍♀️"]},{"e":"🙇","opts":["🙇","🙇🏻","🙇🏼","🙇🏽","🙇🏾","🙇🏿"]},{"e":"🙇‍♂️","opts":["🙇‍♂️","🙇🏻‍♂️","🙇🏼‍♂️","🙇🏽‍♂️","🙇🏾‍♂️","🙇🏿‍♂️"]},{"e":"🙇‍♀️","opts":["🙇‍♀️","🙇🏻‍♀️","🙇🏼‍♀️","🙇🏽‍♀️","🙇🏾‍♀️","🙇🏿‍♀️"]},{"e":"🤦","opts":["🤦","🤦🏻","🤦🏼","🤦🏽","🤦🏾","🤦🏿"]},{"e":"🤦‍♂️","opts":["🤦‍♂️","🤦🏻‍♂️","🤦🏼‍♂️","🤦🏽‍♂️","🤦🏾‍♂️","🤦🏿‍♂️"]},{"e":"🤦‍♀️","opts":["🤦‍♀️","🤦🏻‍♀️","🤦🏼‍♀️","🤦🏽‍♀️","🤦🏾‍♀️","🤦🏿‍♀️"]},{"e":"🤷","opts":["🤷","🤷🏻","🤷🏼","🤷🏽","🤷🏾","🤷🏿"]},{"e":"🤷‍♂️","opts":["🤷‍♂️","🤷🏻‍♂️","🤷🏼‍♂️","🤷🏽‍♂️","🤷🏾‍♂️","🤷🏿‍♂️"]},{"e":"🤷‍♀️","opts":["🤷‍♀️","🤷🏻‍♀️","🤷🏼‍♀️","🤷🏽‍♀️","🤷🏾‍♀️","🤷🏿‍♀️"]},{"e":"🧑‍⚕️","opts":["🧑‍⚕️","🧑🏻‍⚕️","🧑🏼‍⚕️","🧑🏽‍⚕️","🧑🏾‍⚕️","🧑🏿‍⚕️"]},{"e":"👨‍⚕️","opts":["👨‍⚕️","👨🏻‍⚕️","👨🏼‍⚕️","👨🏽‍⚕️","👨🏾‍⚕️","👨🏿‍⚕️"]},{"e":"👩‍⚕️","opts":["👩‍⚕️","👩🏻‍⚕️","👩🏼‍⚕️","👩🏽‍⚕️","👩🏾‍⚕️","👩🏿‍⚕️"]},{"e":"🧑‍🎓","opts":["🧑‍🎓","🧑🏻‍🎓","🧑🏼‍🎓","🧑🏽‍🎓","🧑🏾‍🎓","🧑🏿‍🎓"]},{"e":"👨‍🎓","opts":["👨‍🎓","👨🏻‍🎓","👨🏼‍🎓","👨🏽‍🎓","👨🏾‍🎓","👨🏿‍🎓"]},{"e":"👩‍🎓","opts":["👩‍🎓","👩🏻‍🎓","👩🏼‍🎓","👩🏽‍🎓","👩🏾‍🎓","👩🏿‍🎓"]},{"e":"🧑‍🏫","opts":["🧑‍🏫","🧑🏻‍🏫","🧑🏼‍🏫","🧑🏽‍🏫","🧑🏾‍🏫","🧑🏿‍🏫"]},{"e":"👨‍🏫","opts":["👨‍🏫","👨🏻‍🏫","👨🏼‍🏫","👨🏽‍🏫","👨🏾‍🏫","👨🏿‍🏫"]},{"e":"👩‍🏫","opts":["👩‍🏫","👩🏻‍🏫","👩🏼‍🏫","👩🏽‍🏫","👩🏾‍🏫","👩🏿‍🏫"]},{"e":"🧑‍⚖️","opts":["🧑‍⚖️","🧑🏻‍⚖️","🧑🏼‍⚖️","🧑🏽‍⚖️","🧑🏾‍⚖️","🧑🏿‍⚖️"]},{"e":"👨‍⚖️","opts":["👨‍⚖️","👨🏻‍⚖️","👨🏼‍⚖️","👨🏽‍⚖️","👨🏾‍⚖️","👨🏿‍⚖️"]},{"e":"👩‍⚖️","opts":["👩‍⚖️","👩🏻‍⚖️","👩🏼‍⚖️","👩🏽‍⚖️","👩🏾‍⚖️","👩🏿‍⚖️"]},{"e":"🧑‍🌾","opts":["🧑‍🌾","🧑🏻‍🌾","🧑🏼‍🌾","🧑🏽‍🌾","🧑🏾‍🌾","🧑🏿‍🌾"]},{"e":"👨‍🌾","opts":["👨‍🌾","👨🏻‍🌾","👨🏼‍🌾","👨🏽‍🌾","👨🏾‍🌾","👨🏿‍🌾"]},{"e":"👩‍🌾","opts":["👩‍🌾","👩🏻‍🌾","👩🏼‍🌾","👩🏽‍🌾","👩🏾‍🌾","👩🏿‍🌾"]},{"e":"🧑‍🍳","opts":["🧑‍🍳","🧑🏻‍🍳","🧑🏼‍🍳","🧑🏽‍🍳","🧑🏾‍🍳","🧑🏿‍🍳"]},{"e":"👨‍🍳","opts":["👨‍🍳","👨🏻‍🍳","👨🏼‍🍳","👨🏽‍🍳","👨🏾‍🍳","👨🏿‍🍳"]},{"e":"👩‍🍳","opts":["👩‍🍳","👩🏻‍🍳","👩🏼‍🍳","👩🏽‍🍳","👩🏾‍🍳","👩🏿‍🍳"]},{"e":"🧑‍🔧","opts":["🧑‍🔧","🧑🏻‍🔧","🧑🏼‍🔧","🧑🏽‍🔧","🧑🏾‍🔧","🧑🏿‍🔧"]},{"e":"👨‍🔧","opts":["👨‍🔧","👨🏻‍🔧","👨🏼‍🔧","👨🏽‍🔧","👨🏾‍🔧","👨🏿‍🔧"]},{"e":"👩‍🔧","opts":["👩‍🔧","👩🏻‍🔧","👩🏼‍🔧","👩🏽‍🔧","👩🏾‍🔧","👩🏿‍🔧"]},{"e":"🧑‍🏭","opts":["🧑‍🏭","🧑🏻‍🏭","🧑🏼‍🏭","🧑🏽‍🏭","🧑🏾‍🏭","🧑🏿‍🏭"]},{"e":"👨‍🏭","opts":["👨‍🏭","👨🏻‍🏭","👨🏼‍🏭","👨🏽‍🏭","👨🏾‍🏭","👨🏿‍🏭"]},{"e":"👩‍🏭","opts":["👩‍🏭","👩🏻‍🏭","👩🏼‍🏭","👩🏽‍🏭","👩🏾‍🏭","👩🏿‍🏭"]},{"e":"🧑‍💼","opts":["🧑‍💼","🧑🏻‍💼","🧑🏼‍💼","🧑🏽‍💼","🧑🏾‍💼","🧑🏿‍💼"]},{"e":"👨‍💼","opts":["👨‍💼","👨🏻‍💼","👨🏼‍💼","👨🏽‍💼","👨🏾‍💼","👨🏿‍💼"]},{"e":"👩‍💼","opts":["👩‍💼","👩🏻‍💼","👩🏼‍💼","👩🏽‍💼","👩🏾‍💼","👩🏿‍💼"]},{"e":"🧑‍🔬","opts":["🧑‍🔬","🧑🏻‍🔬","🧑🏼‍🔬","🧑🏽‍🔬","🧑🏾‍🔬","🧑🏿‍🔬"]},{"e":"👨‍🔬","opts":["👨‍🔬","👨🏻‍🔬","👨🏼‍🔬","👨🏽‍🔬","👨🏾‍🔬","👨🏿‍🔬"]},{"e":"👩‍🔬","opts":["👩‍🔬","👩🏻‍🔬","👩🏼‍🔬","👩🏽‍🔬","👩🏾‍🔬","👩🏿‍🔬"]},{"e":"🧑‍💻","opts":["🧑‍💻","🧑🏻‍💻","🧑🏼‍💻","🧑🏽‍💻","🧑🏾‍💻","🧑🏿‍💻"]},{"e":"👨‍💻","opts":["👨‍💻","👨🏻‍💻","👨🏼‍💻","👨🏽‍💻","👨🏾‍💻","👨🏿‍💻"]},{"e":"👩‍💻","opts":["👩‍💻","👩🏻‍💻","👩🏼‍💻","👩🏽‍💻","👩🏾‍💻","👩🏿‍💻"]},{"e":"🧑‍🎤","opts":["🧑‍🎤","🧑🏻‍🎤","🧑🏼‍🎤","🧑🏽‍🎤","🧑🏾‍🎤","🧑🏿‍🎤"]},{"e":"👨‍🎤","opts":["👨‍🎤","👨🏻‍🎤","👨🏼‍🎤","👨🏽‍🎤","👨🏾‍🎤","👨🏿‍🎤"]},{"e":"👩‍🎤","opts":["👩‍🎤","👩🏻‍🎤","👩🏼‍🎤","👩🏽‍🎤","👩🏾‍🎤","👩🏿‍🎤"]},{"e":"🧑‍🎨","opts":["🧑‍🎨","🧑🏻‍🎨","🧑🏼‍🎨","🧑🏽‍🎨","🧑🏾‍🎨","🧑🏿‍🎨"]},{"e":"👨‍🎨","opts":["👨‍🎨","👨🏻‍🎨","👨🏼‍🎨","👨🏽‍🎨","👨🏾‍🎨","👨🏿‍🎨"]},{"e":"👩‍🎨","opts":["👩‍🎨","👩🏻‍🎨","👩🏼‍🎨","👩🏽‍🎨","👩🏾‍🎨","👩🏿‍🎨"]},{"e":"🧑‍✈️","opts":["🧑‍✈️","🧑🏻‍✈️","🧑🏼‍✈️","🧑🏽‍✈️","🧑🏾‍✈️","🧑🏿‍✈️"]},{"e":"👨‍✈️","opts":["👨‍✈️","👨🏻‍✈️","👨🏼‍✈️","👨🏽‍✈️","👨🏾‍✈️","👨🏿‍✈️"]},{"e":"👩‍✈️","opts":["👩‍✈️","👩🏻‍✈️","👩🏼‍✈️","👩🏽‍✈️","👩🏾‍✈️","👩🏿‍✈️"]},{"e":"🧑‍🚀","opts":["🧑‍🚀","🧑🏻‍🚀","🧑🏼‍🚀","🧑🏽‍🚀","🧑🏾‍🚀","🧑🏿‍🚀"]},{"e":"👨‍🚀","opts":["👨‍🚀","👨🏻‍🚀","👨🏼‍🚀","👨🏽‍🚀","👨🏾‍🚀","👨🏿‍🚀"]},{"e":"👩‍🚀","opts":["👩‍🚀","👩🏻‍🚀","👩🏼‍🚀","👩🏽‍🚀","👩🏾‍🚀","👩🏿‍🚀"]},{"e":"🧑‍🚒","opts":["🧑‍🚒","🧑🏻‍🚒","🧑🏼‍🚒","🧑🏽‍🚒","🧑🏾‍🚒","🧑🏿‍🚒"]},{"e":"👨‍🚒","opts":["👨‍🚒","👨🏻‍🚒","👨🏼‍🚒","👨🏽‍🚒","👨🏾‍🚒","👨🏿‍🚒"]},{"e":"👩‍🚒","opts":["👩‍🚒","👩🏻‍🚒","👩🏼‍🚒","👩🏽‍🚒","👩🏾‍🚒","👩🏿‍🚒"]},{"e":"👮","opts":["👮","👮🏻","👮🏼","👮🏽","👮🏾","👮🏿"]},{"e":"👮‍♂️","opts":["👮‍♂️","👮🏻‍♂️","👮🏼‍♂️","👮🏽‍♂️","👮🏾‍♂️","👮🏿‍♂️"]},{"e":"👮‍♀️","opts":["👮‍♀️","👮🏻‍♀️","👮🏼‍♀️","👮🏽‍♀️","👮🏾‍♀️","👮🏿‍♀️"]},{"e":"🕵️","opts":["🕵️","🕵🏻","🕵🏼","🕵🏽","🕵🏾","🕵🏿"]},{"e":"🕵️‍♂️","opts":["🕵️‍♂️","🕵🏻‍♂️","🕵🏼‍♂️","🕵🏽‍♂️","🕵🏾‍♂️","🕵🏿‍♂️"]},{"e":"🕵️‍♀️","opts":["🕵️‍♀️","🕵🏻‍♀️","🕵🏼‍♀️","🕵🏽‍♀️","🕵🏾‍♀️","🕵🏿‍♀️"]},{"e":"💂","opts":["💂","💂🏻","💂🏼","💂🏽","💂🏾","💂🏿"]},{"e":"💂‍♂️","opts":["💂‍♂️","💂🏻‍♂️","💂🏼‍♂️","💂🏽‍♂️","💂🏾‍♂️","💂🏿‍♂️"]},{"e":"💂‍♀️","opts":["💂‍♀️","💂🏻‍♀️","💂🏼‍♀️","💂🏽‍♀️","💂🏾‍♀️","💂🏿‍♀️"]},{"e":"🥷","opts":["🥷","🥷🏻","🥷🏼","🥷🏽","🥷🏾","🥷🏿"]},{"e":"👷","opts":["👷","👷🏻","👷🏼","👷🏽","👷🏾","👷🏿"]},{"e":"👷‍♂️","opts":["👷‍♂️","👷🏻‍♂️","👷🏼‍♂️","👷🏽‍♂️","👷🏾‍♂️","👷🏿‍♂️"]},{"e":"👷‍♀️","opts":["👷‍♀️","👷🏻‍♀️","👷🏼‍♀️","👷🏽‍♀️","👷🏾‍♀️","👷🏿‍♀️"]},{"e":"🫅","opts":["🫅","🫅🏻","🫅🏼","🫅🏽","🫅🏾","🫅🏿"]},{"e":"🤴","opts":["🤴","🤴🏻","🤴🏼","🤴🏽","🤴🏾","🤴🏿"]},{"e":"👸","opts":["👸","👸🏻","👸🏼","👸🏽","👸🏾","👸🏿"]},{"e":"👳","opts":["👳","👳🏻","👳🏼","👳🏽","👳🏾","👳🏿"]},{"e":"👳‍♂️","opts":["👳‍♂️","👳🏻‍♂️","👳🏼‍♂️","👳🏽‍♂️","👳🏾‍♂️","👳🏿‍♂️"]},{"e":"👳‍♀️","opts":["👳‍♀️","👳🏻‍♀️","👳🏼‍♀️","👳🏽‍♀️","👳🏾‍♀️","👳🏿‍♀️"]},{"e":"👲","opts":["👲","👲🏻","👲🏼","👲🏽","👲🏾","👲🏿"]},{"e":"🧕","opts":["🧕","🧕🏻","🧕🏼","🧕🏽","🧕🏾","🧕🏿"]},{"e":"🤵","opts":["🤵","🤵🏻","🤵🏼","🤵🏽","🤵🏾","🤵🏿"]},{"e":"🤵‍♂️","opts":["🤵‍♂️","🤵🏻‍♂️","🤵🏼‍♂️","🤵🏽‍♂️","🤵🏾‍♂️","🤵🏿‍♂️"]},{"e":"🤵‍♀️","opts":["🤵‍♀️","🤵🏻‍♀️","🤵🏼‍♀️","🤵🏽‍♀️","🤵🏾‍♀️","🤵🏿‍♀️"]},{"e":"👰","opts":["👰","👰🏻","👰🏼","👰🏽","👰🏾","👰🏿"]},{"e":"👰‍♂️","opts":["👰‍♂️","👰🏻‍♂️","👰🏼‍♂️","👰🏽‍♂️","👰🏾‍♂️","👰🏿‍♂️"]},{"e":"👰‍♀️","opts":["👰‍♀️","👰🏻‍♀️","👰🏼‍♀️","👰🏽‍♀️","👰🏾‍♀️","👰🏿‍♀️"]},{"e":"🤰","opts":["🤰","🤰🏻","🤰🏼","🤰🏽","🤰🏾","🤰🏿"]},{"e":"🫃","opts":["🫃","🫃🏻","🫃🏼","🫃🏽","🫃🏾","🫃🏿"]},{"e":"🫄","opts":["🫄","🫄🏻","🫄🏼","🫄🏽","🫄🏾","🫄🏿"]},{"e":"🤱","opts":["🤱","🤱🏻","🤱🏼","🤱🏽","🤱🏾","🤱🏿"]},{"e":"👩‍🍼","opts":["👩‍🍼","👩🏻‍🍼","👩🏼‍🍼","👩🏽‍🍼","👩🏾‍🍼","👩🏿‍🍼"]},{"e":"👨‍🍼","opts":["👨‍🍼","👨🏻‍🍼","👨🏼‍🍼","👨🏽‍🍼","👨🏾‍🍼","👨🏿‍🍼"]},{"e":"🧑‍🍼","opts":["🧑‍🍼","🧑🏻‍🍼","🧑🏼‍🍼","🧑🏽‍🍼","🧑🏾‍🍼","🧑🏿‍🍼"]},{"e":"👼","opts":["👼","👼🏻","👼🏼","👼🏽","👼🏾","👼🏿"]},{"e":"🎅","opts":["🎅","🎅🏻","🎅🏼","🎅🏽","🎅🏾","🎅🏿"]},{"e":"🤶","opts":["🤶","🤶🏻","🤶🏼","🤶🏽","🤶🏾","🤶🏿"]},{"e":"🧑‍🎄","opts":["🧑‍🎄","🧑🏻‍🎄","🧑🏼‍🎄","🧑🏽‍🎄","🧑🏾‍🎄","🧑🏿‍🎄"]},{"e":"🦸","opts":["🦸","🦸🏻","🦸🏼","🦸🏽","🦸🏾","🦸🏿"]},{"e":"🦸‍♂️","opts":["🦸‍♂️","🦸🏻‍♂️","🦸🏼‍♂️","🦸🏽‍♂️","🦸🏾‍♂️","🦸🏿‍♂️"]},{"e":"🦸‍♀️","opts":["🦸‍♀️","🦸🏻‍♀️","🦸🏼‍♀️","🦸🏽‍♀️","🦸🏾‍♀️","🦸🏿‍♀️"]},{"e":"🦹","opts":["🦹","🦹🏻","🦹🏼","🦹🏽","🦹🏾","🦹🏿"]},{"e":"🦹‍♂️","opts":["🦹‍♂️","🦹🏻‍♂️","🦹🏼‍♂️","🦹🏽‍♂️","🦹🏾‍♂️","🦹🏿‍♂️"]},{"e":"🦹‍♀️","opts":["🦹‍♀️","🦹🏻‍♀️","🦹🏼‍♀️","🦹🏽‍♀️","🦹🏾‍♀️","🦹🏿‍♀️"]},{"e":"🧙","opts":["🧙","🧙🏻","🧙🏼","🧙🏽","🧙🏾","🧙🏿"]},{"e":"🧙‍♂️","opts":["🧙‍♂️","🧙🏻‍♂️","🧙🏼‍♂️","🧙🏽‍♂️","🧙🏾‍♂️","🧙🏿‍♂️"]},{"e":"🧙‍♀️","opts":["🧙‍♀️","🧙🏻‍♀️","🧙🏼‍♀️","🧙🏽‍♀️","🧙🏾‍♀️","🧙🏿‍♀️"]},{"e":"🧚","opts":["🧚","🧚🏻","🧚🏼","🧚🏽","🧚🏾","🧚🏿"]},{"e":"🧚‍♂️","opts":["🧚‍♂️","🧚🏻‍♂️","🧚🏼‍♂️","🧚🏽‍♂️","🧚🏾‍♂️","🧚🏿‍♂️"]},{"e":"🧚‍♀️","opts":["🧚‍♀️","🧚🏻‍♀️","🧚🏼‍♀️","🧚🏽‍♀️","🧚🏾‍♀️","🧚🏿‍♀️"]},{"e":"🧛","opts":["🧛","🧛🏻","🧛🏼","🧛🏽","🧛🏾","🧛🏿"]},{"e":"🧛‍♂️","opts":["🧛‍♂️","🧛🏻‍♂️","🧛🏼‍♂️","🧛🏽‍♂️","🧛🏾‍♂️","🧛🏿‍♂️"]},{"e":"🧛‍♀️","opts":["🧛‍♀️","🧛🏻‍♀️","🧛🏼‍♀️","🧛🏽‍♀️","🧛🏾‍♀️","🧛🏿‍♀️"]},{"e":"🧜","opts":["🧜","🧜🏻","🧜🏼","🧜🏽","🧜🏾","🧜🏿"]},{"e":"🧜‍♂️","opts":["🧜‍♂️","🧜🏻‍♂️","🧜🏼‍♂️","🧜🏽‍♂️","🧜🏾‍♂️","🧜🏿‍♂️"]},{"e":"🧜‍♀️","opts":["🧜‍♀️","🧜🏻‍♀️","🧜🏼‍♀️","🧜🏽‍♀️","🧜🏾‍♀️","🧜🏿‍♀️"]},{"e":"🧝","opts":["🧝","🧝🏻","🧝🏼","🧝🏽","🧝🏾","🧝🏿"]},{"e":"🧝‍♂️","opts":["🧝‍♂️","🧝🏻‍♂️","🧝🏼‍♂️","🧝🏽‍♂️","🧝🏾‍♂️","🧝🏿‍♂️"]},{"e":"🧝‍♀️","opts":["🧝‍♀️","🧝🏻‍♀️","🧝🏼‍♀️","🧝🏽‍♀️","🧝🏾‍♀️","🧝🏿‍♀️"]},{"e":"🧞","opts":["🧞"]},{"e":"🧞‍♂️","opts":["🧞‍♂️"]},{"e":"🧞‍♀️","opts":["🧞‍♀️"]},{"e":"🧟","opts":["🧟"]},{"e":"🧟‍♂️","opts":["🧟‍♂️"]},{"e":"🧟‍♀️","opts":["🧟‍♀️"]},{"e":"🧌","opts":["🧌"]},{"e":"💆","opts":["💆","💆🏻","💆🏼","💆🏽","💆🏾","💆🏿"]},{"e":"💆‍♂️","opts":["💆‍♂️","💆🏻‍♂️","💆🏼‍♂️","💆🏽‍♂️","💆🏾‍♂️","💆🏿‍♂️"]},{"e":"💆‍♀️","opts":["💆‍♀️","💆🏻‍♀️","💆🏼‍♀️","💆🏽‍♀️","💆🏾‍♀️","💆🏿‍♀️"]},{"e":"💇","opts":["💇","💇🏻","💇🏼","💇🏽","💇🏾","💇🏿"]},{"e":"💇‍♂️","opts":["💇‍♂️","💇🏻‍♂️","💇🏼‍♂️","💇🏽‍♂️","💇🏾‍♂️","💇🏿‍♂️"]},{"e":"💇‍♀️","opts":["💇‍♀️","💇🏻‍♀️","💇🏼‍♀️","💇🏽‍♀️","💇🏾‍♀️","💇🏿‍♀️"]},{"e":"🚶","opts":["🚶","🚶🏻","🚶🏼","🚶🏽","🚶🏾","🚶🏿"]},{"e":"🚶‍♂️","opts":["🚶‍♂️","🚶🏻‍♂️","🚶🏼‍♂️","🚶🏽‍♂️","🚶🏾‍♂️","🚶🏿‍♂️"]},{"e":"🚶‍♀️","opts":["🚶‍♀️","🚶🏻‍♀️","🚶🏼‍♀️","🚶🏽‍♀️","🚶🏾‍♀️","🚶🏿‍♀️"]},{"e":"🧍","opts":["🧍","🧍🏻","🧍🏼","🧍🏽","🧍🏾","🧍🏿"]},{"e":"🧍‍♂️","opts":["🧍‍♂️","🧍🏻‍♂️","🧍🏼‍♂️","🧍🏽‍♂️","🧍🏾‍♂️","🧍🏿‍♂️"]},{"e":"🧍‍♀️","opts":["🧍‍♀️","🧍🏻‍♀️","🧍🏼‍♀️","🧍🏽‍♀️","🧍🏾‍♀️","🧍🏿‍♀️"]},{"e":"🧎","opts":["🧎","🧎🏻","🧎🏼","🧎🏽","🧎🏾","🧎🏿"]},{"e":"🧎‍♂️","opts":["🧎‍♂️","🧎🏻‍♂️","🧎🏼‍♂️","🧎🏽‍♂️","🧎🏾‍♂️","🧎🏿‍♂️"]},{"e":"🧎‍♀️","opts":["🧎‍♀️","🧎🏻‍♀️","🧎🏼‍♀️","🧎🏽‍♀️","🧎🏾‍♀️","🧎🏿‍♀️"]},{"e":"🧑‍🦯","opts":["🧑‍🦯","🧑🏻‍🦯","🧑🏼‍🦯","🧑🏽‍🦯","🧑🏾‍🦯","🧑🏿‍🦯"]},{"e":"👨‍🦯","opts":["👨‍🦯","👨🏻‍🦯","👨🏼‍🦯","👨🏽‍🦯","👨🏾‍🦯","👨🏿‍🦯"]},{"e":"👩‍🦯","opts":["👩‍🦯","👩🏻‍🦯","👩🏼‍🦯","👩🏽‍🦯","👩🏾‍🦯","👩🏿‍🦯"]},{"e":"🧑‍🦼","opts":["🧑‍🦼","🧑🏻‍🦼","🧑🏼‍🦼","🧑🏽‍🦼","🧑🏾‍🦼","🧑🏿‍🦼"]},{"e":"👨‍🦼","opts":["👨‍🦼","👨🏻‍🦼","👨🏼‍🦼","👨🏽‍🦼","👨🏾‍🦼","👨🏿‍🦼"]},{"e":"👩‍🦼","opts":["👩‍🦼","👩🏻‍🦼","👩🏼‍🦼","👩🏽‍🦼","👩🏾‍🦼","👩🏿‍🦼"]},{"e":"🧑‍🦽","opts":["🧑‍🦽","🧑🏻‍🦽","🧑🏼‍🦽","🧑🏽‍🦽","🧑🏾‍🦽","🧑🏿‍🦽"]},{"e":"👨‍🦽","opts":["👨‍🦽","👨🏻‍🦽","👨🏼‍🦽","👨🏽‍🦽","👨🏾‍🦽","👨🏿‍🦽"]},{"e":"👩‍🦽","opts":["👩‍🦽","👩🏻‍🦽","👩🏼‍🦽","👩🏽‍🦽","👩🏾‍🦽","👩🏿‍🦽"]},{"e":"🏃","opts":["🏃","🏃🏻","🏃🏼","🏃🏽","🏃🏾","🏃🏿"]},{"e":"🏃‍♂️","opts":["🏃‍♂️","🏃🏻‍♂️","🏃🏼‍♂️","🏃🏽‍♂️","🏃🏾‍♂️","🏃🏿‍♂️"]},{"e":"🏃‍♀️","opts":["🏃‍♀️","🏃🏻‍♀️","🏃🏼‍♀️","🏃🏽‍♀️","🏃🏾‍♀️","🏃🏿‍♀️"]},{"e":"💃","opts":["💃","💃🏻","💃🏼","💃🏽","💃🏾","💃🏿"]},{"e":"🕺","opts":["🕺","🕺🏻","🕺🏼","🕺🏽","🕺🏾","🕺🏿"]},{"e":"🕴️","opts":["🕴️","🕴🏻","🕴🏼","🕴🏽","🕴🏾","🕴🏿"]},{"e":"👯","opts":["👯"]},{"e":"👯‍♂️","opts":["👯‍♂️"]},{"e":"👯‍♀️","opts":["👯‍♀️"]},{"e":"🧖","opts":["🧖","🧖🏻","🧖🏼","🧖🏽","🧖🏾","🧖🏿"]},{"e":"🧖‍♂️","opts":["🧖‍♂️","🧖🏻‍♂️","🧖🏼‍♂️","🧖🏽‍♂️","🧖🏾‍♂️","🧖🏿‍♂️"]},{"e":"🧖‍♀️","opts":["🧖‍♀️","🧖🏻‍♀️","🧖🏼‍♀️","🧖🏽‍♀️","🧖🏾‍♀️","🧖🏿‍♀️"]},{"e":"🧗","opts":["🧗","🧗🏻","🧗🏼","🧗🏽","🧗🏾","🧗🏿"]},{"e":"🧗‍♂️","opts":["🧗‍♂️","🧗🏻‍♂️","🧗🏼‍♂️","🧗🏽‍♂️","🧗🏾‍♂️","🧗🏿‍♂️"]},{"e":"🧗‍♀️","opts":["🧗‍♀️","🧗🏻‍♀️","🧗🏼‍♀️","🧗🏽‍♀️","🧗🏾‍♀️","🧗🏿‍♀️"]},{"e":"🤺","opts":["🤺"]},{"e":"🏇","opts":["🏇","🏇🏻","🏇🏼","🏇🏽","🏇🏾","🏇🏿"]},{"e":"⛷️","opts":["⛷️"]},{"e":"🏂️","opts":["🏂️","🏂🏻","🏂🏼","🏂🏽","🏂🏾","🏂🏿"]},{"e":"🏌️","opts":["🏌️","🏌🏻","🏌🏼","🏌🏽","🏌🏾","🏌🏿"]},{"e":"🏌️‍♂️","opts":["🏌️‍♂️","🏌🏻‍♂️","🏌🏼‍♂️","🏌🏽‍♂️","🏌🏾‍♂️","🏌🏿‍♂️"]},{"e":"🏌️‍♀️","opts":["🏌️‍♀️","🏌🏻‍♀️","🏌🏼‍♀️","🏌🏽‍♀️","🏌🏾‍♀️","🏌🏿‍♀️"]},{"e":"🏄️","opts":["🏄️","🏄🏻","🏄🏼","🏄🏽","🏄🏾","🏄🏿"]},{"e":"🏄‍♂️","opts":["🏄‍♂️","🏄🏻‍♂️","🏄🏼‍♂️","🏄🏽‍♂️","🏄🏾‍♂️","🏄🏿‍♂️"]},{"e":"🏄‍♀️","opts":["🏄‍♀️","🏄🏻‍♀️","🏄🏼‍♀️","🏄🏽‍♀️","🏄🏾‍♀️","🏄🏿‍♀️"]},{"e":"🚣","opts":["🚣","🚣🏻","🚣🏼","🚣🏽","🚣🏾","🚣🏿"]},{"e":"🚣‍♂️","opts":["🚣‍♂️","🚣🏻‍♂️","🚣🏼‍♂️","🚣🏽‍♂️","🚣🏾‍♂️","🚣🏿‍♂️"]},{"e":"🚣‍♀️","opts":["🚣‍♀️","🚣🏻‍♀️","🚣🏼‍♀️","🚣🏽‍♀️","🚣🏾‍♀️","🚣🏿‍♀️"]},{"e":"🏊️","opts":["🏊️","🏊🏻","🏊🏼","🏊🏽","🏊🏾","🏊🏿"]},{"e":"🏊‍♂️","opts":["🏊‍♂️","🏊🏻‍♂️","🏊🏼‍♂️","🏊🏽‍♂️","🏊🏾‍♂️","🏊🏿‍♂️"]},{"e":"🏊‍♀️","opts":["🏊‍♀️","🏊🏻‍♀️","🏊🏼‍♀️","🏊🏽‍♀️","🏊🏾‍♀️","🏊🏿‍♀️"]},{"e":"⛹️","opts":["⛹️","⛹🏻","⛹🏼","⛹🏽","⛹🏾","⛹🏿"]},{"e":"⛹️‍♂️","opts":["⛹️‍♂️","⛹🏻‍♂️","⛹🏼‍♂️","⛹🏽‍♂️","⛹🏾‍♂️","⛹🏿‍♂️"]},{"e":"⛹️‍♀️","opts":["⛹️‍♀️","⛹🏻‍♀️","⛹🏼‍♀️","⛹🏽‍♀️","⛹🏾‍♀️","⛹🏿‍♀️"]},{"e":"🏋️","opts":["🏋️","🏋🏻","🏋🏼","🏋🏽","🏋🏾","🏋🏿"]},{"e":"🏋️‍♂️","opts":["🏋️‍♂️","🏋🏻‍♂️","🏋🏼‍♂️","🏋🏽‍♂️","🏋🏾‍♂️","🏋🏿‍♂️"]},{"e":"🏋️‍♀️","opts":["🏋️‍♀️","🏋🏻‍♀️","🏋🏼‍♀️","🏋🏽‍♀️","🏋🏾‍♀️","🏋🏿‍♀️"]},{"e":"🚴","opts":["🚴","🚴🏻","🚴🏼","🚴🏽","🚴🏾","🚴🏿"]},{"e":"🚴‍♂️","opts":["🚴‍♂️","🚴🏻‍♂️","🚴🏼‍♂️","🚴🏽‍♂️","🚴🏾‍♂️","🚴🏿‍♂️"]},{"e":"🚴‍♀️","opts":["🚴‍♀️","🚴🏻‍♀️","🚴🏼‍♀️","🚴🏽‍♀️","🚴🏾‍♀️","🚴🏿‍♀️"]},{"e":"🚵","opts":["🚵","🚵🏻","🚵🏼","🚵🏽","🚵🏾","🚵🏿"]},{"e":"🚵‍♂️","opts":["🚵‍♂️","🚵🏻‍♂️","🚵🏼‍♂️","🚵🏽‍♂️","🚵🏾‍♂️","🚵🏿‍♂️"]},{"e":"🚵‍♀️","opts":["🚵‍♀️","🚵🏻‍♀️","🚵🏼‍♀️","🚵🏽‍♀️","🚵🏾‍♀️","🚵🏿‍♀️"]},{"e":"🤸","opts":["🤸","🤸🏻","🤸🏼","🤸🏽","🤸🏾","🤸🏿"]},{"e":"🤸‍♂️","opts":["🤸‍♂️","🤸🏻‍♂️","🤸🏼‍♂️","🤸🏽‍♂️","🤸🏾‍♂️","🤸🏿‍♂️"]},{"e":"🤸‍♀️","opts":["🤸‍♀️","🤸🏻‍♀️","🤸🏼‍♀️","🤸🏽‍♀️","🤸🏾‍♀️","🤸🏿‍♀️"]},{"e":"🤼","opts":["🤼"]},{"e":"🤼‍♂️","opts":["🤼‍♂️"]},{"e":"🤼‍♀️","opts":["🤼‍♀️"]},{"e":"🤽","opts":["🤽","🤽🏻","🤽🏼","🤽🏽","🤽🏾","🤽🏿"]},{"e":"🤽‍♂️","opts":["🤽‍♂️","🤽🏻‍♂️","🤽🏼‍♂️","🤽🏽‍♂️","🤽🏾‍♂️","🤽🏿‍♂️"]},{"e":"🤽‍♀️","opts":["🤽‍♀️","🤽🏻‍♀️","🤽🏼‍♀️","🤽🏽‍♀️","🤽🏾‍♀️","🤽🏿‍♀️"]},{"e":"🤾","opts":["🤾","🤾🏻","🤾🏼","🤾🏽","🤾🏾","🤾🏿"]},{"e":"🤾‍♂️","opts":["🤾‍♂️","🤾🏻‍♂️","🤾🏼‍♂️","🤾🏽‍♂️","🤾🏾‍♂️","🤾🏿‍♂️"]},{"e":"🤾‍♀️","opts":["🤾‍♀️","🤾🏻‍♀️","🤾🏼‍♀️","🤾🏽‍♀️","🤾🏾‍♀️","🤾🏿‍♀️"]},{"e":"🤹","opts":["🤹","🤹🏻","🤹🏼","🤹🏽","🤹🏾","🤹🏿"]},{"e":"🤹‍♂️","opts":["🤹‍♂️","🤹🏻‍♂️","🤹🏼‍♂️","🤹🏽‍♂️","🤹🏾‍♂️","🤹🏿‍♂️"]},{"e":"🤹‍♀️","opts":["🤹‍♀️","🤹🏻‍♀️","🤹🏼‍♀️","🤹🏽‍♀️","🤹🏾‍♀️","🤹🏿‍♀️"]},{"e":"🧘","opts":["🧘","🧘🏻","🧘🏼","🧘🏽","🧘🏾","🧘🏿"]},{"e":"🧘‍♂️","opts":["🧘‍♂️","🧘🏻‍♂️","🧘🏼‍♂️","🧘🏽‍♂️","🧘🏾‍♂️","🧘🏿‍♂️"]},{"e":"🧘‍♀️","opts":["🧘‍♀️","🧘🏻‍♀️","🧘🏼‍♀️","🧘🏽‍♀️","🧘🏾‍♀️","🧘🏿‍♀️"]},{"e":"🛀","opts":["🛀","🛀🏻","🛀🏼","🛀🏽","🛀🏾","🛀🏿"]},{"e":"🛌","opts":["🛌","🛌🏻","🛌🏼","🛌🏽","🛌🏾","🛌🏿"]},{"e":"🧑‍🤝‍🧑","opts":["🧑‍🤝‍🧑","🧑🏻‍🤝‍🧑🏻","🧑🏻‍🤝‍🧑🏼","🧑🏻‍🤝‍🧑🏽","🧑🏻‍🤝‍🧑🏾","🧑🏻‍🤝‍🧑🏿","🧑🏼‍🤝‍🧑🏻","🧑🏼‍🤝‍🧑🏼","🧑🏼‍🤝‍🧑🏽","🧑🏼‍🤝‍🧑🏾","🧑🏼‍🤝‍🧑🏿","🧑🏽‍🤝‍🧑🏻","🧑🏽‍🤝‍🧑🏼","🧑🏽‍🤝‍🧑🏽","🧑🏽‍🤝‍🧑🏾","🧑🏽‍🤝‍🧑🏿","🧑🏾‍🤝‍🧑🏻","🧑🏾‍🤝‍🧑🏼","🧑🏾‍🤝‍🧑🏽","🧑🏾‍🤝‍🧑🏾","🧑🏾‍🤝‍🧑🏿","🧑🏿‍🤝‍🧑🏻","🧑🏿‍🤝‍🧑🏼","🧑🏿‍🤝‍🧑🏽","🧑🏿‍🤝‍🧑🏾","🧑🏿‍🤝‍🧑🏿"]},{"e":"👭","opts":["👭","👭🏻","👩🏻‍🤝‍👩🏼","👩🏻‍🤝‍👩🏽","👩🏻‍🤝‍👩🏾","👩🏻‍🤝‍👩🏿","👩🏼‍🤝‍👩🏻","👭🏼","👩🏼‍🤝‍👩🏽","👩🏼‍🤝‍👩🏾","👩🏼‍🤝‍👩🏿","👩🏽‍🤝‍👩🏻","👩🏽‍🤝‍👩🏼","👭🏽","👩🏽‍🤝‍👩🏾","👩🏽‍🤝‍👩🏿","👩🏾‍🤝‍👩🏻","👩🏾‍🤝‍👩🏼","👩🏾‍🤝‍👩🏽","👭🏾","👩🏾‍🤝‍👩🏿","👩🏿‍🤝‍👩🏻","👩🏿‍🤝‍👩🏼","👩🏿‍🤝‍👩🏽","👩🏿‍🤝‍👩🏾","👭🏿"]},{"e":"👫","opts":["👫","👫🏻","👩🏻‍🤝‍👨🏼","👩🏻‍🤝‍👨🏽","👩🏻‍🤝‍👨🏾","👩🏻‍🤝‍👨🏿","👩🏼‍🤝‍👨🏻","👫🏼","👩🏼‍🤝‍👨🏽","👩🏼‍🤝‍👨🏾","👩🏼‍🤝‍👨🏿","👩🏽‍🤝‍👨🏻","👩🏽‍🤝‍👨🏼","👫🏽","👩🏽‍🤝‍👨🏾","👩🏽‍🤝‍👨🏿","👩🏾‍🤝‍👨🏻","👩🏾‍🤝‍👨🏼","👩🏾‍🤝‍👨🏽","👫🏾","👩🏾‍🤝‍👨🏿","👩🏿‍🤝‍👨🏻","👩🏿‍🤝‍👨🏼","👩🏿‍🤝‍👨🏽","👩🏿‍🤝‍👨🏾","👫🏿"]},{"e":"👬","opts":["👬","👬🏻","👨🏻‍🤝‍👨🏼","👨🏻‍🤝‍👨🏽","👨🏻‍🤝‍👨🏾","👨🏻‍🤝‍👨🏿","👨🏼‍🤝‍👨🏻","👬🏼","👨🏼‍🤝‍👨🏽","👨🏼‍🤝‍👨🏾","👨🏼‍🤝‍👨🏿","👨🏽‍🤝‍👨🏻","👨🏽‍🤝‍👨🏼","👬🏽","👨🏽‍🤝‍👨🏾","👨🏽‍🤝‍👨🏿","👨🏾‍🤝‍👨🏻","👨🏾‍🤝‍👨🏼","👨🏾‍🤝‍👨🏽","👬🏾","👨🏾‍🤝‍👨🏿","👨🏿‍🤝‍👨🏻","👨🏿‍🤝‍👨🏼","👨🏿‍🤝‍👨🏽","👨🏿‍🤝‍👨🏾","👬🏿"]},{"e":"💏","opts":["💏","💏🏻","💏🏼","💏🏽","💏🏾","💏🏿","🧑🏻‍❤️‍💋‍🧑🏼","🧑🏻‍❤️‍💋‍🧑🏽","🧑🏻‍❤️‍💋‍🧑🏾","🧑🏻‍❤️‍💋‍🧑🏿","🧑🏼‍❤️‍💋‍🧑🏻","🧑🏼‍❤️‍💋‍🧑🏽","🧑🏼‍❤️‍💋‍🧑🏾","🧑🏼‍❤️‍💋‍🧑🏿","🧑🏽‍❤️‍💋‍🧑🏻","🧑🏽‍❤️‍💋‍🧑🏼","🧑🏽‍❤️‍💋‍🧑🏾","🧑🏽‍❤️‍💋‍🧑🏿","🧑🏾‍❤️‍💋‍🧑🏻","🧑🏾‍❤️‍💋‍🧑🏼","🧑🏾‍❤️‍💋‍🧑🏽","🧑🏾‍❤️‍💋‍🧑🏿","🧑🏿‍❤️‍💋‍🧑🏻","🧑🏿‍❤️‍💋‍🧑🏼","🧑🏿‍❤️‍💋‍🧑🏽","🧑🏿‍❤️‍💋‍🧑🏾"]},{"e":"👩‍❤️‍💋‍👨","opts":["👩‍❤️‍💋‍👨","👩🏻‍❤️‍💋‍👨🏻","👩🏻‍❤️‍💋‍👨🏼","👩🏻‍❤️‍💋‍👨🏽","👩🏻‍❤️‍💋‍👨🏾","👩🏻‍❤️‍💋‍👨🏿","👩🏼‍❤️‍💋‍👨🏻","👩🏼‍❤️‍💋‍👨🏼","👩🏼‍❤️‍💋‍👨🏽","👩🏼‍❤️‍💋‍👨🏾","👩🏼‍❤️‍💋‍👨🏿","👩🏽‍❤️‍💋‍👨🏻","👩🏽‍❤️‍💋‍👨🏼","👩🏽‍❤️‍💋‍👨🏽","👩🏽‍❤️‍💋‍👨🏾","👩🏽‍❤️‍💋‍👨🏿","👩🏾‍❤️‍💋‍👨🏻","👩🏾‍❤️‍💋‍👨🏼","👩🏾‍❤️‍💋‍👨🏽","👩🏾‍❤️‍💋‍👨🏾","👩🏾‍❤️‍💋‍👨🏿","👩🏿‍❤️‍💋‍👨🏻","👩🏿‍❤️‍💋‍👨🏼","👩🏿‍❤️‍💋‍👨🏽","👩🏿‍❤️‍💋‍👨🏾","👩🏿‍❤️‍💋‍👨🏿"]},{"e":"👨‍❤️‍💋‍👨","opts":["👨‍❤️‍💋‍👨","👨🏻‍❤️‍💋‍👨🏻","👨🏻‍❤️‍💋‍👨🏼","👨🏻‍❤️‍💋‍👨🏽","👨🏻‍❤️‍💋‍👨🏾","👨🏻‍❤️‍💋‍👨🏿","👨🏼‍❤️‍💋‍👨🏻","👨🏼‍❤️‍💋‍👨🏼","👨🏼‍❤️‍💋‍👨🏽","👨🏼‍❤️‍💋‍👨🏾","👨🏼‍❤️‍💋‍👨🏿","👨🏽‍❤️‍💋‍👨🏻","👨🏽‍❤️‍💋‍👨🏼","👨🏽‍❤️‍💋‍👨🏽","👨🏽‍❤️‍💋‍👨🏾","👨🏽‍❤️‍💋‍👨🏿","👨🏾‍❤️‍💋‍👨🏻","👨🏾‍❤️‍💋‍👨🏼","👨🏾‍❤️‍💋‍👨🏽","👨🏾‍❤️‍💋‍👨🏾","👨🏾‍❤️‍💋‍👨🏿","👨🏿‍❤️‍💋‍👨🏻","👨🏿‍❤️‍💋‍👨🏼","👨🏿‍❤️‍💋‍👨🏽","👨🏿‍❤️‍💋‍👨🏾","👨🏿‍❤️‍💋‍👨🏿"]},{"e":"👩‍❤️‍💋‍👩","opts":["👩‍❤️‍💋‍👩","👩🏻‍❤️‍💋‍👩🏻","👩🏻‍❤️‍💋‍👩🏼","👩🏻‍❤️‍💋‍👩🏽","👩🏻‍❤️‍💋‍👩🏾","👩🏻‍❤️‍💋‍👩🏿","👩🏼‍❤️‍💋‍👩🏻","👩🏼‍❤️‍💋‍👩🏼","👩🏼‍❤️‍💋‍👩🏽","👩🏼‍❤️‍💋‍👩🏾","👩🏼‍❤️‍💋‍👩🏿","👩🏽‍❤️‍💋‍👩🏻","👩🏽‍❤️‍💋‍👩🏼","👩🏽‍❤️‍💋‍👩🏽","👩🏽‍❤️‍💋‍👩🏾","👩🏽‍❤️‍💋‍👩🏿","👩🏾‍❤️‍💋‍👩🏻","👩🏾‍❤️‍💋‍👩🏼","👩🏾‍❤️‍💋‍👩🏽","👩🏾‍❤️‍💋‍👩🏾","👩🏾‍❤️‍💋‍👩🏿","👩🏿‍❤️‍💋‍👩🏻","👩🏿‍❤️‍💋‍👩🏼","👩🏿‍❤️‍💋‍👩🏽","👩🏿‍❤️‍💋‍👩🏾","👩🏿‍❤️‍💋‍👩🏿"]},{"e":"💑","opts":["💑","💑🏻","💑🏼","💑🏽","💑🏾","💑🏿","🧑🏻‍❤️‍🧑🏼","🧑🏻‍❤️‍🧑🏽","🧑🏻‍❤️‍🧑🏾","🧑🏻‍❤️‍🧑🏿","🧑🏼‍❤️‍🧑🏻","🧑🏼‍❤️‍🧑🏽","🧑🏼‍❤️‍🧑🏾","🧑🏼‍❤️‍🧑🏿","🧑🏽‍❤️‍🧑🏻","🧑🏽‍❤️‍🧑🏼","🧑🏽‍❤️‍🧑🏾","🧑🏽‍❤️‍🧑🏿","🧑🏾‍❤️‍🧑🏻","🧑🏾‍❤️‍🧑🏼","🧑🏾‍❤️‍🧑🏽","🧑🏾‍❤️‍🧑🏿","🧑🏿‍❤️‍🧑🏻","🧑🏿‍❤️‍🧑🏼","🧑🏿‍❤️‍🧑🏽","🧑🏿‍❤️‍🧑🏾"]},{"e":"👩‍❤️‍👨","opts":["👩‍❤️‍👨","👩🏻‍❤️‍👨🏻","👩🏻‍❤️‍👨🏼","👩🏻‍❤️‍👨🏽","👩🏻‍❤️‍👨🏾","👩🏻‍❤️‍👨🏿","👩🏼‍❤️‍👨🏻","👩🏼‍❤️‍👨🏼","👩🏼‍❤️‍👨🏽","👩🏼‍❤️‍👨🏾","👩🏼‍❤️‍👨🏿","👩🏽‍❤️‍👨🏻","👩🏽‍❤️‍👨🏼","👩🏽‍❤️‍👨🏽","👩🏽‍❤️‍👨🏾","👩🏽‍❤️‍👨🏿","👩🏾‍❤️‍👨🏻","👩🏾‍❤️‍👨🏼","👩🏾‍❤️‍👨🏽","👩🏾‍❤️‍👨🏾","👩🏾‍❤️‍👨🏿","👩🏿‍❤️‍👨🏻","👩🏿‍❤️‍👨🏼","👩🏿‍❤️‍👨🏽","👩🏿‍❤️‍👨🏾","👩🏿‍❤️‍👨🏿"]},{"e":"👨‍❤️‍👨","opts":["👨‍❤️‍👨","👨🏻‍❤️‍👨🏻","👨🏻‍❤️‍👨🏼","👨🏻‍❤️‍👨🏽","👨🏻‍❤️‍👨🏾","👨🏻‍❤️‍👨🏿","👨🏼‍❤️‍👨🏻","👨🏼‍❤️‍👨🏼","👨🏼‍❤️‍👨🏽","👨🏼‍❤️‍👨🏾","👨🏼‍❤️‍👨🏿","👨🏽‍❤️‍👨🏻","👨🏽‍❤️‍👨🏼","👨🏽‍❤️‍👨🏽","👨🏽‍❤️‍👨🏾","👨🏽‍❤️‍👨🏿","👨🏾‍❤️‍👨🏻","👨🏾‍❤️‍👨🏼","👨🏾‍❤️‍👨🏽","👨🏾‍❤️‍👨🏾","👨🏾‍❤️‍👨🏿","👨🏿‍❤️‍👨🏻","👨🏿‍❤️‍👨🏼","👨🏿‍❤️‍👨🏽","👨🏿‍❤️‍👨🏾","👨🏿‍❤️‍👨🏿"]},{"e":"👩‍❤️‍👩","opts":["👩‍❤️‍👩","👩🏻‍❤️‍👩🏻","👩🏻‍❤️‍👩🏼","👩🏻‍❤️‍👩🏽","👩🏻‍❤️‍👩🏾","👩🏻‍❤️‍👩🏿","👩🏼‍❤️‍👩🏻","👩🏼‍❤️‍👩🏼","👩🏼‍❤️‍👩🏽","👩🏼‍❤️‍👩🏾","👩🏼‍❤️‍👩🏿","👩🏽‍❤️‍👩🏻","👩🏽‍❤️‍👩🏼","👩🏽‍❤️‍👩🏽","👩🏽‍❤️‍👩🏾","👩🏽‍❤️‍👩🏿","👩🏾‍❤️‍👩🏻","👩🏾‍❤️‍👩🏼","👩🏾‍❤️‍👩🏽","👩🏾‍❤️‍👩🏾","👩🏾‍❤️‍👩🏿","👩🏿‍❤️‍👩🏻","👩🏿‍❤️‍👩🏼","👩🏿‍❤️‍👩🏽","👩🏿‍❤️‍👩🏾","👩🏿‍❤️‍👩🏿"]},{"e":"👪️","opts":["👪️"]},{"e":"👨‍👩‍👦","opts":["👨‍👩‍👦"]},{"e":"👨‍👩‍👧","opts":["👨‍👩‍👧"]},{"e":"👨‍👩‍👧‍👦","opts":["👨‍👩‍👧‍👦"]},{"e":"👨‍👩‍👦‍👦","opts":["👨‍👩‍👦‍👦"]},{"e":"👨‍👩‍👧‍👧","opts":["👨‍👩‍👧‍👧"]},{"e":"👨‍👨‍👦","opts":["👨‍👨‍👦"]},{"e":"👨‍👨‍👧","opts":["👨‍👨‍👧"]},{"e":"👨‍👨‍👧‍👦","opts":["👨‍👨‍👧‍👦"]},{"e":"👨‍👨‍👦‍👦","opts":["👨‍👨‍👦‍👦"]},{"e":"👨‍👨‍👧‍👧","opts":["👨‍👨‍👧‍👧"]},{"e":"👩‍👩‍👦","opts":["👩‍👩‍👦"]},{"e":"👩‍👩‍👧","opts":["👩‍👩‍👧"]},{"e":"👩‍👩‍👧‍👦","opts":["👩‍👩‍👧‍👦"]},{"e":"👩‍👩‍👦‍👦","opts":["👩‍👩‍👦‍👦"]},{"e":"👩‍👩‍👧‍👧","opts":["👩‍👩‍👧‍👧"]},{"e":"👨‍👦","opts":["👨‍👦"]},{"e":"👨‍👦‍👦","opts":["👨‍👦‍👦"]},{"e":"👨‍👧","opts":["👨‍👧"]},{"e":"👨‍👧‍👦","opts":["👨‍👧‍👦"]},{"e":"👨‍👧‍👧","opts":["👨‍👧‍👧"]},{"e":"👩‍👦","opts":["👩‍👦"]},{"e":"👩‍👦‍👦","opts":["👩‍👦‍👦"]},{"e":"👩‍👧","opts":["👩‍👧"]},{"e":"👩‍👧‍👦","opts":["👩‍👧‍👦"]},{"e":"👩‍👧‍👧","opts":["👩‍👧‍👧"]},{"e":"🗣️","opts":["🗣️"]},{"e":"👤","opts":["👤"]},{"e":"👥","opts":["👥"]},{"e":"🫂","opts":["🫂"]},{"e":"👣","opts":["👣"]}],"animals-nature":[{"e":"🐵","opts":["🐵"]},{"e":"🐒","opts":["🐒"]},{"e":"🦍","opts":["🦍"]},{"e":"🦧","opts":["🦧"]},{"e":"🐶","opts":["🐶"]},{"e":"🐕️","opts":["🐕️"]},{"e":"🦮","opts":["🦮"]},{"e":"🐕‍🦺","opts":["🐕‍🦺"]},{"e":"🐩","opts":["🐩"]},{"e":"🐺","opts":["🐺"]},{"e":"🦊","opts":["🦊"]},{"e":"🦝","opts":["🦝"]},{"e":"🐱","opts":["🐱"]},{"e":"🐈️","opts":["🐈️"]},{"e":"🐈‍⬛","opts":["🐈‍⬛"]},{"e":"🦁","opts":["🦁"]},{"e":"🐯","opts":["🐯"]},{"e":"🐅","opts":["🐅"]},{"e":"🐆","opts":["🐆"]},{"e":"🐴","opts":["🐴"]},{"e":"🐎","opts":["🐎"]},{"e":"🦄","opts":["🦄"]},{"e":"🦓","opts":["🦓"]},{"e":"🦌","opts":["🦌"]},{"e":"🦬","opts":["🦬"]},{"e":"🐮","opts":["🐮"]},{"e":"🐂","opts":["🐂"]},{"e":"🐃","opts":["🐃"]},{"e":"🐄","opts":["🐄"]},{"e":"🐷","opts":["🐷"]},{"e":"🐖","opts":["🐖"]},{"e":"🐗","opts":["🐗"]},{"e":"🐽","opts":["🐽"]},{"e":"🐏","opts":["🐏"]},{"e":"🐑","opts":["🐑"]},{"e":"🐐","opts":["🐐"]},{"e":"🐪","opts":["🐪"]},{"e":"🐫","opts":["🐫"]},{"e":"🦙","opts":["🦙"]},{"e":"🦒","opts":["🦒"]},{"e":"🐘","opts":["🐘"]},{"e":"🦣","opts":["🦣"]},{"e":"🦏","opts":["🦏"]},{"e":"🦛","opts":["🦛"]},{"e":"🐭","opts":["🐭"]},{"e":"🐁","opts":["🐁"]},{"e":"🐀","opts":["🐀"]},{"e":"🐹","opts":["🐹"]},{"e":"🐰","opts":["🐰"]},{"e":"🐇","opts":["🐇"]},{"e":"🐿️","opts":["🐿️"]},{"e":"🦫","opts":["🦫"]},{"e":"🦔","opts":["🦔"]},{"e":"🦇","opts":["🦇"]},{"e":"🐻","opts":["🐻"]},{"e":"🐻‍❄️","opts":["🐻‍❄️"]},{"e":"🐨","opts":["🐨"]},{"e":"🐼","opts":["🐼"]},{"e":"🦥","opts":["🦥"]},{"e":"🦦","opts":["🦦"]},{"e":"🦨","opts":["🦨"]},{"e":"🦘","opts":["🦘"]},{"e":"🦡","opts":["🦡"]},{"e":"🐾","opts":["🐾"]},{"e":"🦃","opts":["🦃"]},{"e":"🐔","opts":["🐔"]},{"e":"🐓","opts":["🐓"]},{"e":"🐣","opts":["🐣"]},{"e":"🐤","opts":["🐤"]},{"e":"🐥","opts":["🐥"]},{"e":"🐦️","opts":["🐦️"]},{"e":"🐧","opts":["🐧"]},{"e":"🕊️","opts":["🕊️"]},{"e":"🦅","opts":["🦅"]},{"e":"🦆","opts":["🦆"]},{"e":"🦢","opts":["🦢"]},{"e":"🦉","opts":["🦉"]},{"e":"🦤","opts":["🦤"]},{"e":"🪶","opts":["🪶"]},{"e":"🦩","opts":["🦩"]},{"e":"🦚","opts":["🦚"]},{"e":"🦜","opts":["🦜"]},{"e":"🐸","opts":["🐸"]},{"e":"🐊","opts":["🐊"]},{"e":"🐢","opts":["🐢"]},{"e":"🦎","opts":["🦎"]},{"e":"🐍","opts":["🐍"]},{"e":"🐲","opts":["🐲"]},{"e":"🐉","opts":["🐉"]},{"e":"🦕","opts":["🦕"]},{"e":"🦖","opts":["🦖"]},{"e":"🐳","opts":["🐳"]},{"e":"🐋","opts":["🐋"]},{"e":"🐬","opts":["🐬"]},{"e":"🦭","opts":["🦭"]},{"e":"🐟️","opts":["🐟️"]},{"e":"🐠","opts":["🐠"]},{"e":"🐡","opts":["🐡"]},{"e":"🦈","opts":["🦈"]},{"e":"🐙","opts":["🐙"]},{"e":"🐚","opts":["🐚"]},{"e":"🪸","opts":["🪸"]},{"e":"🐌","opts":["🐌"]},{"e":"🦋","opts":["🦋"]},{"e":"🐛","opts":["🐛"]},{"e":"🐜","opts":["🐜"]},{"e":"🐝","opts":["🐝"]},{"e":"🪲","opts":["🪲"]},{"e":"🐞","opts":["🐞"]},{"e":"🦗","opts":["🦗"]},{"e":"🪳","opts":["🪳"]},{"e":"🕷️","opts":["🕷️"]},{"e":"🕸️","opts":["🕸️"]},{"e":"🦂","opts":["🦂"]},{"e":"🦟","opts":["🦟"]},{"e":"🪰","opts":["🪰"]},{"e":"🪱","opts":["🪱"]},{"e":"🦠","opts":["🦠"]},{"e":"💐","opts":["💐"]},{"e":"🌸","opts":["🌸"]},{"e":"💮","opts":["💮"]},{"e":"🪷","opts":["🪷"]},{"e":"🏵️","opts":["🏵️"]},{"e":"🌹","opts":["🌹"]},{"e":"🥀","opts":["🥀"]},{"e":"🌺","opts":["🌺"]},{"e":"🌻","opts":["🌻"]},{"e":"🌼","opts":["🌼"]},{"e":"🌷","opts":["🌷"]},{"e":"🌱","opts":["🌱"]},{"e":"🪴","opts":["🪴"]},{"e":"🌲","opts":["🌲"]},{"e":"🌳","opts":["🌳"]},{"e":"🌴","opts":["🌴"]},{"e":"🌵","opts":["🌵"]},{"e":"🌾","opts":["🌾"]},{"e":"🌿","opts":["🌿"]},{"e":"☘️","opts":["☘️"]},{"e":"🍀","opts":["🍀"]},{"e":"🍁","opts":["🍁"]},{"e":"🍂","opts":["🍂"]},{"e":"🍃","opts":["🍃"]},{"e":"🪹","opts":["🪹"]},{"e":"🪺","opts":["🪺"]}],"food-drink":[{"e":"🍇","opts":["🍇"]},{"e":"🍈","opts":["🍈"]},{"e":"🍉","opts":["🍉"]},{"e":"🍊","opts":["🍊"]},{"e":"🍋","opts":["🍋"]},{"e":"🍌","opts":["🍌"]},{"e":"🍍","opts":["🍍"]},{"e":"🥭","opts":["🥭"]},{"e":"🍎","opts":["🍎"]},{"e":"🍏","opts":["🍏"]},{"e":"🍐","opts":["🍐"]},{"e":"🍑","opts":["🍑"]},{"e":"🍒","opts":["🍒"]},{"e":"🍓","opts":["🍓"]},{"e":"🫐","opts":["🫐"]},{"e":"🥝","opts":["🥝"]},{"e":"🍅","opts":["🍅"]},{"e":"🫒","opts":["🫒"]},{"e":"🥥","opts":["🥥"]},{"e":"🥑","opts":["🥑"]},{"e":"🍆","opts":["🍆"]},{"e":"🥔","opts":["🥔"]},{"e":"🥕","opts":["🥕"]},{"e":"🌽","opts":["🌽"]},{"e":"🌶️","opts":["🌶️"]},{"e":"🫑","opts":["🫑"]},{"e":"🥒","opts":["🥒"]},{"e":"🥬","opts":["🥬"]},{"e":"🥦","opts":["🥦"]},{"e":"🧄","opts":["🧄"]},{"e":"🧅","opts":["🧅"]},{"e":"🍄","opts":["🍄"]},{"e":"🥜","opts":["🥜"]},{"e":"🫘","opts":["🫘"]},{"e":"🌰","opts":["🌰"]},{"e":"🍞","opts":["🍞"]},{"e":"🥐","opts":["🥐"]},{"e":"🥖","opts":["🥖"]},{"e":"🫓","opts":["🫓"]},{"e":"🥨","opts":["🥨"]},{"e":"🥯","opts":["🥯"]},{"e":"🥞","opts":["🥞"]},{"e":"🧇","opts":["🧇"]},{"e":"🧀","opts":["🧀"]},{"e":"🍖","opts":["🍖"]},{"e":"🍗","opts":["🍗"]},{"e":"🥩","opts":["🥩"]},{"e":"🥓","opts":["🥓"]},{"e":"🍔","opts":["🍔"]},{"e":"🍟","opts":["🍟"]},{"e":"🍕","opts":["🍕"]},{"e":"🌭","opts":["🌭"]},{"e":"🥪","opts":["🥪"]},{"e":"🌮","opts":["🌮"]},{"e":"🌯","opts":["🌯"]},{"e":"🫔","opts":["🫔"]},{"e":"🥙","opts":["🥙"]},{"e":"🧆","opts":["🧆"]},{"e":"🥚","opts":["🥚"]},{"e":"🍳","opts":["🍳"]},{"e":"🥘","opts":["🥘"]},{"e":"🍲","opts":["🍲"]},{"e":"🫕","opts":["🫕"]},{"e":"🥣","opts":["🥣"]},{"e":"🥗","opts":["🥗"]},{"e":"🍿","opts":["🍿"]},{"e":"🧈","opts":["🧈"]},{"e":"🧂","opts":["🧂"]},{"e":"🥫","opts":["🥫"]},{"e":"🍱","opts":["🍱"]},{"e":"🍘","opts":["🍘"]},{"e":"🍙","opts":["🍙"]},{"e":"🍚","opts":["🍚"]},{"e":"🍛","opts":["🍛"]},{"e":"🍜","opts":["🍜"]},{"e":"🍝","opts":["🍝"]},{"e":"🍠","opts":["🍠"]},{"e":"🍢","opts":["🍢"]},{"e":"🍣","opts":["🍣"]},{"e":"🍤","opts":["🍤"]},{"e":"🍥","opts":["🍥"]},{"e":"🥮","opts":["🥮"]},{"e":"🍡","opts":["🍡"]},{"e":"🥟","opts":["🥟"]},{"e":"🥠","opts":["🥠"]},{"e":"🥡","opts":["🥡"]},{"e":"🦀","opts":["🦀"]},{"e":"🦞","opts":["🦞"]},{"e":"🦐","opts":["🦐"]},{"e":"🦑","opts":["🦑"]},{"e":"🦪","opts":["🦪"]},{"e":"🍦","opts":["🍦"]},{"e":"🍧","opts":["🍧"]},{"e":"🍨","opts":["🍨"]},{"e":"🍩","opts":["🍩"]},{"e":"🍪","opts":["🍪"]},{"e":"🎂","opts":["🎂"]},{"e":"🍰","opts":["🍰"]},{"e":"🧁","opts":["🧁"]},{"e":"🥧","opts":["🥧"]},{"e":"🍫","opts":["🍫"]},{"e":"🍬","opts":["🍬"]},{"e":"🍭","opts":["🍭"]},{"e":"🍮","opts":["🍮"]},{"e":"🍯","opts":["🍯"]},{"e":"🍼","opts":["🍼"]},{"e":"🥛","opts":["🥛"]},{"e":"☕️","opts":["☕️"]},{"e":"🫖","opts":["🫖"]},{"e":"🍵","opts":["🍵"]},{"e":"🍶","opts":["🍶"]},{"e":"🍾","opts":["🍾"]},{"e":"🍷","opts":["🍷"]},{"e":"🍸️","opts":["🍸️"]},{"e":"🍹","opts":["🍹"]},{"e":"🍺","opts":["🍺"]},{"e":"🍻","opts":["🍻"]},{"e":"🥂","opts":["🥂"]},{"e":"🥃","opts":["🥃"]},{"e":"🫗","opts":["🫗"]},{"e":"🥤","opts":["🥤"]},{"e":"🧋","opts":["🧋"]},{"e":"🧃","opts":["🧃"]},{"e":"🧉","opts":["🧉"]},{"e":"🧊","opts":["🧊"]},{"e":"🥢","opts":["🥢"]},{"e":"🍽️","opts":["🍽️"]},{"e":"🍴","opts":["🍴"]},{"e":"🥄","opts":["🥄"]},{"e":"🔪","opts":["🔪"]},{"e":"🫙","opts":["🫙"]},{"e":"🏺","opts":["🏺"]}],"travel-places":[{"e":"🌍️","opts":["🌍️"]},{"e":"🌎️","opts":["🌎️"]},{"e":"🌏️","opts":["🌏️"]},{"e":"🌐","opts":["🌐"]},{"e":"🗺️","opts":["🗺️"]},{"e":"🗾","opts":["🗾"]},{"e":"🧭","opts":["🧭"]},{"e":"🏔️","opts":["🏔️"]},{"e":"⛰️","opts":["⛰️"]},{"e":"🌋","opts":["🌋"]},{"e":"🗻","opts":["🗻"]},{"e":"🏕️","opts":["🏕️"]},{"e":"🏖️","opts":["🏖️"]},{"e":"🏜️","opts":["🏜️"]},{"e":"🏝️","opts":["🏝️"]},{"e":"🏞️","opts":["🏞️"]},{"e":"🏟️","opts":["🏟️"]},{"e":"🏛️","opts":["🏛️"]},{"e":"🏗️","opts":["🏗️"]},{"e":"🧱","opts":["🧱"]},{"e":"🪨","opts":["🪨"]},{"e":"🪵","opts":["🪵"]},{"e":"🛖","opts":["🛖"]},{"e":"🏘️","opts":["🏘️"]},{"e":"🏚️","opts":["🏚️"]},{"e":"🏠️","opts":["🏠️"]},{"e":"🏡","opts":["🏡"]},{"e":"🏢","opts":["🏢"]},{"e":"🏣","opts":["🏣"]},{"e":"🏤","opts":["🏤"]},{"e":"🏥","opts":["🏥"]},{"e":"🏦","opts":["🏦"]},{"e":"🏨","opts":["🏨"]},{"e":"🏩","opts":["🏩"]},{"e":"🏪","opts":["🏪"]},{"e":"🏫","opts":["🏫"]},{"e":"🏬","opts":["🏬"]},{"e":"🏭️","opts":["🏭️"]},{"e":"🏯","opts":["🏯"]},{"e":"🏰","opts":["🏰"]},{"e":"💒","opts":["💒"]},{"e":"🗼","opts":["🗼"]},{"e":"🗽","opts":["🗽"]},{"e":"⛪️","opts":["⛪️"]},{"e":"🕌","opts":["🕌"]},{"e":"🛕","opts":["🛕"]},{"e":"🕍","opts":["🕍"]},{"e":"⛩️","opts":["⛩️"]},{"e":"🕋","opts":["🕋"]},{"e":"⛲️","opts":["⛲️"]},{"e":"⛺️","opts":["⛺️"]},{"e":"🌁","opts":["🌁"]},{"e":"🌃","opts":["🌃"]},{"e":"🏙️","opts":["🏙️"]},{"e":"🌄","opts":["🌄"]},{"e":"🌅","opts":["🌅"]},{"e":"🌆","opts":["🌆"]},{"e":"🌇","opts":["🌇"]},{"e":"🌉","opts":["🌉"]},{"e":"♨️","opts":["♨️"]},{"e":"🎠","opts":["🎠"]},{"e":"🛝","opts":["🛝"]},{"e":"🎡","opts":["🎡"]},{"e":"🎢","opts":["🎢"]},{"e":"💈","opts":["💈"]},{"e":"🎪","opts":["🎪"]},{"e":"🚂","opts":["🚂"]},{"e":"🚃","opts":["🚃"]},{"e":"🚄","opts":["🚄"]},{"e":"🚅","opts":["🚅"]},{"e":"🚆","opts":["🚆"]},{"e":"🚇️","opts":["🚇️"]},{"e":"🚈","opts":["🚈"]},{"e":"🚉","opts":["🚉"]},{"e":"🚊","opts":["🚊"]},{"e":"🚝","opts":["🚝"]},{"e":"🚞","opts":["🚞"]},{"e":"🚋","opts":["🚋"]},{"e":"🚌","opts":["🚌"]},{"e":"🚍️","opts":["🚍️"]},{"e":"🚎","opts":["🚎"]},{"e":"🚐","opts":["🚐"]},{"e":"🚑️","opts":["🚑️"]},{"e":"🚒","opts":["🚒"]},{"e":"🚓","opts":["🚓"]},{"e":"🚔️","opts":["🚔️"]},{"e":"🚕","opts":["🚕"]},{"e":"🚖","opts":["🚖"]},{"e":"🚗","opts":["🚗"]},{"e":"🚘️","opts":["🚘️"]},{"e":"🚙","opts":["🚙"]},{"e":"🛻","opts":["🛻"]},{"e":"🚚","opts":["🚚"]},{"e":"🚛","opts":["🚛"]},{"e":"🚜","opts":["🚜"]},{"e":"🏎️","opts":["🏎️"]},{"e":"🏍️","opts":["🏍️"]},{"e":"🛵","opts":["🛵"]},{"e":"🦽","opts":["🦽"]},{"e":"🦼","opts":["🦼"]},{"e":"🛺","opts":["🛺"]},{"e":"🚲️","opts":["🚲️"]},{"e":"🛴","opts":["🛴"]},{"e":"🛹","opts":["🛹"]},{"e":"🛼","opts":["🛼"]},{"e":"🚏","opts":["🚏"]},{"e":"🛣️","opts":["🛣️"]},{"e":"🛤️","opts":["🛤️"]},{"e":"🛢️","opts":["🛢️"]},{"e":"⛽️","opts":["⛽️"]},{"e":"🛞","opts":["🛞"]},{"e":"🚨","opts":["🚨"]},{"e":"🚥","opts":["🚥"]},{"e":"🚦","opts":["🚦"]},{"e":"🛑","opts":["🛑"]},{"e":"🚧","opts":["🚧"]},{"e":"⚓️","opts":["⚓️"]},{"e":"🛟","opts":["🛟"]},{"e":"⛵️","opts":["⛵️"]},{"e":"🛶","opts":["🛶"]},{"e":"🚤","opts":["🚤"]},{"e":"🛳️","opts":["🛳️"]},{"e":"⛴️","opts":["⛴️"]},{"e":"🛥️","opts":["🛥️"]},{"e":"🚢","opts":["🚢"]},{"e":"✈️","opts":["✈️"]},{"e":"🛩️","opts":["🛩️"]},{"e":"🛫","opts":["🛫"]},{"e":"🛬","opts":["🛬"]},{"e":"🪂","opts":["🪂"]},{"e":"💺","opts":["💺"]},{"e":"🚁","opts":["🚁"]},{"e":"🚟","opts":["🚟"]},{"e":"🚠","opts":["🚠"]},{"e":"🚡","opts":["🚡"]},{"e":"🛰️","opts":["🛰️"]},{"e":"🚀","opts":["🚀"]},{"e":"🛸","opts":["🛸"]},{"e":"🛎️","opts":["🛎️"]},{"e":"🧳","opts":["🧳"]},{"e":"⌛️","opts":["⌛️"]},{"e":"⏳️","opts":["⏳️"]},{"e":"⌚️","opts":["⌚️"]},{"e":"⏰","opts":["⏰"]},{"e":"⏱️","opts":["⏱️"]},{"e":"⏲️","opts":["⏲️"]},{"e":"🕰️","opts":["🕰️"]},{"e":"🕛️","opts":["🕛️"]},{"e":"🕧️","opts":["🕧️"]},{"e":"🕐️","opts":["🕐️"]},{"e":"🕜️","opts":["🕜️"]},{"e":"🕑️","opts":["🕑️"]},{"e":"🕝️","opts":["🕝️"]},{"e":"🕒️","opts":["🕒️"]},{"e":"🕞️","opts":["🕞️"]},{"e":"🕓️","opts":["🕓️"]},{"e":"🕟️","opts":["🕟️"]},{"e":"🕔️","opts":["🕔️"]},{"e":"🕠️","opts":["🕠️"]},{"e":"🕕️","opts":["🕕️"]},{"e":"🕡️","opts":["🕡️"]},{"e":"🕖️","opts":["🕖️"]},{"e":"🕢️","opts":["🕢️"]},{"e":"🕗️","opts":["🕗️"]},{"e":"🕣️","opts":["🕣️"]},{"e":"🕘️","opts":["🕘️"]},{"e":"🕤️","opts":["🕤️"]},{"e":"🕙️","opts":["🕙️"]},{"e":"🕥️","opts":["🕥️"]},{"e":"🕚️","opts":["🕚️"]},{"e":"🕦️","opts":["🕦️"]},{"e":"🌑","opts":["🌑"]},{"e":"🌒","opts":["🌒"]},{"e":"🌓","opts":["🌓"]},{"e":"🌔","opts":["🌔"]},{"e":"🌕️","opts":["🌕️"]},{"e":"🌖","opts":["🌖"]},{"e":"🌗","opts":["🌗"]},{"e":"🌘","opts":["🌘"]},{"e":"🌙","opts":["🌙"]},{"e":"🌚","opts":["🌚"]},{"e":"🌛","opts":["🌛"]},{"e":"🌜️","opts":["🌜️"]},{"e":"🌡️","opts":["🌡️"]},{"e":"☀️","opts":["☀️"]},{"e":"🌝","opts":["🌝"]},{"e":"🌞","opts":["🌞"]},{"e":"🪐","opts":["🪐"]},{"e":"⭐️","opts":["⭐️"]},{"e":"🌟","opts":["🌟"]},{"e":"🌠","opts":["🌠"]},{"e":"🌌","opts":["🌌"]},{"e":"☁️","opts":["☁️"]},{"e":"⛅️","opts":["⛅️"]},{"e":"⛈️","opts":["⛈️"]},{"e":"🌤️","opts":["🌤️"]},{"e":"🌥️","opts":["🌥️"]},{"e":"🌦️","opts":["🌦️"]},{"e":"🌧️","opts":["🌧️"]},{"e":"🌨️","opts":["🌨️"]},{"e":"🌩️","opts":["🌩️"]},{"e":"🌪️","opts":["🌪️"]},{"e":"🌫️","opts":["🌫️"]},{"e":"🌬️","opts":["🌬️"]},{"e":"🌀","opts":["🌀"]},{"e":"🌈","opts":["🌈"]},{"e":"🌂","opts":["🌂"]},{"e":"☂️","opts":["☂️"]},{"e":"☔️","opts":["☔️"]},{"e":"⛱️","opts":["⛱️"]},{"e":"⚡️","opts":["⚡️"]},{"e":"❄️","opts":["❄️"]},{"e":"☃️","opts":["☃️"]},{"e":"⛄️","opts":["⛄️"]},{"e":"☄️","opts":["☄️"]},{"e":"🔥","opts":["🔥"]},{"e":"💧","opts":["💧"]},{"e":"🌊","opts":["🌊"]}],"activities":[{"e":"🎃","opts":["🎃"]},{"e":"🎄","opts":["🎄"]},{"e":"🎆","opts":["🎆"]},{"e":"🎇","opts":["🎇"]},{"e":"🧨","opts":["🧨"]},{"e":"✨","opts":["✨"]},{"e":"🎈","opts":["🎈"]},{"e":"🎉","opts":["🎉"]},{"e":"🎊","opts":["🎊"]},{"e":"🎋","opts":["🎋"]},{"e":"🎍","opts":["🎍"]},{"e":"🎎","opts":["🎎"]},{"e":"🎏","opts":["🎏"]},{"e":"🎐","opts":["🎐"]},{"e":"🎑","opts":["🎑"]},{"e":"🧧","opts":["🧧"]},{"e":"🎀","opts":["🎀"]},{"e":"🎁","opts":["🎁"]},{"e":"🎗️","opts":["🎗️"]},{"e":"🎟️","opts":["🎟️"]},{"e":"🎫","opts":["🎫"]},{"e":"🎖️","opts":["🎖️"]},{"e":"🏆️","opts":["🏆️"]},{"e":"🏅","opts":["🏅"]},{"e":"🥇","opts":["🥇"]},{"e":"🥈","opts":["🥈"]},{"e":"🥉","opts":["🥉"]},{"e":"⚽️","opts":["⚽️"]},{"e":"⚾️","opts":["⚾️"]},{"e":"🥎","opts":["🥎"]},{"e":"🏀","opts":["🏀"]},{"e":"🏐","opts":["🏐"]},{"e":"🏈","opts":["🏈"]},{"e":"🏉","opts":["🏉"]},{"e":"🎾","opts":["🎾"]},{"e":"🥏","opts":["🥏"]},{"e":"🎳","opts":["🎳"]},{"e":"🏏","opts":["🏏"]},{"e":"🏑","opts":["🏑"]},{"e":"🏒","opts":["🏒"]},{"e":"🥍","opts":["🥍"]},{"e":"🏓","opts":["🏓"]},{"e":"🏸","opts":["🏸"]},{"e":"🥊","opts":["🥊"]},{"e":"🥋","opts":["🥋"]},{"e":"🥅","opts":["🥅"]},{"e":"⛳️","opts":["⛳️"]},{"e":"⛸️","opts":["⛸️"]},{"e":"🎣","opts":["🎣"]},{"e":"🤿","opts":["🤿"]},{"e":"🎽","opts":["🎽"]},{"e":"🎿","opts":["🎿"]},{"e":"🛷","opts":["🛷"]},{"e":"🥌","opts":["🥌"]},{"e":"🎯","opts":["🎯"]},{"e":"🪀","opts":["🪀"]},{"e":"🪁","opts":["🪁"]},{"e":"🎱","opts":["🎱"]},{"e":"🔮","opts":["🔮"]},{"e":"🪄","opts":["🪄"]},{"e":"🧿","opts":["🧿"]},{"e":"🪬","opts":["🪬"]},{"e":"🎮️","opts":["🎮️"]},{"e":"🕹️","opts":["🕹️"]},{"e":"🎰","opts":["🎰"]},{"e":"🎲","opts":["🎲"]},{"e":"🧩","opts":["🧩"]},{"e":"🧸","opts":["🧸"]},{"e":"🪅","opts":["🪅"]},{"e":"🪩","opts":["🪩"]},{"e":"🪆","opts":["🪆"]},{"e":"♠️","opts":["♠️"]},{"e":"♥️","opts":["♥️"]},{"e":"♦️","opts":["♦️"]},{"e":"♣️","opts":["♣️"]},{"e":"♟️","opts":["♟️"]},{"e":"🃏","opts":["🃏"]},{"e":"🀄️","opts":["🀄️"]},{"e":"🎴","opts":["🎴"]},{"e":"🎭️","opts":["🎭️"]},{"e":"🖼️","opts":["🖼️"]},{"e":"🎨","opts":["🎨"]},{"e":"🧵","opts":["🧵"]},{"e":"🪡","opts":["🪡"]},{"e":"🧶","opts":["🧶"]},{"e":"🪢","opts":["🪢"]}],"objects":[{"e":"👓️","opts":["👓️"]},{"e":"🕶️","opts":["🕶️"]},{"e":"🥽","opts":["🥽"]},{"e":"🥼","opts":["🥼"]},{"e":"🦺","opts":["🦺"]},{"e":"👔","opts":["👔"]},{"e":"👕","opts":["👕"]},{"e":"👖","opts":["👖"]},{"e":"🧣","opts":["🧣"]},{"e":"🧤","opts":["🧤"]},{"e":"🧥","opts":["🧥"]},{"e":"🧦","opts":["🧦"]},{"e":"👗","opts":["👗"]},{"e":"👘","opts":["👘"]},{"e":"🥻","opts":["🥻"]},{"e":"🩱","opts":["🩱"]},{"e":"🩲","opts":["🩲"]},{"e":"🩳","opts":["🩳"]},{"e":"👙","opts":["👙"]},{"e":"👚","opts":["👚"]},{"e":"👛","opts":["👛"]},{"e":"👜","opts":["👜"]},{"e":"👝","opts":["👝"]},{"e":"🛍️","opts":["🛍️"]},{"e":"🎒","opts":["🎒"]},{"e":"🩴","opts":["🩴"]},{"e":"👞","opts":["👞"]},{"e":"👟","opts":["👟"]},{"e":"🥾","opts":["🥾"]},{"e":"🥿","opts":["🥿"]},{"e":"👠","opts":["👠"]},{"e":"👡","opts":["👡"]},{"e":"🩰","opts":["🩰"]},{"e":"👢","opts":["👢"]},{"e":"👑","opts":["👑"]},{"e":"👒","opts":["👒"]},{"e":"🎩","opts":["🎩"]},{"e":"🎓️","opts":["🎓️"]},{"e":"🧢","opts":["🧢"]},{"e":"🪖","opts":["🪖"]},{"e":"⛑️","opts":["⛑️"]},{"e":"📿","opts":["📿"]},{"e":"💄","opts":["💄"]},{"e":"💍","opts":["💍"]},{"e":"💎","opts":["💎"]},{"e":"🔇","opts":["🔇"]},{"e":"🔈️","opts":["🔈️"]},{"e":"🔉","opts":["🔉"]},{"e":"🔊","opts":["🔊"]},{"e":"📢","opts":["📢"]},{"e":"📣","opts":["📣"]},{"e":"📯","opts":["📯"]},{"e":"🔔","opts":["🔔"]},{"e":"🔕","opts":["🔕"]},{"e":"🎼","opts":["🎼"]},{"e":"🎵","opts":["🎵"]},{"e":"🎶","opts":["🎶"]},{"e":"🎙️","opts":["🎙️"]},{"e":"🎚️","opts":["🎚️"]},{"e":"🎛️","opts":["🎛️"]},{"e":"🎤","opts":["🎤"]},{"e":"🎧️","opts":["🎧️"]},{"e":"📻️","opts":["📻️"]},{"e":"🎷","opts":["🎷"]},{"e":"🪗","opts":["🪗"]},{"e":"🎸","opts":["🎸"]},{"e":"🎹","opts":["🎹"]},{"e":"🎺","opts":["🎺"]},{"e":"🎻","opts":["🎻"]},{"e":"🪕","opts":["🪕"]},{"e":"🥁","opts":["🥁"]},{"e":"🪘","opts":["🪘"]},{"e":"📱","opts":["📱"]},{"e":"📲","opts":["📲"]},{"e":"☎️","opts":["☎️"]},{"e":"📞","opts":["📞"]},{"e":"📟️","opts":["📟️"]},{"e":"📠","opts":["📠"]},{"e":"🔋","opts":["🔋"]},{"e":"🪫","opts":["🪫"]},{"e":"🔌","opts":["🔌"]},{"e":"💻️","opts":["💻️"]},{"e":"🖥️","opts":["🖥️"]},{"e":"🖨️","opts":["🖨️"]},{"e":"⌨️","opts":["⌨️"]},{"e":"🖱️","opts":["🖱️"]},{"e":"🖲️","opts":["🖲️"]},{"e":"💽","opts":["💽"]},{"e":"💾","opts":["💾"]},{"e":"💿️","opts":["💿️"]},{"e":"📀","opts":["📀"]},{"e":"🧮","opts":["🧮"]},{"e":"🎥","opts":["🎥"]},{"e":"🎞️","opts":["🎞️"]},{"e":"📽️","opts":["📽️"]},{"e":"🎬️","opts":["🎬️"]},{"e":"📺️","opts":["📺️"]},{"e":"📷️","opts":["📷️"]},{"e":"📸","opts":["📸"]},{"e":"📹️","opts":["📹️"]},{"e":"📼","opts":["📼"]},{"e":"🔍️","opts":["🔍️"]},{"e":"🔎","opts":["🔎"]},{"e":"🕯️","opts":["🕯️"]},{"e":"💡","opts":["💡"]},{"e":"🔦","opts":["🔦"]},{"e":"🏮","opts":["🏮"]},{"e":"🪔","opts":["🪔"]},{"e":"📔","opts":["📔"]},{"e":"📕","opts":["📕"]},{"e":"📖","opts":["📖"]},{"e":"📗","opts":["📗"]},{"e":"📘","opts":["📘"]},{"e":"📙","opts":["📙"]},{"e":"📚️","opts":["📚️"]},{"e":"📓","opts":["📓"]},{"e":"📒","opts":["📒"]},{"e":"📃","opts":["📃"]},{"e":"📜","opts":["📜"]},{"e":"📄","opts":["📄"]},{"e":"📰","opts":["📰"]},{"e":"🗞️","opts":["🗞️"]},{"e":"📑","opts":["📑"]},{"e":"🔖","opts":["🔖"]},{"e":"🏷️","opts":["🏷️"]},{"e":"💰️","opts":["💰️"]},{"e":"🪙","opts":["🪙"]},{"e":"💴","opts":["💴"]},{"e":"💵","opts":["💵"]},{"e":"💶","opts":["💶"]},{"e":"💷","opts":["💷"]},{"e":"💸","opts":["💸"]},{"e":"💳️","opts":["💳️"]},{"e":"🧾","opts":["🧾"]},{"e":"💹","opts":["💹"]},{"e":"✉️","opts":["✉️"]},{"e":"📧","opts":["📧"]},{"e":"📨","opts":["📨"]},{"e":"📩","opts":["📩"]},{"e":"📤️","opts":["📤️"]},{"e":"📥️","opts":["📥️"]},{"e":"📦️","opts":["📦️"]},{"e":"📫️","opts":["📫️"]},{"e":"📪️","opts":["📪️"]},{"e":"📬️","opts":["📬️"]},{"e":"📭️","opts":["📭️"]},{"e":"📮","opts":["📮"]},{"e":"🗳️","opts":["🗳️"]},{"e":"✏️","opts":["✏️"]},{"e":"✒️","opts":["✒️"]},{"e":"🖋️","opts":["🖋️"]},{"e":"🖊️","opts":["🖊️"]},{"e":"🖌️","opts":["🖌️"]},{"e":"🖍️","opts":["🖍️"]},{"e":"📝","opts":["📝"]},{"e":"💼","opts":["💼"]},{"e":"📁","opts":["📁"]},{"e":"📂","opts":["📂"]},{"e":"🗂️","opts":["🗂️"]},{"e":"📅","opts":["📅"]},{"e":"📆","opts":["📆"]},{"e":"🗒️","opts":["🗒️"]},{"e":"🗓️","opts":["🗓️"]},{"e":"📇","opts":["📇"]},{"e":"📈","opts":["📈"]},{"e":"📉","opts":["📉"]},{"e":"📊","opts":["📊"]},{"e":"📋️","opts":["📋️"]},{"e":"📌","opts":["📌"]},{"e":"📍","opts":["📍"]},{"e":"📎","opts":["📎"]},{"e":"🖇️","opts":["🖇️"]},{"e":"📏","opts":["📏"]},{"e":"📐","opts":["📐"]},{"e":"✂️","opts":["✂️"]},{"e":"🗃️","opts":["🗃️"]},{"e":"🗄️","opts":["🗄️"]},{"e":"🗑️","opts":["🗑️"]},{"e":"🔒️","opts":["🔒️"]},{"e":"🔓️","opts":["🔓️"]},{"e":"🔏","opts":["🔏"]},{"e":"🔐","opts":["🔐"]},{"e":"🔑","opts":["🔑"]},{"e":"🗝️","opts":["🗝️"]},{"e":"🔨","opts":["🔨"]},{"e":"🪓","opts":["🪓"]},{"e":"⛏️","opts":["⛏️"]},{"e":"⚒️","opts":["⚒️"]},{"e":"🛠️","opts":["🛠️"]},{"e":"🗡️","opts":["🗡️"]},{"e":"⚔️","opts":["⚔️"]},{"e":"🔫","opts":["🔫"]},{"e":"🪃","opts":["🪃"]},{"e":"🏹","opts":["🏹"]},{"e":"🛡️","opts":["🛡️"]},{"e":"🪚","opts":["🪚"]},{"e":"🔧","opts":["🔧"]},{"e":"🪛","opts":["🪛"]},{"e":"🔩","opts":["🔩"]},{"e":"⚙️","opts":["⚙️"]},{"e":"🗜️","opts":["🗜️"]},{"e":"⚖️","opts":["⚖️"]},{"e":"🦯","opts":["🦯"]},{"e":"🔗","opts":["🔗"]},{"e":"⛓️","opts":["⛓️"]},{"e":"🪝","opts":["🪝"]},{"e":"🧰","opts":["🧰"]},{"e":"🧲","opts":["🧲"]},{"e":"🪜","opts":["🪜"]},{"e":"⚗️","opts":["⚗️"]},{"e":"🧪","opts":["🧪"]},{"e":"🧫","opts":["🧫"]},{"e":"🧬","opts":["🧬"]},{"e":"🔬","opts":["🔬"]},{"e":"🔭","opts":["🔭"]},{"e":"📡","opts":["📡"]},{"e":"💉","opts":["💉"]},{"e":"🩸","opts":["🩸"]},{"e":"💊","opts":["💊"]},{"e":"🩹","opts":["🩹"]},{"e":"🩼","opts":["🩼"]},{"e":"🩺","opts":["🩺"]},{"e":"🩻","opts":["🩻"]},{"e":"🚪","opts":["🚪"]},{"e":"🛗","opts":["🛗"]},{"e":"🪞","opts":["🪞"]},{"e":"🪟","opts":["🪟"]},{"e":"🛏️","opts":["🛏️"]},{"e":"🛋️","opts":["🛋️"]},{"e":"🪑","opts":["🪑"]},{"e":"🚽","opts":["🚽"]},{"e":"🪠","opts":["🪠"]},{"e":"🚿","opts":["🚿"]},{"e":"🛁","opts":["🛁"]},{"e":"🪤","opts":["🪤"]},{"e":"🪒","opts":["🪒"]},{"e":"🧴","opts":["🧴"]},{"e":"🧷","opts":["🧷"]},{"e":"🧹","opts":["🧹"]},{"e":"🧺","opts":["🧺"]},{"e":"🧻","opts":["🧻"]},{"e":"🪣","opts":["🪣"]},{"e":"🧼","opts":["🧼"]},{"e":"🫧","opts":["🫧"]},{"e":"🪥","opts":["🪥"]},{"e":"🧽","opts":["🧽"]},{"e":"🧯","opts":["🧯"]},{"e":"🛒","opts":["🛒"]},{"e":"🚬","opts":["🚬"]},{"e":"⚰️","opts":["⚰️"]},{"e":"🪦","opts":["🪦"]},{"e":"⚱️","opts":["⚱️"]},{"e":"🗿","opts":["🗿"]},{"e":"🪧","opts":["🪧"]},{"e":"🪪","opts":["🪪"]}],"symbols":[{"e":"🏧","opts":["🏧"]},{"e":"🚮","opts":["🚮"]},{"e":"🚰","opts":["🚰"]},{"e":"♿️","opts":["♿️"]},{"e":"🚹️","opts":["🚹️"]},{"e":"🚺️","opts":["🚺️"]},{"e":"🚻","opts":["🚻"]},{"e":"🚼️","opts":["🚼️"]},{"e":"🚾","opts":["🚾"]},{"e":"🛂","opts":["🛂"]},{"e":"🛃","opts":["🛃"]},{"e":"🛄","opts":["🛄"]},{"e":"🛅","opts":["🛅"]},{"e":"⚠️","opts":["⚠️"]},{"e":"🚸","opts":["🚸"]},{"e":"⛔️","opts":["⛔️"]},{"e":"🚫","opts":["🚫"]},{"e":"🚳","opts":["🚳"]},{"e":"🚭️","opts":["🚭️"]},{"e":"🚯","opts":["🚯"]},{"e":"🚱","opts":["🚱"]},{"e":"🚷","opts":["🚷"]},{"e":"📵","opts":["📵"]},{"e":"🔞","opts":["🔞"]},{"e":"☢️","opts":["☢️"]},{"e":"☣️","opts":["☣️"]},{"e":"⬆️","opts":["⬆️"]},{"e":"↗️","opts":["↗️"]},{"e":"➡️","opts":["➡️"]},{"e":"↘️","opts":["↘️"]},{"e":"⬇️","opts":["⬇️"]},{"e":"↙️","opts":["↙️"]},{"e":"⬅️","opts":["⬅️"]},{"e":"↖️","opts":["↖️"]},{"e":"↕️","opts":["↕️"]},{"e":"↔️","opts":["↔️"]},{"e":"↩️","opts":["↩️"]},{"e":"↪️","opts":["↪️"]},{"e":"⤴️","opts":["⤴️"]},{"e":"⤵️","opts":["⤵️"]},{"e":"🔃","opts":["🔃"]},{"e":"🔄","opts":["🔄"]},{"e":"🔙","opts":["🔙"]},{"e":"🔚","opts":["🔚"]},{"e":"🔛","opts":["🔛"]},{"e":"🔜","opts":["🔜"]},{"e":"🔝","opts":["🔝"]},{"e":"🛐","opts":["🛐"]},{"e":"⚛️","opts":["⚛️"]},{"e":"🕉️","opts":["🕉️"]},{"e":"✡️","opts":["✡️"]},{"e":"☸️","opts":["☸️"]},{"e":"☯️","opts":["☯️"]},{"e":"✝️","opts":["✝️"]},{"e":"☦️","opts":["☦️"]},{"e":"☪️","opts":["☪️"]},{"e":"☮️","opts":["☮️"]},{"e":"🕎","opts":["🕎"]},{"e":"🔯","opts":["🔯"]},{"e":"♈️","opts":["♈️"]},{"e":"♉️","opts":["♉️"]},{"e":"♊️","opts":["♊️"]},{"e":"♋️","opts":["♋️"]},{"e":"♌️","opts":["♌️"]},{"e":"♍️","opts":["♍️"]},{"e":"♎️","opts":["♎️"]},{"e":"♏️","opts":["♏️"]},{"e":"♐️","opts":["♐️"]},{"e":"♑️","opts":["♑️"]},{"e":"♒️","opts":["♒️"]},{"e":"♓️","opts":["♓️"]},{"e":"⛎","opts":["⛎"]},{"e":"🔀","opts":["🔀"]},{"e":"🔁","opts":["🔁"]},{"e":"🔂","opts":["🔂"]},{"e":"▶️","opts":["▶️"]},{"e":"⏩️","opts":["⏩️"]},{"e":"⏭️","opts":["⏭️"]},{"e":"⏯️","opts":["⏯️"]},{"e":"◀️","opts":["◀️"]},{"e":"⏪️","opts":["⏪️"]},{"e":"⏮️","opts":["⏮️"]},{"e":"🔼","opts":["🔼"]},{"e":"⏫","opts":["⏫"]},{"e":"🔽","opts":["🔽"]},{"e":"⏬","opts":["⏬"]},{"e":"⏸️","opts":["⏸️"]},{"e":"⏹️","opts":["⏹️"]},{"e":"⏺️","opts":["⏺️"]},{"e":"⏏️","opts":["⏏️"]},{"e":"🎦","opts":["🎦"]},{"e":"🔅","opts":["🔅"]},{"e":"🔆","opts":["🔆"]},{"e":"📶","opts":["📶"]},{"e":"📳","opts":["📳"]},{"e":"📴","opts":["📴"]},{"e":"♀️","opts":["♀️"]},{"e":"♂️","opts":["♂️"]},{"e":"⚧️","opts":["⚧️"]},{"e":"✖️","opts":["✖️"]},{"e":"➕","opts":["➕"]},{"e":"➖","opts":["➖"]},{"e":"➗","opts":["➗"]},{"e":"🟰","opts":["🟰"]},{"e":"♾️","opts":["♾️"]},{"e":"‼️","opts":["‼️"]},{"e":"⁉️","opts":["⁉️"]},{"e":"❓️","opts":["❓️"]},{"e":"❔","opts":["❔"]},{"e":"❕","opts":["❕"]},{"e":"❗️","opts":["❗️"]},{"e":"〰️","opts":["〰️"]},{"e":"💱","opts":["💱"]},{"e":"💲","opts":["💲"]},{"e":"⚕️","opts":["⚕️"]},{"e":"♻️","opts":["♻️"]},{"e":"⚜️","opts":["⚜️"]},{"e":"🔱","opts":["🔱"]},{"e":"📛","opts":["📛"]},{"e":"🔰","opts":["🔰"]},{"e":"⭕️","opts":["⭕️"]},{"e":"✅","opts":["✅"]},{"e":"☑️","opts":["☑️"]},{"e":"✔️","opts":["✔️"]},{"e":"❌","opts":["❌"]},{"e":"❎","opts":["❎"]},{"e":"➰","opts":["➰"]},{"e":"➿","opts":["➿"]},{"e":"〽️","opts":["〽️"]},{"e":"✳️","opts":["✳️"]},{"e":"✴️","opts":["✴️"]},{"e":"❇️","opts":["❇️"]},{"e":"©️","opts":["©️"]},{"e":"®️","opts":["®️"]},{"e":"™️","opts":["™️"]},{"e":"#️⃣","opts":["#️⃣"]},{"e":"*️⃣","opts":["*️⃣"]},{"e":"0️⃣","opts":["0️⃣"]},{"e":"1️⃣","opts":["1️⃣"]},{"e":"2️⃣","opts":["2️⃣"]},{"e":"3️⃣","opts":["3️⃣"]},{"e":"4️⃣","opts":["4️⃣"]},{"e":"5️⃣","opts":["5️⃣"]},{"e":"6️⃣","opts":["6️⃣"]},{"e":"7️⃣","opts":["7️⃣"]},{"e":"8️⃣","opts":["8️⃣"]},{"e":"9️⃣","opts":["9️⃣"]},{"e":"🔟","opts":["🔟"]},{"e":"🔠","opts":["🔠"]},{"e":"🔡","opts":["🔡"]},{"e":"🔢","opts":["🔢"]},{"e":"🔣","opts":["🔣"]},{"e":"🔤","opts":["🔤"]},{"e":"🅰️","opts":["🅰️"]},{"e":"🆎","opts":["🆎"]},{"e":"🅱️","opts":["🅱️"]},{"e":"🆑","opts":["🆑"]},{"e":"🆒","opts":["🆒"]},{"e":"🆓","opts":["🆓"]},{"e":"ℹ️","opts":["ℹ️"]},{"e":"🆔","opts":["🆔"]},{"e":"Ⓜ️","opts":["Ⓜ️"]},{"e":"🆕","opts":["🆕"]},{"e":"🆖","opts":["🆖"]},{"e":"🅾️","opts":["🅾️"]},{"e":"🆗","opts":["🆗"]},{"e":"🅿️","opts":["🅿️"]},{"e":"🆘","opts":["🆘"]},{"e":"🆙","opts":["🆙"]},{"e":"🆚","opts":["🆚"]},{"e":"🈁","opts":["🈁"]},{"e":"🈂️","opts":["🈂️"]},{"e":"🈷️","opts":["🈷️"]},{"e":"🈶","opts":["🈶"]},{"e":"🈯️","opts":["🈯️"]},{"e":"🉐","opts":["🉐"]},{"e":"🈹","opts":["🈹"]},{"e":"🈚️","opts":["🈚️"]},{"e":"🈲","opts":["🈲"]},{"e":"🉑","opts":["🉑"]},{"e":"🈸","opts":["🈸"]},{"e":"🈴","opts":["🈴"]},{"e":"🈳","opts":["🈳"]},{"e":"㊗️","opts":["㊗️"]},{"e":"㊙️","opts":["㊙️"]},{"e":"🈺","opts":["🈺"]},{"e":"🈵","opts":["🈵"]},{"e":"🔴","opts":["🔴"]},{"e":"🟠","opts":["🟠"]},{"e":"🟡","opts":["🟡"]},{"e":"🟢","opts":["🟢"]},{"e":"🔵","opts":["🔵"]},{"e":"🟣","opts":["🟣"]},{"e":"🟤","opts":["🟤"]},{"e":"⚫️","opts":["⚫️"]},{"e":"⚪️","opts":["⚪️"]},{"e":"🟥","opts":["🟥"]},{"e":"🟧","opts":["🟧"]},{"e":"🟨","opts":["🟨"]},{"e":"🟩","opts":["🟩"]},{"e":"🟦","opts":["🟦"]},{"e":"🟪","opts":["🟪"]},{"e":"🟫","opts":["🟫"]},{"e":"⬛️","opts":["⬛️"]},{"e":"⬜️","opts":["⬜️"]},{"e":"◼️","opts":["◼️"]},{"e":"◻️","opts":["◻️"]},{"e":"◾️","opts":["◾️"]},{"e":"◽️","opts":["◽️"]},{"e":"▪️","opts":["▪️"]},{"e":"▫️","opts":["▫️"]},{"e":"🔶","opts":["🔶"]},{"e":"🔷","opts":["🔷"]},{"e":"🔸","opts":["🔸"]},{"e":"🔹","opts":["🔹"]},{"e":"🔺","opts":["🔺"]},{"e":"🔻","opts":["🔻"]},{"e":"💠","opts":["💠"]},{"e":"🔘","opts":["🔘"]},{"e":"🔳","opts":["🔳"]},{"e":"🔲","opts":["🔲"]}],"flags":[{"e":"🏁","opts":["🏁"]},{"e":"🚩","opts":["🚩"]},{"e":"🎌","opts":["🎌"]},{"e":"🏴","opts":["🏴"]},{"e":"🏳️","opts":["🏳️"]},{"e":"🏳️‍🌈","opts":["🏳️‍🌈"]},{"e":"🏳️‍⚧️","opts":["🏳️‍⚧️"]},{"e":"🏴‍☠️","opts":["🏴‍☠️"]},{"e":"🇦🇨","opts":["🇦🇨"]},{"e":"🇦🇩","opts":["🇦🇩"]},{"e":"🇦🇪","opts":["🇦🇪"]},{"e":"🇦🇫","opts":["🇦🇫"]},{"e":"🇦🇬","opts":["🇦🇬"]},{"e":"🇦🇮","opts":["🇦🇮"]},{"e":"🇦🇱","opts":["🇦🇱"]},{"e":"🇦🇲","opts":["🇦🇲"]},{"e":"🇦🇴","opts":["🇦🇴"]},{"e":"🇦🇶","opts":["🇦🇶"]},{"e":"🇦🇷","opts":["🇦🇷"]},{"e":"🇦🇸","opts":["🇦🇸"]},{"e":"🇦🇹","opts":["🇦🇹"]},{"e":"🇦🇺","opts":["🇦🇺"]},{"e":"🇦🇼","opts":["🇦🇼"]},{"e":"🇦🇽","opts":["🇦🇽"]},{"e":"🇦🇿","opts":["🇦🇿"]},{"e":"🇧🇦","opts":["🇧🇦"]},{"e":"🇧🇧","opts":["🇧🇧"]},{"e":"🇧🇩","opts":["🇧🇩"]},{"e":"🇧🇪","opts":["🇧🇪"]},{"e":"🇧🇫","opts":["🇧🇫"]},{"e":"🇧🇬","opts":["🇧🇬"]},{"e":"🇧🇭","opts":["🇧🇭"]},{"e":"🇧🇮","opts":["🇧🇮"]},{"e":"🇧🇯","opts":["🇧🇯"]},{"e":"🇧🇱","opts":["🇧🇱"]},{"e":"🇧🇲","opts":["🇧🇲"]},{"e":"🇧🇳","opts":["🇧🇳"]},{"e":"🇧🇴","opts":["🇧🇴"]},{"e":"🇧🇶","opts":["🇧🇶"]},{"e":"🇧🇷","opts":["🇧🇷"]},{"e":"🇧🇸","opts":["🇧🇸"]},{"e":"🇧🇹","opts":["🇧🇹"]},{"e":"🇧🇻","opts":["🇧🇻"]},{"e":"🇧🇼","opts":["🇧🇼"]},{"e":"🇧🇾","opts":["🇧🇾"]},{"e":"🇧🇿","opts":["🇧🇿"]},{"e":"🇨🇦","opts":["🇨🇦"]},{"e":"🇨🇨","opts":["🇨🇨"]},{"e":"🇨🇩","opts":["🇨🇩"]},{"e":"🇨🇫","opts":["🇨🇫"]},{"e":"🇨🇬","opts":["🇨🇬"]},{"e":"🇨🇭","opts":["🇨🇭"]},{"e":"🇨🇮","opts":["🇨🇮"]},{"e":"🇨🇰","opts":["🇨🇰"]},{"e":"🇨🇱","opts":["🇨🇱"]},{"e":"🇨🇲","opts":["🇨🇲"]},{"e":"🇨🇳","opts":["🇨🇳"]},{"e":"🇨🇴","opts":["🇨🇴"]},{"e":"🇨🇵","opts":["🇨🇵"]},{"e":"🇨🇷","opts":["🇨🇷"]},{"e":"🇨🇺","opts":["🇨🇺"]},{"e":"🇨🇻","opts":["🇨🇻"]},{"e":"🇨🇼","opts":["🇨🇼"]},{"e":"🇨🇽","opts":["🇨🇽"]},{"e":"🇨🇾","opts":["🇨🇾"]},{"e":"🇨🇿","opts":["🇨🇿"]},{"e":"🇩🇪","opts":["🇩🇪"]},{"e":"🇩🇬","opts":["🇩🇬"]},{"e":"🇩🇯","opts":["🇩🇯"]},{"e":"🇩🇰","opts":["🇩🇰"]},{"e":"🇩🇲","opts":["🇩🇲"]},{"e":"🇩🇴","opts":["🇩🇴"]},{"e":"🇩🇿","opts":["🇩🇿"]},{"e":"🇪🇦","opts":["🇪🇦"]},{"e":"🇪🇨","opts":["🇪🇨"]},{"e":"🇪🇪","opts":["🇪🇪"]},{"e":"🇪🇬","opts":["🇪🇬"]},{"e":"🇪🇭","opts":["🇪🇭"]},{"e":"🇪🇷","opts":["🇪🇷"]},{"e":"🇪🇸","opts":["🇪🇸"]},{"e":"🇪🇹","opts":["🇪🇹"]},{"e":"🇪🇺","opts":["🇪🇺"]},{"e":"🇫🇮","opts":["🇫🇮"]},{"e":"🇫🇯","opts":["🇫🇯"]},{"e":"🇫🇰","opts":["🇫🇰"]},{"e":"🇫🇲","opts":["🇫🇲"]},{"e":"🇫🇴","opts":["🇫🇴"]},{"e":"🇫🇷","opts":["🇫🇷"]},{"e":"🇬🇦","opts":["🇬🇦"]},{"e":"🇬🇧","opts":["🇬🇧"]},{"e":"🇬🇩","opts":["🇬🇩"]},{"e":"🇬🇪","opts":["🇬🇪"]},{"e":"🇬🇫","opts":["🇬🇫"]},{"e":"🇬🇬","opts":["🇬🇬"]},{"e":"🇬🇭","opts":["🇬🇭"]},{"e":"🇬🇮","opts":["🇬🇮"]},{"e":"🇬🇱","opts":["🇬🇱"]},{"e":"🇬🇲","opts":["🇬🇲"]},{"e":"🇬🇳","opts":["🇬🇳"]},{"e":"🇬🇵","opts":["🇬🇵"]},{"e":"🇬🇶","opts":["🇬🇶"]},{"e":"🇬🇷","opts":["🇬🇷"]},{"e":"🇬🇸","opts":["🇬🇸"]},{"e":"🇬🇹","opts":["🇬🇹"]},{"e":"🇬🇺","opts":["🇬🇺"]},{"e":"🇬🇼","opts":["🇬🇼"]},{"e":"🇬🇾","opts":["🇬🇾"]},{"e":"🇭🇰","opts":["🇭🇰"]},{"e":"🇭🇲","opts":["🇭🇲"]},{"e":"🇭🇳","opts":["🇭🇳"]},{"e":"🇭🇷","opts":["🇭🇷"]},{"e":"🇭🇹","opts":["🇭🇹"]},{"e":"🇭🇺","opts":["🇭🇺"]},{"e":"🇮🇨","opts":["🇮🇨"]},{"e":"🇮🇩","opts":["🇮🇩"]},{"e":"🇮🇪","opts":["🇮🇪"]},{"e":"🇮🇱","opts":["🇮🇱"]},{"e":"🇮🇲","opts":["🇮🇲"]},{"e":"🇮🇳","opts":["🇮🇳"]},{"e":"🇮🇴","opts":["🇮🇴"]},{"e":"🇮🇶","opts":["🇮🇶"]},{"e":"🇮🇷","opts":["🇮🇷"]},{"e":"🇮🇸","opts":["🇮🇸"]},{"e":"🇮🇹","opts":["🇮🇹"]},{"e":"🇯🇪","opts":["🇯🇪"]},{"e":"🇯🇲","opts":["🇯🇲"]},{"e":"🇯🇴","opts":["🇯🇴"]},{"e":"🇯🇵","opts":["🇯🇵"]},{"e":"🇰🇪","opts":["🇰🇪"]},{"e":"🇰🇬","opts":["🇰🇬"]},{"e":"🇰🇭","opts":["🇰🇭"]},{"e":"🇰🇮","opts":["🇰🇮"]},{"e":"🇰🇲","opts":["🇰🇲"]},{"e":"🇰🇳","opts":["🇰🇳"]},{"e":"🇰🇵","opts":["🇰🇵"]},{"e":"🇰🇷","opts":["🇰🇷"]},{"e":"🇰🇼","opts":["🇰🇼"]},{"e":"🇰🇾","opts":["🇰🇾"]},{"e":"🇰🇿","opts":["🇰🇿"]},{"e":"🇱🇦","opts":["🇱🇦"]},{"e":"🇱🇧","opts":["🇱🇧"]},{"e":"🇱🇨","opts":["🇱🇨"]},{"e":"🇱🇮","opts":["🇱🇮"]},{"e":"🇱🇰","opts":["🇱🇰"]},{"e":"🇱🇷","opts":["🇱🇷"]},{"e":"🇱🇸","opts":["🇱🇸"]},{"e":"🇱🇹","opts":["🇱🇹"]},{"e":"🇱🇺","opts":["🇱🇺"]},{"e":"🇱🇻","opts":["🇱🇻"]},{"e":"🇱🇾","opts":["🇱🇾"]},{"e":"🇲🇦","opts":["🇲🇦"]},{"e":"🇲🇨","opts":["🇲🇨"]},{"e":"🇲🇩","opts":["🇲🇩"]},{"e":"🇲🇪","opts":["🇲🇪"]},{"e":"🇲🇫","opts":["🇲🇫"]},{"e":"🇲🇬","opts":["🇲🇬"]},{"e":"🇲🇭","opts":["🇲🇭"]},{"e":"🇲🇰","opts":["🇲🇰"]},{"e":"🇲🇱","opts":["🇲🇱"]},{"e":"🇲🇲","opts":["🇲🇲"]},{"e":"🇲🇳","opts":["🇲🇳"]},{"e":"🇲🇴","opts":["🇲🇴"]},{"e":"🇲🇵","opts":["🇲🇵"]},{"e":"🇲🇶","opts":["🇲🇶"]},{"e":"🇲🇷","opts":["🇲🇷"]},{"e":"🇲🇸","opts":["🇲🇸"]},{"e":"🇲🇹","opts":["🇲🇹"]},{"e":"🇲🇺","opts":["🇲🇺"]},{"e":"🇲🇻","opts":["🇲🇻"]},{"e":"🇲🇼","opts":["🇲🇼"]},{"e":"🇲🇽","opts":["🇲🇽"]},{"e":"🇲🇾","opts":["🇲🇾"]},{"e":"🇲🇿","opts":["🇲🇿"]},{"e":"🇳🇦","opts":["🇳🇦"]},{"e":"🇳🇨","opts":["🇳🇨"]},{"e":"🇳🇪","opts":["🇳🇪"]},{"e":"🇳🇫","opts":["🇳🇫"]},{"e":"🇳🇬","opts":["🇳🇬"]},{"e":"🇳🇮","opts":["🇳🇮"]},{"e":"🇳🇱","opts":["🇳🇱"]},{"e":"🇳🇴","opts":["🇳🇴"]},{"e":"🇳🇵","opts":["🇳🇵"]},{"e":"🇳🇷","opts":["🇳🇷"]},{"e":"🇳🇺","opts":["🇳🇺"]},{"e":"🇳🇿","opts":["🇳🇿"]},{"e":"🇴🇲","opts":["🇴🇲"]},{"e":"🇵🇦","opts":["🇵🇦"]},{"e":"🇵🇪","opts":["🇵🇪"]},{"e":"🇵🇫","opts":["🇵🇫"]},{"e":"🇵🇬","opts":["🇵🇬"]},{"e":"🇵🇭","opts":["🇵🇭"]},{"e":"🇵🇰","opts":["🇵🇰"]},{"e":"🇵🇱","opts":["🇵🇱"]},{"e":"🇵🇲","opts":["🇵🇲"]},{"e":"🇵🇳","opts":["🇵🇳"]},{"e":"🇵🇷","opts":["🇵🇷"]},{"e":"🇵🇸","opts":["🇵🇸"]},{"e":"🇵🇹","opts":["🇵🇹"]},{"e":"🇵🇼","opts":["🇵🇼"]},{"e":"🇵🇾","opts":["🇵🇾"]},{"e":"🇶🇦","opts":["🇶🇦"]},{"e":"🇷🇪","opts":["🇷🇪"]},{"e":"🇷🇴","opts":["🇷🇴"]},{"e":"🇷🇸","opts":["🇷🇸"]},{"e":"🇷🇺","opts":["🇷🇺"]},{"e":"🇷🇼","opts":["🇷🇼"]},{"e":"🇸🇦","opts":["🇸🇦"]},{"e":"🇸🇧","opts":["🇸🇧"]},{"e":"🇸🇨","opts":["🇸🇨"]},{"e":"🇸🇩","opts":["🇸🇩"]},{"e":"🇸🇪","opts":["🇸🇪"]},{"e":"🇸🇬","opts":["🇸🇬"]},{"e":"🇸🇭","opts":["🇸🇭"]},{"e":"🇸🇮","opts":["🇸🇮"]},{"e":"🇸🇯","opts":["🇸🇯"]},{"e":"🇸🇰","opts":["🇸🇰"]},{"e":"🇸🇱","opts":["🇸🇱"]},{"e":"🇸🇲","opts":["🇸🇲"]},{"e":"🇸🇳","opts":["🇸🇳"]},{"e":"🇸🇴","opts":["🇸🇴"]},{"e":"🇸🇷","opts":["🇸🇷"]},{"e":"🇸🇸","opts":["🇸🇸"]},{"e":"🇸🇹","opts":["🇸🇹"]},{"e":"🇸🇻","opts":["🇸🇻"]},{"e":"🇸🇽","opts":["🇸🇽"]},{"e":"🇸🇾","opts":["🇸🇾"]},{"e":"🇸🇿","opts":["🇸🇿"]},{"e":"🇹🇦","opts":["🇹🇦"]},{"e":"🇹🇨","opts":["🇹🇨"]},{"e":"🇹🇩","opts":["🇹🇩"]},{"e":"🇹🇫","opts":["🇹🇫"]},{"e":"🇹🇬","opts":["🇹🇬"]},{"e":"🇹🇭","opts":["🇹🇭"]},{"e":"🇹🇯","opts":["🇹🇯"]},{"e":"🇹🇰","opts":["🇹🇰"]},{"e":"🇹🇱","opts":["🇹🇱"]},{"e":"🇹🇲","opts":["🇹🇲"]},{"e":"🇹🇳","opts":["🇹🇳"]},{"e":"🇹🇴","opts":["🇹🇴"]},{"e":"🇹🇷","opts":["🇹🇷"]},{"e":"🇹🇹","opts":["🇹🇹"]},{"e":"🇹🇻","opts":["🇹🇻"]},{"e":"🇹🇼","opts":["🇹🇼"]},{"e":"🇹🇿","opts":["🇹🇿"]},{"e":"🇺🇦","opts":["🇺🇦"]},{"e":"🇺🇬","opts":["🇺🇬"]},{"e":"🇺🇲","opts":["🇺🇲"]},{"e":"🇺🇳","opts":["🇺🇳"]},{"e":"🇺🇸","opts":["🇺🇸"]},{"e":"🇺🇾","opts":["🇺🇾"]},{"e":"🇺🇿","opts":["🇺🇿"]},{"e":"🇻🇦","opts":["🇻🇦"]},{"e":"🇻🇨","opts":["🇻🇨"]},{"e":"🇻🇪","opts":["🇻🇪"]},{"e":"🇻🇬","opts":["🇻🇬"]},{"e":"🇻🇮","opts":["🇻🇮"]},{"e":"🇻🇳","opts":["🇻🇳"]},{"e":"🇻🇺","opts":["🇻🇺"]},{"e":"🇼🇫","opts":["🇼🇫"]},{"e":"🇼🇸","opts":["🇼🇸"]},{"e":"🇽🇰","opts":["🇽🇰"]},{"e":"🇾🇪","opts":["🇾🇪"]},{"e":"🇾🇹","opts":["🇾🇹"]},{"e":"🇿🇦","opts":["🇿🇦"]},{"e":"🇿🇲","opts":["🇿🇲"]},{"e":"🇿🇼","opts":["🇿🇼"]},{"e":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","opts":["🏴󠁧󠁢󠁥󠁮󠁧󠁿"]},{"e":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","opts":["🏴󠁧󠁢󠁳󠁣󠁴󠁿"]},{"e":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","opts":["🏴󠁧󠁢󠁷󠁬󠁳󠁿"]}]}
