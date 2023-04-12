@@ -1,0 +1,63 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml b/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml
+index 9087f15..da71c66 100644
+--- a/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml
++++ b/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml
+@@ -21,6 +21,13 @@ import "../backgrounds"
+ SilicaFlickable {
+     id: topMenu
+ 
++    property int heightReduction: heightReductionConfig.value
++    ConfigurationValue {
++        id: heightReductionConfig
++        key: "/patch/ichthyosaurus/homescreen-shorter-topmenu/reduction"
++        defaultValue: 0
++    }
++
+     function scroll(up) {
+         scrollAnimation.to = up ? 0 : contentHeight - height
+         scrollAnimation.duration = Math.abs(contentY - scrollAnimation.to) * 1.5
+@@ -135,7 +142,7 @@ SilicaFlickable {
+             id: headerItem
+ 
+             width: topMenu.width
+-            height: topMenu.itemSize
++            height: topMenu.itemSize - (heightReduction > 45 ? Math.min(heightReduction - 45, 65) : 0)
+ 
+             states: [
+                 State {
+@@ -175,7 +182,7 @@ SilicaFlickable {
+                 y: Math.min(0, -height + topMenu.offset)
+ 
+                 width: topMenu.width
+-                height: topMenu.itemSize
++                height: topMenu.itemSize - (heightReduction > 45 ? Math.min(heightReduction - 45, 65) : 0)
+                 visible: Lipstick.compositor.powerKeyPressed
+                          || Lipstick.compositor.experimentalFeatures.topmenu_shutdown_reboot_visible
+                 PowerButton {
+@@ -217,7 +224,7 @@ SilicaFlickable {
+                 y: Math.min(0, -height + topMenu.offset)
+ 
+                 width: topMenu.width
+-                height: topMenu.itemSize
++                height: topMenu.itemSize - (heightReduction > 45 ? Math.min(heightReduction - 45, 65) : 0)
+ 
+                 visible: !shutdownButton.visible || powerTransition.running
+ 
+@@ -233,7 +240,7 @@ SilicaFlickable {
+             id: ambienceSelector
+ 
+             width: parent.width
+-            itemSize: topMenu.itemSize
++            itemSize: topMenu.itemSize - (heightReduction > 80 ? Math.min(heightReduction - 80, 90) : 0)
+             viewHeight: itemSize
+ 
+             verticalOffset: topMenu.offset
+@@ -360,7 +367,7 @@ SilicaFlickable {
+ 
+                                 anchors.right: parent.right
+                                 width: height + Theme.paddingMedium
+-                                height: Theme.itemSizeMedium
++                                height: Theme.itemSizeMedium - (heightReduction < 45 ? heightReduction : 45)
+ 
+                                 Rectangle {
+                                     z: -1

@@ -1,0 +1,48 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
+index a78ce71..d591998 100644
+--- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
++++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
+@@ -180,7 +180,7 @@ SystemWindow {
+ 
+         opacity: 0.0
+         contentItem.clip: true
+-        palette.colorScheme: Theme.colorScheme == Theme.DarkOnLight ? Theme.LightOnDark : Theme.DarkOnLight
++        // palette.colorScheme: Theme.colorScheme == Theme.DarkOnLight ? Theme.LightOnDark : Theme.DarkOnLight
+ 
+         Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.InQuad } }
+         onClicked: {
+@@ -204,19 +204,17 @@ SystemWindow {
+         Rectangle {
+             id: background
+ 
+-            property color _color: popupArea.palette.colorScheme == Theme.LightOnDark
+-                                   ? Qt.tint("#8A8A8A", Theme.rgba(Theme.highlightColor, 0.5))
+-                                   : Qt.tint("#FFFFFF", Theme.rgba(Theme.highlightColor, 0.3))
++            property color _color: Qt.lighter(Theme.highlightDimmerColor, 2.0)
+ 
+             anchors.fill: parent
+             radius: Theme.paddingSmall
+             color: Qt.tint(_color, Theme.rgba(popupArea.palette.highlightDimmerColor,
+                                               popupArea.down ? Theme.opacityLow : 0))
+             border.width: Math.round(Theme.pixelRatio)
+-            border.color: Qt.tint(_color, Theme.rgba(Theme.highlightColor, 0.1))
++            border.color: Qt.tint(_color, Theme.rgba(Theme.highlightColor, 0.3))
+             opacity: popupArea.textOpacity
+ 
+-            NotificationAppIcon {
++            Image {
+                 id: appIcon
+ 
+                 anchors {
+@@ -225,9 +223,9 @@ SystemWindow {
+                     verticalCenter: popupPreviewScrollContainer.verticalCenter
+                 }
+                 width: Theme.iconSizeSmall + Theme.paddingSmall
++                height: width
+                 opacity: popupArea.textOpacity
+-                iconSource: notificationWindow.appIconUrl
+-                iconColor: notification ? notification.color : ""
++                source: notificationWindow.appIconUrl || "image://theme/icon-lock-information"
+             }
+ 
+             HighlightImage {

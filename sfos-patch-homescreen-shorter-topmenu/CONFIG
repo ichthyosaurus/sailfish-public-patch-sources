@@ -1,0 +1,99 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts
+#   (each line in a multiline field must start with '- ')
+#
+
+SourcePackages:
+- lipstick-jolla-home-qt5 >= 1.2.34.3
+
+Prefix: /usr/share/lipstick-jolla-home-qt5/topmenu
+DisplayName: Shorter top menu
+PackageName: sfos-patch-homescreen-shorter-topmenu
+Category: Homescreen
+
+Keywords:
+- Patch
+- Homescreen
+- Lipstick
+- Top Menu
+- Topmenu
+- Display Size
+
+Maintainer: ichthyosaurus
+Summary: Reduce topmenu height for smaller screens
+Description:
+- This patch allows to shave off a configurable amount of pixels from the top
+- menu to make it fit into the screen without scrolling.
+-
+- On devices with smaller screens, it can easily happen that the topmenu in
+- your current configuration is slightly longer than the screen.
+-
+- If that happens, you have to swipe twice to close it: once for scrolling to
+- the bottom, once for closing. This can get annoying and is solved by the patch.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.1.0
+Release: 1
+License: GPL-3.0-or-later
+
+# Add a list of commands below which can be run after deployment.
+TestCommands:
+- systemctl --user restart lipstick
+
+# Use @sources to mark all entries of SourcePackages as required.
+Requires:
+- sailfish-version >= 3.2.1
+- @sources
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+- screenshot-3.png
+
+CompatibleVersions:
+- 3.2.1.20
+- 3.3.0.14
+- 3.3.0.16
+- 3.4.0.22
+- 3.4.0.24
+- 4.0.1.45
+- 4.0.1.48
+- 4.1.0.23
+- 4.1.0.24
+- 4.2.0.19
+- 4.2.0.21
+- 4.3.0.12
+- 4.3.0.15
+- 4.4.0.58
+- 4.4.0.64
+- 4.4.0.68
+- 4.4.0.72
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+Changelog:
+- 1.1.0:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 4.5.0.19
+- - add settings page to configure size correction
+- - add donations link and feedback forum
+-
+- 1.0.1:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
+-
+- 1.0.0 (2019-12-31):
+- - initial public release
+
+# kate: syntax SailfishOS Patch

@@ -1,0 +1,78 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release, License
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts, TestCommands
+#   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
+
+SourcePackages:
+- lipstick-jolla-home-qt5-components >= 1.25.13.6
+- lipstick-jolla-home-qt5 >= 1.25.13.6
+
+Prefix: /usr
+DisplayName: Space-saving screenshot button
+PackageName: sfos-patch-homescreen-screenshot-quick
+Category: Homescreen
+
+Keywords:
+- Patch
+- Homescreen
+- Top menu
+- Screenshot
+- ScreenTapShot
+- ScreenTapShot2
+
+Maintainer: ichthyosaurus
+Summary: Show screenshot button from topmenu settings
+Description:
+- The patch adds a menu entry to the top menu's settings menu for toggling
+- the floating screenshot button.
+-
+- This is useful if you don't want to add yet another shortcut to the top menu
+- but you still want to use the floating screenshot button.
+-
+- Never heard of this button? That's no surprise: the feature is only accessible
+- through a top menu shortcut - and easily overlooked.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+License: GPL-3.0-or-later
+
+# Add a list of commands below which can be run after deployment.
+TestCommands:
+- systemctl --user restart lipstick
+
+# Use @sources to mark all entries of SourcePackages as required.
+Requires:
+- sailfish-version >= 4.5.0
+- @sources
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+Changelog:
+- 1.0.0 (2023-04-09):
+- - initial public release
+
+# kate: syntax SailfishOS Patch

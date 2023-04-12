@@ -1,0 +1,21 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml b/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml
+index 9087f15..9044a92 100644
+--- a/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml
++++ b/usr/share/lipstick-jolla-home-qt5/topmenu/TopMenu.qml
+@@ -406,6 +406,16 @@ SilicaFlickable {
+                                         }
+                                     }
+ 
++                                    MenuItem {
++                                        text: Lipstick.compositor.floatingScreenshotButtonActive ?
++                                                "Hide screenshot button" : "Show screenshot button"
++                                        enabled: Desktop.deviceLockState === DeviceLock.Unlocked
++                                        visible: enabled
++                                        onClicked: {
++                                            Lipstick.compositor.floatingScreenshotButtonActive = !Lipstick.compositor.floatingScreenshotButtonActive
++                                        }
++                                    }
++
+                                     MenuItem {
+                                         //% "Go to Top Menu settings"
+                                         text: qsTrId("lipstick_jolla_home-me-topmenu_settings")
