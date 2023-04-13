@@ -1,8 +1,8 @@
 diff --git a/usr/share/sailfish-office/FileListPage.qml b/usr/share/sailfish-office/FileListPage.qml
-index 8d6bae7..3facd70 100644
+index 31d16c6..4d749e8 100644
 --- a/usr/share/sailfish-office/FileListPage.qml
 +++ b/usr/share/sailfish-office/FileListPage.qml
-@@ -48,6 +48,16 @@ Page {
+@@ -49,6 +49,16 @@ Page {
  
      allowedOrientations: Orientation.All
  
@@ -19,7 +19,7 @@ index 8d6bae7..3facd70 100644
      onSearchEnabledChanged: {
          if (pageStack.currentPage.status == PageStatus.Active) {
              if (searchEnabled) {
-@@ -76,6 +86,10 @@ Page {
+@@ -77,6 +87,10 @@ Page {
          return ""
      }
  
@@ -30,9 +30,9 @@ index 8d6bae7..3facd70 100644
      FilterModel {
          id: filteredModel
          filterRegExp: RegExp(searchText, "i")
-@@ -295,6 +309,10 @@ Page {
-                         onClicked: pageStack.animatorPush("Sailfish.TransferEngine.SharePage",
-                                                           { serviceFilter: ["e-mail"], mimeType: model.fileMimeType, source: model.filePath })
+@@ -302,6 +316,10 @@ Page {
+                             mimeType: model.fileMimeType
+                         }
                      }
 +                    MenuItem {
 +                        text: "Add to favorites"
@@ -43,13 +43,14 @@ index 8d6bae7..3facd70 100644
                          //% "Delete"
 diff --git a/usr/share/sailfish-office/PatchFavoritesConfig.qml b/usr/share/sailfish-office/PatchFavoritesConfig.qml
 new file mode 100644
-index 0000000..d1b41fa
+index 0000000..80a0e20
 --- /dev/null
 +++ b/usr/share/sailfish-office/PatchFavoritesConfig.qml
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,72 @@
 +// This file is part of sfos-patch-office-favorites
-+// SPDX-FileCopyrightText: 2021 Mirian Margiani
++// SPDX-FileCopyrightText: 2021-2023 Mirian Margiani
 +// SPDX-License-Identifier: GPL-3.0-or-later
++
 +import Sailfish.Silica 1.0
 +import Nemo.Configuration 1.0
 +

@@ -1,8 +1,8 @@
 diff --git a/usr/share/jolla-notes/pages/NotePage.qml b/usr/share/jolla-notes/pages/NotePage.qml
-index a054a77..9d69565 100644
+index 5c0cbd7..30a5f23 100644
 --- a/usr/share/jolla-notes/pages/NotePage.qml
 +++ b/usr/share/jolla-notes/pages/NotePage.qml
-@@ -274,6 +274,7 @@ Page {
+@@ -284,6 +284,7 @@ Page {
                      }
                  }
              }
@@ -12,10 +12,14 @@ index a054a77..9d69565 100644
          Column {
 diff --git a/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml b/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml
 new file mode 100644
-index 0000000..1524411
+index 0000000..f4ab924
 --- /dev/null
 +++ b/usr/share/jolla-notes/pages/NotePageTimestampedSectionMenuItem.qml
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,71 @@
++// This file is part of sfos-patch-notes-sections
++// SPDX-FileCopyrightText: 2023 Mirian Margiani
++// SPDX-License-Identifier: GPL-3.0-or-later
++
 +import QtQuick 2.0
 +import Sailfish.Silica 1.0
 +

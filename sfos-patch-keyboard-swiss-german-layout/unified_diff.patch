@@ -1,17 +1,17 @@
-diff --git a/usr/share/maliit/plugins/com/jolla/EmojiHybridKey.qml b/usr/share/maliit/plugins/com/jolla/EmojiHybridKey.qml
+diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_swiss_german/EmojiHybridKey.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_swiss_german/EmojiHybridKey.qml
 new file mode 100644
-index 0000000..9fe16b2
+index 0000000..3888567
 --- /dev/null
-+++ b/usr/share/maliit/plugins/com/jolla/EmojiHybridKey.qml
-@@ -0,0 +1,39 @@
-+/*
-+ * part of: Swiss German Keyboard Layout
-+ * Copyright (c) 2019  Mirian Margiani
-+*/
++++ b/usr/share/maliit/plugins/com/jolla/ichthyo_swiss_german/EmojiHybridKey.qml
+@@ -0,0 +1,58 @@
++// This file is part of sfos-patch-keyboard-swiss-german-layout
++// SPDX-FileCopyrightText: 2019-2023 Mirian Margiani
++// SPDX-License-Identifier: GPL-3.0-or-later
 +
 +import QtQuick 2.6
 +import Sailfish.Silica 1.0
 +import com.jolla.keyboard 1.0
++import ".."
 +
 +CharacterKey {
 +    id: characterKey
@@ -39,54 +39,44 @@ index 0000000..9fe16b2
 +        anchors { fill: parent; topMargin: Theme.paddingMedium; bottomMargin: Theme.paddingMedium; }
 +    }
 +
-+    onClicked: {
-+        if (_beSwitcher) canvas.switchToPreviousCharacterLayout();
-+    }
-+}
-diff --git a/usr/share/maliit/plugins/com/jolla/LayoutRow.qml b/usr/share/maliit/plugins/com/jolla/LayoutRow.qml
-index 14d95b4..64b7b72 100644
---- a/usr/share/maliit/plugins/com/jolla/LayoutRow.qml
-+++ b/usr/share/maliit/plugins/com/jolla/LayoutRow.qml
-@@ -324,6 +324,16 @@ Item {
-         updateLoaders([layoutIndex, left, right])
-     }
- 
 +    function switchToEmojisLayout() {
 +        for (var index = 0; index < canvas.layoutModel.count; index++) {
 +            var layout = canvas.layoutModel.get(index)
 +            if (layout.name === "text_input_emojis") {
 +                switchLayout(index)
-+                return
++                return true
++            }
++        }
++
++        return false
++    }
++
++    onClicked: {
++        if (_beSwitcher) {
++            if (switchToEmojisLayout()) {
++                captionEmoji = '☺'
++            } else {
++                captionEmoji = '↔'
++                canvas.switchToPreviousCharacterLayout()
 +            }
 +        }
 +    }
-+
-     function switchToPreviousCharacterLayout() {
-         if (previousLayout.length > 0) {
-             for (var index = 0; index < canvas.layoutModel.count; index++) {
-@@ -337,7 +347,7 @@ Item {
- 
-         for (index = 0; index < canvas.layoutModel.count; index++) {
-             layout = canvas.layoutModel.get(index)
--            if (layout.enabled && layout.type !== "emojis") {
-+            if (layout.enabled && layout.name !== "text_input_emojis") {
-                 switchLayout(index)
-                 return
-             }
++}
 diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_de_ch.qml b/usr/share/maliit/plugins/com/jolla/layouts/custom_de_ch.qml
 new file mode 100644
-index 0000000..666fa98
+index 0000000..3913d00
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/layouts/custom_de_ch.qml
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,74 @@
 +/*
 + * Swiss German Keyboard Layout
 + * Copyright (c) 2018       Gabriel Margiani
-+ *               2018-2019  Mirian Margiani
++ *               2018-2023  Mirian Margiani
 +*/
 +
 +import QtQuick 2.0
 +import ".."
++import "../ichthyo_swiss_german"
 +
 +KeyboardLayout {
 +    splitSupported: true

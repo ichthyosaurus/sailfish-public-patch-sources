@@ -5,36 +5,25 @@
 # Fields:
 # - one line: Prefix, DisplayName, PackageName, Category,
 #             Maintainer, Summary, DiscussionLink, DonationsLink,
-#             SourcesLink, Version, Release
+#             SourcesLink, Version, Release, License
 # - multiple lines: Keywords, Description, Screenshots,
 #             CompatibleVersions, Changelog, Requires,
 #             Obsoletes, Conflicts, TestCommands
 #   (each line in a multiline field must start with '- ')
 #
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
 
 SourcePackages:
 - sailfish-office >= 1.5.36
 
-Prefix: /usr/share/
+Prefix: /usr/share/sailfish-office
 DisplayName: Favorites page for Office
 PackageName: sfos-patch-office-favorites
 Category: Others
-# Category must be one of:
-#     Homescreen
-#     Browser
-#     Camera
-#     Calendar
-#     Clock
-#     Contacts
-#     Email
-#     Gallery
-#     Media
-#     Messages
-#     Phone
-#     Silica
-#     Settings
-#     Keyboard
-#     Others
+
 Keywords:
 - Patch
 - Office
@@ -43,23 +32,21 @@ Keywords:
 - Search
 
 Maintainer: ichthyosaurus
-Summary: Patch adding a favorites page to sailfish-office.
+Summary: Patch adding a favorites page to sailfish-office
 Description:
 - This patch adds support for bookmarks/favorites to Jolla's documents app.
 -
 - Save favorites from the context menu, and access the list by swiping right.
 -
-- **Note**: this patch is not (yet) compatible with SFOS 4.0 because Patchmanager
-- doesn't work for apps using sailjail.
--
 - The list of favorites is saved in dconf.
 
-DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-favorites-page-office
-# DonationsLink: still missing
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.0.1
 Release: 1
+License: GPL-3.0-or-later
 
 Requires:
 - sailfish-version >= 3.0.0
@@ -90,10 +77,29 @@ CompatibleVersions:
 - 3.3.0.16
 - 3.4.0.22
 - 3.4.0.24
-# - 4.0.1.45
-# - 4.0.1.48
+- 4.0.1.45
+- 4.0.1.48
+- 4.1.0.23
+- 4.1.0.24
+- 4.2.0.19
+- 4.2.0.21
+- 4.3.0.12
+- 4.3.0.15
+- 4.4.0.58
+- 4.4.0.64
+- 4.4.0.68
+- 4.4.0.72
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
 
 Changelog:
+- 1.0.1:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 4.5.0.19
+- - you may have to install an earlier version of this patch on older system versions
+- - add donations link and feedback forum
+-
 - 1.0.0 (2021-05-08):
 - - initial public release
 

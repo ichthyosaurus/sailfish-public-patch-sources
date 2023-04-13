@@ -1,8 +1,8 @@
 diff --git a/usr/share/sailfish-office/FileListPage.qml b/usr/share/sailfish-office/FileListPage.qml
-index 8d6bae7..16792bd 100644
+index 31d16c6..8fff649 100644
 --- a/usr/share/sailfish-office/FileListPage.qml
 +++ b/usr/share/sailfish-office/FileListPage.qml
-@@ -28,7 +28,7 @@ Page {
+@@ -29,7 +29,7 @@ Page {
      property alias model: filteredModel.sourceModel
      property string title
      property string searchText: searchField.text
@@ -11,7 +11,7 @@ index 8d6bae7..16792bd 100644
      property QtObject provider
  
      property string deletingSource
-@@ -155,6 +155,7 @@ Page {
+@@ -156,6 +156,7 @@ Page {
                  }
              }
  
@@ -19,7 +19,7 @@ index 8d6bae7..16792bd 100644
              MenuItem {
                  text: !menu._searchEnabled ? //% "Show search"
                                               qsTrId("sailfish-office-me-show_search")
-@@ -162,6 +163,7 @@ Page {
+@@ -163,6 +164,7 @@ Page {
                                             : qsTrId("sailfish-office-me-hide_search")
                  onClicked: page.searchEnabled = !page.searchEnabled
              }
@@ -27,7 +27,7 @@ index 8d6bae7..16792bd 100644
              
              MenuItem {
                  //% "Sort by: %1"
-@@ -176,6 +178,13 @@ Page {
+@@ -177,6 +179,13 @@ Page {
                      })
                  }
              }
