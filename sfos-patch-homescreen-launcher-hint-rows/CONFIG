@@ -47,7 +47,7 @@ DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
 DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.0
+Version: 1.0.1
 Release: 1
 License: GPL-3.0-or-later
 
@@ -70,6 +70,9 @@ CompatibleVersions:
 - 4.5.0.19
 
 Changelog:
+- 1.0.1:
+- - tweak hint height
+-
 - 1.0.0 (2023-04-09):
 - - initial public release
 

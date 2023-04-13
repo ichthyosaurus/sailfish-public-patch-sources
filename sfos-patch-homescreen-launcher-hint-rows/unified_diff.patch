@@ -1,5 +1,5 @@
 diff --git a/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml b/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml
-index 03dd72a..c3e9483 100644
+index 03dd72a..2c39069 100644
 --- a/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml
 +++ b/usr/share/lipstick-jolla-home-qt5/layers/LauncherLayer.qml
 @@ -4,9 +4,18 @@ import Sailfish.Lipstick 1.0
@@ -26,7 +26,7 @@ index 03dd72a..c3e9483 100644
  
      edge: PeekFilter.Bottom
 -    hintHeight: Theme.iconSizeLauncher * 2 + (Screen.sizeCategory >= Screen.Large ? Theme.paddingLarge*4 : 0)
-+    hintHeight: Theme.iconSizeLauncher * 2 * rowsConfig.value + (Screen.sizeCategory >= Screen.Large ? Theme.paddingLarge*4 : 0)
++    hintHeight: cellHeight * rowsConfig.value + (Screen.sizeCategory >= Screen.Large ? Theme.paddingLarge*4 : Theme.paddingLarge)
      hintDuration: 600
      _finishDragWithAnimation: !pinned && !_wasPinning
  
