@@ -1,0 +1,85 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+index ea83e02..aca1261 100644
+--- a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
++++ b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+@@ -99,6 +99,13 @@ PagedView {
+     readonly property bool swipeGestureIsSafe: !releaseTimer.running
+     readonly property string sourceDirectory: "/usr/share/maliit/plugins/com/jolla/layouts/"
+ 
++    readonly property int _bottomOffset: heightConfig.value
++    ConfigurationValue {
++        id: heightConfig
++        key: '/patch/ichthyosaurus/keyboard-configurable-height/bottomOffset'
++        defaultValue: Math.round(Screen.height * 0.12)
++    }
++
+     verticalAlignment: PagedView.AlignBottom
+ 
+     onPortraitModeChanged: cancelAllTouchPoints()
+@@ -120,7 +127,7 @@ PagedView {
+         readonly property bool current: status === Loader.Ready && PagedView.isCurrentItem
+ 
+         width: keyboard.width
+-        height: status === Loader.Error ? Theme.itemSizeHuge : implicitHeight
++        height: status === Loader.Error ? Theme.itemSizeHuge : (portraitMode ? implicitHeight + _bottomOffset : implicitHeight)
+ 
+         source: keyboard.sourceDirectory + model.file
+ 
+diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml b/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
+index beef208..9f4f29e 100644
+--- a/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
++++ b/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
+@@ -3,8 +3,16 @@
+ 
+ import QtQuick 2.0
+ import Sailfish.Silica 1.0
++import Nemo.Configuration 1.0
+ 
+ QtObject {
++    property real _rowHeightFactor: 1.0
++    property var _heightConfig: ConfigurationValue {
++        key: '/patch/ichthyosaurus/keyboard-configurable-height/rowHeightFactor'
++        onValueChanged: _rowHeightFactor = value
++        Component.onCompleted: _rowHeightFactor = value
++    }
++
+     // FIXME: need different scale ratio for landscape in case aspect ratio changes, now assuming 16:9
+     property bool isLargeScreen: screen.sizeCategory > Screen.Medium
+     property real scaleRatio: isLargeScreen ? screen.width / 580 : screen.width / 480
+@@ -13,8 +21,8 @@ QtObject {
+     property int keyboardWidthLandscape: screen.height
+     property int keyboardWidthPortrait: screen.width
+ 
+-    property int keyHeightLandscape: isLargeScreen ? keyHeightPortrait : 58*verticalScale
+-    property int keyHeightPortrait: 80*verticalScale
++    property int keyHeightLandscape: isLargeScreen ? keyHeightPortrait : (58*verticalScale * _rowHeightFactor)
++    property int keyHeightPortrait: 80*verticalScale * _rowHeightFactor
+     property int keyRadius: 4*scaleRatio
+ 
+     property int functionKeyWidthLandscape: 145*scaleRatio
+@@ -33,7 +41,7 @@ QtObject {
+ 
+     property int middleBarWidth: keyboardWidthLandscape / 4
+ 
+-    property int popperHeight: isLargeScreen ? 99*scaleRatio : 120*scaleRatio
++    property int popperHeight: (isLargeScreen ? 99*scaleRatio : 120*scaleRatio) * _rowHeightFactor
+     property int popperWidth: isLargeScreen ? 66*scaleRatio : 80*scaleRatio
+     property int popperRadius: 10*scaleRatio
+     property int popperFontSize: 56*scaleRatio
+diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml b/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml
+index 2dd98a0..6b31dd6 100644
+--- a/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml
++++ b/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml
+@@ -95,6 +95,12 @@ Column {
+         Behavior on opacity { FadeAnimation {}}
+     }
+ 
++    Connections {
++        target: geometry
++        onKeyHeightPortraitChanged: if (portraitMode) updateSizes()
++        onKeyHeightLandscapeChanged: if (!portraitMode) updateSizes()
++    }
++
+     function updateSizes () {
+         if (width === 0) {
+             return

@@ -1,0 +1,106 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release, License
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts, TestCommands
+#   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
+
+SourcePackages:
+- jolla-keyboard >= 0.9.5
+
+Prefix: /usr/share/maliit/plugins/com/jolla
+DisplayName: Configurable keyboard height
+PackageName: sfos-patch-keyboard-configurable-height
+Category: Keyboard
+
+Keywords:
+- Patch
+- Keyboard
+- Height
+- Position
+- Size
+- smaller keyboard
+- long phones
+- higher rows
+- Xperia 10
+- Xperia X
+
+Maintainer: ichthyosaurus
+Summary: Makes the keyboard height and position configurable
+Description:
+- This patch allows to configure the height of keyboard rows, and the vertical
+- position of the whole keyboard.
+-
+- Using the keyboard on phones with a “long” display like the Xperia 10
+- can be quite uncomfortable. This patch allows you to move the entire keyboard
+- higher up on the screen to make it easier accessible without having to lose grip.
+-
+- On the other hand, phones like the Xperia X with smaller displays can benefit
+- from a smaller keyboard, so you can see more of the screen while typing.
+-
+- This patch replaces three of my other patches:
+- [keyboard for “long” phones](https://openrepos.net/content/ichthyosaurus/patch-keyboard-adapted-long-phones-xperia-10) like Xperia 10,
+- [smaller keyboard](https://openrepos.net/content/ichthyosaurus/patch-smaller-keyboard), and
+- [higher keyboard rows](https://openrepos.net/content/ichthyosaurus/patch-higher-keyboard-rows).
+-
+- If you installed one of them through the Patchmanager Web Catalog, please remove
+- it manually before applying this new patch.
+-
+- After installing the patch, you can select a preset from the pull-down menu
+- or apply custom values.
+-
+- *Thank you!*
+- [JacekJagosz](https://openrepos.net/users/jacekjagosz), [Edz](https://together.jolla.com/users/907/edz/)
+- [kuba77](https://openrepos.net/users/kuba77), [rdomschk](https://openrepos.net/users/rdomschk),
+- [nephros](https://openrepos.net/users/nephros), and [theyosh](https://openrepos.net/users/theyosh)
+- all contributed to ealier versions of the patches replaced by this one.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+License: GPL-3.0-or-later
+
+# TestCommands:
+# - killall jolla-notes
+# - jolla-notes
+
+Requires:
+- sailfish-version >= 4.5.0
+- @sources
+
+Obsoletes:
+- sfos-patch-keyboard-for-long-phones < 1.0.3
+- sfos-patch-keyboard-higher-rows < 1.0.4
+- sfos-patch-keyboard-smaller-keyboard < 1.0.4
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+- screenshot-3.png
+- screenshot-4.png
+- screenshot-5.png
+
+CompatibleVersions:
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+Changelog:
+- 1.0.0 (2023-04-14):
+- - initial public release
+
+# kate: syntax SailfishOS Patch
