@@ -1,8 +1,8 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml b/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml
-index 7676b5c..b9f2a42 100644
+index 2dd98a0..b04e58e 100644
 --- a/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml
 +++ b/usr/share/maliit/plugins/com/jolla/KeyboardLayout.qml
-@@ -104,7 +104,7 @@ Column {
+@@ -137,7 +137,7 @@ Column {
              child = children[i]
              child.width = width
              if (child.hasOwnProperty("followRowHeight") && child.followRowHeight) {

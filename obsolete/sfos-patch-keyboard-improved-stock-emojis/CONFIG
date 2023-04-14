@@ -5,18 +5,22 @@
 # Fields:
 # - one line: Prefix, DisplayName, PackageName, Category,
 #             Maintainer, Summary, DiscussionLink, DonationsLink,
-#             SourcesLink, Version
+#             SourcesLink, Version, Release, License
 # - multiple lines: Keywords, Description, Screenshots,
 #             CompatibleVersions, Changelog, Requires,
-#             Obsoletes, Conflicts
+#             Obsoletes, Conflicts, TestCommands
 #   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
 #
 
 SourcePackages:
 - jolla-keyboard >= 0.7.1
 
 Prefix: /usr/share
-DisplayName: Improved stock emoji keyboard
+DisplayName: [obsolete] Improved stock emoji keyboard
 PackageName: sfos-patch-keyboard-improved-stock-emojis
 Category: Keyboard
 Keywords:
@@ -25,31 +29,28 @@ Keywords:
 - emoji
 
 Maintainer: ichthyosaurus
-Summary: Patch adding more emojis to the stock emoji keyboard layout
+Summary: [obsolete] Patch adding more emojis to the stock emoji keyboard layout
 Description:
+- **Please use the [color emoji keyboard patch](https://openrepos.net/content/ichthyosaurus/patch-stock-emoji-keyboard-colors) instead.**
+-
 - This patch adds more emoji characters to the stock emoji keyboard layout.
 - In its current state, a new line is added and a second page is available.
-- The second page ("shift") will be filled with new emojis as needed.
+- The second page (“shift”) will be filled with new emojis as needed.
 -
 - If you want a certain emoji to be included, feel free to ask in the comments.
 
-DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-improved-stock-emoji-keyboard
-# DonationsLink: https://example.org/donations
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.2
+Version: 1.0.3
 Release: 1
+License: GPL-3.0-or-later
 
 Requires:
 - sailfish-version >= 3.0.0
-- jolla-keyboard >= 0.7.1
-
-# Conflicts:
-# - my-conflicting-package = 0.0.1
-# - the-old-name
-#
-# Obsoletes:
-# - the-other-old-name
+- sailfish-version <= 3.4.0
+- @sources
 
 Screenshots:
 - screenshot-1.png
@@ -73,8 +74,12 @@ CompatibleVersions:
 - 3.4.0.22
 - 3.4.0.24
 
-
 Changelog:
+- 1.0.3:
+- - mark as superseded by the color emoji keyboard patch
+- - update to be compatible with the latest Patchmanager
+- - add donations link and feedback forum
+-
 - 1.0.2:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -

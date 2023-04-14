@@ -5,59 +5,52 @@
 # Fields:
 # - one line: Prefix, DisplayName, PackageName, Category,
 #             Maintainer, Summary, DiscussionLink, DonationsLink,
-#             SourcesLink, Version, Release
+#             SourcesLink, Version, Release, License
 # - multiple lines: Keywords, Description, Screenshots,
 #             CompatibleVersions, Changelog, Requires,
-#             Obsoletes, Conflicts
+#             Obsoletes, Conflicts, TestCommands
 #   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
 #
 
 SourcePackages:
 - sailfishsilica-qt5 >= 1.1.86.1
 
 Prefix: /usr/lib/qt5/qml/Sailfish/Silica/private
-DisplayName: Check mark for remorse timer
+DisplayName: Check mark for remorse timer [SFOS 3.x]
 PackageName: sfos-patch-remorse-check-mark
 Category: Silica
-# Category must be one of:
-#     Homescreen
-#     Browser
-#     Camera
-#     Calendar
-#     Clock
-#     Contacts
-#     Email
-#     Gallery
-#     Media
-#     Messages
-#     Phone
-#     Silica
-#     Settings
-#     Keyboard
-#     Others
+
 Keywords:
 - Patch
 - Remorse
 - Design
 
 Maintainer: ichthyosaurus
-Summary: Change the remorse timer 'X' icon to a check mark
+Summary: [obsolete] Change the remorse timer 'X' icon to a check mark
 Description:
+- **This patch is obsolete since SFOS 4.x, as the 'X' icon has been removed.**
+-
 - This patch keeps the current remorse timer design but changes the 'X' icon to a check mark.
 -
 - Another patch is available [here](https://openrepos.net/content/ichthyosaurus/patch-remove-icon-remorse-timer)
 - that removes the icon completely.
 
-DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-check-mark-remorse-timer
-# DonationsLink:
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.1
+Version: 1.0.2
 Release: 1
+License: GPL-3.0-or-later
 
 Requires:
 - sailfish-version >= 3.0.0
-- sailfishsilica-qt5 >= 1.1.86.1
+- sailfish-version <= 4.0.0
+- @sources
 
 Conflicts:
 - sfos-patch-remorse-remove-cross = 1.0.0
@@ -86,6 +79,11 @@ CompatibleVersions:
 
 
 Changelog:
+- 1.0.2:
+- - mark as obsolete since SFOS 4.x
+- - update to be compatible with the latest Patchmanager
+- - add donations link and feedback forum
+-
 - 1.0.1:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -

@@ -17,80 +17,72 @@
 #
 
 SourcePackages:
-- sailfishsilica-qt5 >= 1.1.86.1
+- jolla-keyboard >= 0.7.1
 
-Prefix: /usr/lib/qt5/qml/Sailfish/Silica/private
-DisplayName: Remove icon from remorse timer [SFOS 3.x]
-PackageName: sfos-patch-remorse-remove-cross
-Category: Silica
-
+Prefix: /usr/share
+DisplayName: [obsolete] Smaller keyboard
+PackageName: sfos-patch-keyboard-smaller-keyboard
+Category: Keyboard
 Keywords:
 - Patch
-- Remorse
-- Design
+- keyboard
+- size
 
 Maintainer: ichthyosaurus
-Summary: [obsolete] Remove the remorse timer's misleading 'X' icon
+Summary: [obsolete] Patch reducing height of the keyboard
 Description:
-- **This patch is obsolete since SFOS 4.x, as the 'X' icon has been removed.**
+- **This patch has been replaced by the new [configurable keyboard height](https://openrepos.net/content/ichthyosaurus/patch-configurable-keyboard-height) patch.**
 -
-- This patch keeps the current remorse timer design but removes the 'X' icon.
--
-- Another patch is available [here](https://openrepos.net/content/ichthyosaurus/patch-check-mark-remorse-timer)
-- that changes the icon to a check mark.
--
-- Note: a similar patch is available in the Patchmanager online catalogue
-- ([here](https://coderus.openrepos.net/pm2/project/remove-cross-icon-from-remorse-timer-iii)).
-- Mine changes less code so it might be more compatible with other patches, though.
+- Simply reduces the default keyboard height, so you can see more of the screen while typing.
 
 DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
 DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.2
+Version: 1.0.3
 Release: 1
 License: GPL-3.0-or-later
 
 Requires:
 - sailfish-version >= 3.0.0
-- sailfish-version <= 4.0.0
-- @sources
+- sailfish-version < 4.5.0
+- jolla-keyboard >= 0.7.1
 
-Conflicts:
-- sfos-patch-remorse-check-mark = 1.0.0
-
-# Screenshots:
-# - screenshot-before.png
-# - screenshot-after.png
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
 
 CompatibleVersions:
-- 3.0.0.5
-- 3.0.0.8
-- 3.0.0.11
-- 3.0.1.11
-- 3.0.1.14
-- 3.0.2.8
-- 3.0.3.8
-- 3.0.3.9
-- 3.0.3.10
-- 3.1.0.11
-- 3.2.0.12
-- 3.2.1.20
-- 3.3.0.14
-- 3.3.0.16
 - 3.4.0.22
 - 3.4.0.24
+- 4.0.1.45
+- 4.0.1.48
+- 4.1.0.23
+- 4.1.0.24
+- 4.2.0.19
+- 4.2.0.21
+- 4.3.0.12
+- 4.3.0.15
+- 4.4.0.58
+- 4.4.0.64
+- 4.4.0.68
+- 4.4.0.72
 
 Changelog:
-- 1.0.2:
-- - mark as obsolete since SFOS 4.x
+- 1.0.3:
+- - mark as obsolete since SFOS 4.4: replaced by a new patch
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 4.4.0.72
 - - update to be compatible with the latest Patchmanager
 - - add donations link and feedback forum
+- - you may have to install an earlier version of this patch on older system versions
 -
-- 1.0.1:
+- 1.0.2:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -
-- 1.0.0 (2020-09-08):
+- 1.0.1:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS 3
+-
+- 1.0.0:
 - - initial public release
 
 # kate: syntax SailfishOS Patch

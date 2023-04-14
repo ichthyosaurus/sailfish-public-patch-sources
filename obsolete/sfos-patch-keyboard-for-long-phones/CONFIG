@@ -5,18 +5,22 @@
 # Fields:
 # - one line: Prefix, DisplayName, PackageName, Category,
 #             Maintainer, Summary, DiscussionLink, DonationsLink,
-#             SourcesLink, Version, Release
+#             SourcesLink, Version, Release, License
 # - multiple lines: Keywords, Description, Screenshots,
 #             CompatibleVersions, Changelog, Requires,
-#             Obsoletes, Conflicts
+#             Obsoletes, Conflicts, TestCommands
 #   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
 #
 
 SourcePackages:
 - jolla-keyboard >= 0.7.13
 
 Prefix: /usr/share
-DisplayName: Keyboard adapted to 'long' phones (like Xperia 10)
+DisplayName: [obsolete] Keyboard adapted to “long” phones (like Xperia 10)
 PackageName: sfos-patch-keyboard-for-long-phones
 Category: Keyboard
 Keywords:
@@ -27,9 +31,11 @@ Keywords:
 - Position
 
 Maintainer: ichthyosaurus
-Summary: Keyboard adapted to 'long' phones (like Xperia 10)
+Summary: [obsolete] Keyboard adapted to “long” phones (like Xperia 10)
 Description:
-- Using the keyboard on phones with a 'long' form factor like the Xperia 10
+- **This patch has been replaced by the new [configurable keyboard height](https://openrepos.net/content/ichthyosaurus/patch-configurable-keyboard-height) patch.**
+-
+- Using the keyboard on phones with a “long” form factor like the Xperia 10
 - can be quite uncomfortable. This patch moves the entire keyboard higher up
 - on the screen to make it easier accessible without having to lose grip.
 -
@@ -38,23 +44,22 @@ Description:
 - [here](https://together.jolla.com/question/220879/idea-raise-the-keyboard-on-long-devices/)
 - by [JacekJagosz](https://openrepos.net/users/jacekjagosz)
 - where [Edz](https://together.jolla.com/users/907/edz/) provided the first
-- patch. It was further improved by [kuby77](https://openrepos.net/users/kuba77)
-- and [rdomschk](https://openrepos.net/users/rdomschk).
+- patch. It was further improved by [kuba77](https://openrepos.net/users/kuba77),
+- [rdomschk](https://openrepos.net/users/rdomschk), and [nephros](https://openrepos.net/users/nephros).
 - Screenshots were provided by [theyosh](https://openrepos.net/users/theyosh).
 
-DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-keyboard-adapted-long-phones-xperia-10
-# DonationsLink: still missing
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.1
+Version: 1.0.2
 Release: 1
+License: GPL-3.0-or-later
 
 Requires:
 - sailfish-version >= 3.0.0
+- sailfish-version <= 4.2.0
 - jolla-keyboard >= 0.7.13
-
-# Conflicts:
-# - my-conflicting-package = 0.0.1
 
 Screenshots:
 - screenshot-01-original.png
@@ -66,9 +71,21 @@ CompatibleVersions:
 - 3.3.0.16
 - 3.4.0.22
 - 3.4.0.24
-
+- 4.0.1.45
+- 4.0.1.48
+- 4.1.0.23
+- 4.1.0.24
+- 4.2.0.19
+- 4.2.0.21
 
 Changelog:
+- 1.0.2:
+- - mark as obsolete since SFOS 4.3: replaced by a new patch
+- - tie height to screen size on SFOS 4.x (thank you, nephros)
+- - update to be compatible with the latest Patchmanager
+- - add donations link and feedback forum
+- - you may have to install an earlier version of this patch on older system versions
+-
 - 1.0.1:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -

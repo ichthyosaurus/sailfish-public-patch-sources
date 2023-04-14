@@ -1,0 +1,21 @@
+diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+index ea83e02..9101299 100644
+--- a/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
++++ b/usr/share/maliit/plugins/com/jolla/KeyboardBase.qml
+@@ -98,6 +98,7 @@ PagedView {
+ 
+     readonly property bool swipeGestureIsSafe: !releaseTimer.running
+     readonly property string sourceDirectory: "/usr/share/maliit/plugins/com/jolla/layouts/"
++    readonly property int _bottomOffset: Math.round(Screen.height * 0.12)
+ 
+     verticalAlignment: PagedView.AlignBottom
+ 
+@@ -120,7 +121,7 @@ PagedView {
+         readonly property bool current: status === Loader.Ready && PagedView.isCurrentItem
+ 
+         width: keyboard.width
+-        height: status === Loader.Error ? Theme.itemSizeHuge : implicitHeight
++        height: status === Loader.Error ? Theme.itemSizeHuge : (portraitMode ? implicitHeight + _bottomOffset : implicitHeight)
+ 
+         source: keyboard.sourceDirectory + model.file
+ 

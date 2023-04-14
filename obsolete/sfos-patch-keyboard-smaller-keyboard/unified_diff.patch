@@ -1,5 +1,5 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml b/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
-index 4cdd00d..6f560ec 100644
+index beef208..425e2f6 100644
 --- a/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
 +++ b/usr/share/maliit/plugins/com/jolla/KeyboardGeometry.qml
 @@ -13,8 +13,8 @@ QtObject {
@@ -13,7 +13,7 @@ index 4cdd00d..6f560ec 100644
      property int keyRadius: 4*scaleRatio
  
      property int functionKeyWidthLandscape: 145*scaleRatio
-@@ -35,7 +35,7 @@ QtObject {
+@@ -33,7 +33,7 @@ QtObject {
  
      property int middleBarWidth: keyboardWidthLandscape / 4
  
