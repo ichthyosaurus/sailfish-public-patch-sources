@@ -5,15 +5,19 @@
 # Fields:
 # - one line: Prefix, DisplayName, PackageName, Category,
 #             Maintainer, Summary, DiscussionLink, DonationsLink,
-#             SourcesLink, Version
+#             SourcesLink, Version, Release, License
 # - multiple lines: Keywords, Description, Screenshots,
 #             CompatibleVersions, Changelog, Requires,
-#             Obsoletes, Conflicts
+#             Obsoletes, Conflicts, TestCommands
 #   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
 #
 
 SourcePackages:
-- jolla-keyboard >= 0.7.1
+- jolla-keyboard >= 0.9.5
 
 Prefix: /usr/share
 DisplayName: Apostrophe key for all stock keyboards
@@ -36,16 +40,17 @@ Description:
 - [patch adding accents to spacebar row keys](https://openrepos.net/content/ichthyosaurus/patch-overloaded-spacebar-row-keys).
 - Therefore I added the same characters here, too.
 
-DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-apostrophe-key-all-keyboards
-# DonationsLink: https://example.org/donations
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.0.4
+Version: 1.1.0
 Release: 1
+License: GPL-3.0-or-later
 
 Requires:
-- sailfish-version >= 3.0.0
-- jolla-keyboard >= 0.7.1
+- sailfish-version >= 4.5.0
+- @sources
 
 Conflicts:
 - sfos-patch-keyboard-overloaded-space-row-keys
@@ -58,25 +63,16 @@ Screenshots:
 - screenshot-2.png
 
 CompatibleVersions:
-- 3.0.0.5
-- 3.0.0.8
-- 3.0.0.11
-- 3.0.1.11
-- 3.0.1.14
-- 3.0.2.8
-- 3.0.3.8
-- 3.0.3.9
-- 3.0.3.10
-- 3.1.0.11
-- 3.2.0.12
-- 3.2.1.20
-- 3.3.0.14
-- 3.3.0.16
-- 3.4.0.22
-- 3.4.0.24
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
 
 
 Changelog:
+- 1.1.0:
+- - update compatibility info: the patch is compatible with all versions of SailfishOS up to 4.5.0.19
+- - you may have to install an earlier version of this patch on older system versions
+-
 - 1.0.4:
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -

@@ -1,11 +1,14 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_fr_ch.qml b/usr/share/maliit/plugins/com/jolla/layouts/custom_fr_ch.qml
 new file mode 100644
-index 0000000..2ed5557
+index 0000000..0804419
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/layouts/custom_fr_ch.qml
-@@ -0,0 +1,90 @@
-+// No copyright (C)... Enjoy! (Dec. 2015)
-+// Comments: Jordi Bossy <jordi.bossy@romandie.com>
+@@ -0,0 +1,56 @@
++/*
++ * Swiss French Keyboard Layout
++ * Copyright (c) 2015       Jordi Bossy <jordi.bossy@romandie.com> -- "No copyright (C)... Enjoy! (Dec. 2015)"
++ *               2018-2023  Mirian Margiani
++*/
 +
 +import QtQuick 2.0
 +import com.jolla.keyboard 1.0
@@ -55,44 +58,7 @@ index 0000000..2ed5557
 +        BackspaceKey {}
 +    }
 +
-+    KeyboardRow {
-+        splitIndex: 4
-+
-+        SymbolKey {
-+            implicitWidth: symbolKeyWidthNarrow
-+        }
-+        CharacterKey {
-+            caption: "'"
-+            captionShifted: "\""
-+            accents: "\""
-+            accentsShifted: "\""
-+            symView: "_"
-+            symView2: "-"
-+            implicitWidth: punctuationKeyWidthNarrow
-+            fixedWidth: !splitActive
-+        }
-+        CharacterKey {
-+            caption: ","
-+            captionShifted: ","
-+            implicitWidth: punctuationKeyWidthNarrow
-+            fixedWidth: !splitActive
-+        }
-+        SpacebarKey {}
-+        SpacebarKey {
-+            active: splitActive
-+            languageLabel: ""
-+        }
-+        CharacterKey {
-+            caption: "."
-+            captionShifted: "."
-+            accents: "()/-:;@"
-+            accentsShifted: "()/-:;@"
-+            implicitWidth: punctuationKeyWidthNarrow
-+            fixedWidth: !splitActive
-+            separator: SeparatorState.HiddenSeparator
-+        }
-+        EnterKey {}
-+    }
++    SpacebarRow {}
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_fr_ch.conf b/usr/share/maliit/plugins/com/jolla/layouts/custom_layouts_fr_ch.conf
 new file mode 100644
