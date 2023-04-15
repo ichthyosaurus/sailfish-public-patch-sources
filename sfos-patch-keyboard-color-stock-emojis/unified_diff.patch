@@ -1381,7 +1381,7 @@ index 0000000..e180043
 +    'apple': {
 +      name: 'Apple',
 +      key: 'apple',
-+      versions: ['ios-15.4', 'ios-14.2'],
++      versions: ['ios-16.4', 'ios-15.4', 'ios-14.2'],
 +      ext: 'png',
 +      type: 'r',
 +      url: 'https://emojipedia.org/apple',
