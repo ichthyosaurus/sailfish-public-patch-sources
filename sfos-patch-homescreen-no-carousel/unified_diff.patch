@@ -1,7 +1,7 @@
 diff --git a/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml b/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
 index 4267c88..07cedfb 100644
---- a/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
-+++ b/usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
+--- /usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
++++ /usr/lib/qt5/qml/Sailfish/Lipstick/NotificationBaseItem.qml
 @@ -85,12 +85,12 @@ Private.SwipeItem {
  
          z: -1
@@ -19,8 +19,8 @@ index 4267c88..07cedfb 100644
          opacity: enabled ? Theme.highlightBackgroundOpacity : 0.0
 diff --git a/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml b/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
 index 87ee141..ac26912 100644
---- a/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
-+++ b/usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
+--- /usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
++++ /usr/lib/qt5/qml/Sailfish/Silica/private/DismissAnimation.qml
 @@ -78,9 +78,16 @@ SequentialAnimation {
          return active
      }
@@ -42,8 +42,8 @@ index 87ee141..ac26912 100644
  
 diff --git a/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml b/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
 index debacc0..987f127 100644
---- a/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
-+++ b/usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
+--- /usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
++++ /usr/lib/qt5/qml/Sailfish/Silica/private/SwipeItem.qml
 @@ -46,6 +46,9 @@ BackgroundItem {
      readonly property bool showSwipeHint: down && (_longPress || drag.active || _triggeredWithGesture)
      property int swipeDistance: _page ? _page.width : width
@@ -78,8 +78,8 @@ index debacc0..987f127 100644
              if (!drag.active) {
 diff --git a/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml b/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
 index a699564..920505a 100644
---- a/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
-+++ b/usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
+--- /usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
++++ /usr/share/lipstick-jolla-home-qt5/layers/HomeLayer.qml
 @@ -49,7 +49,7 @@ Pannable {
      readonly property bool _transposed: Lipstick.compositor.topmostWindowAngle % 180 != 0
  
@@ -163,8 +163,8 @@ index a699564..920505a 100644
                          firstMoved = layer
 diff --git a/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml b/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
 index fa2b223..6a33d45 100644
---- a/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
-+++ b/usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
+--- /usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
++++ /usr/share/lipstick-jolla-home-qt5/main/EditableGridDelegate.qml
 @@ -113,11 +113,14 @@ Item {
      MouseArea {
          id: delegateContentItem
@@ -198,8 +198,8 @@ index fa2b223..6a33d45 100644
                  manager.stopScrolling()
 diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
 index 8c37bd4..6714c3e 100644
---- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
-+++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
+--- /usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
++++ /usr/share/lipstick-jolla-home-qt5/notifications/NotificationHeader.qml
 @@ -7,9 +7,29 @@
  
  import QtQuick 2.6
@@ -233,8 +233,8 @@ index 8c37bd4..6714c3e 100644
      readonly property bool _housekeeping: Lipstick.compositor.eventsLayer.housekeeping
 diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
 index 6102645..fec5917 100644
---- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
-+++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
+--- /usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
++++ /usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupItem.qml
 @@ -47,6 +47,9 @@ NotificationGroupItem {
      implicitHeight: column.height
      draggable: groupHeader.draggable
@@ -256,8 +256,8 @@ index 6102645..fec5917 100644
          Item {
 diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
 index 5d4dee3..6e7ac4a 100644
---- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
-+++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
+--- /usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
++++ /usr/share/lipstick-jolla-home-qt5/notifications/NotificationStandardGroupMember.qml
 @@ -38,6 +38,9 @@ NotificationGroupMember {
  
      onHousekeepingChanged: expanded = false
@@ -279,8 +279,8 @@ index 5d4dee3..6e7ac4a 100644
      VerticalAutoScroll.topMargin: Theme.paddingLarge
 diff --git a/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml b/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
 index f879299..3ebe15b 100644
---- a/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
-+++ b/usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
+--- /usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
++++ /usr/share/lipstick-jolla-home-qt5/switcher/SwitcherItem.qml
 @@ -31,7 +31,7 @@ EditableGridDelegate {
      property bool windowMapPending
      property int showingWid

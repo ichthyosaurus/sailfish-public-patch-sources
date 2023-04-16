@@ -60,28 +60,19 @@ DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
 DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 4.0.0
+Version: 4.0.1
 Release: 1
 License: GPL-3.0-or-later
 
-# Add a list of commands below which can be run after deployment.
 TestCommands:
 - systemctl --user restart lipstick
 
-# Use @sources to mark all entries of SourcePackages as required.
 Requires:
 - sailfish-version >= 4.5.0
 - @sources
 
-# Conflicts:
-# - my-conflicting-package = 0.0.1
-# - the-old-name
-
 Obsoletes:
-- sailfishos-patch-no-home-carousel = 0.0.1
-- sailfishos-patch-no-home-carousel = 0.0.2
-- sailfishos-patch-no-home-carousel = 0.0.3
-- sailfishos-patch-no-home-carousel = 0.1.0
+- sailfishos-patch-no-home-carousel < 0.1.1
 
 Screenshots:
 - screenshot-1.png
@@ -94,6 +85,10 @@ CompatibleVersions:
 - 4.5.0.19
 
 Changelog:
+- 4.0.1:
+- - fix compatibility with 64bit devices
+- - packaging updates
+-
 - 4.0.0 (2023-04-12):
 - - initial public release of the updated version for SFOS 4.5
 - - notifications can be swiped away without having to press the "housekeeping" button
