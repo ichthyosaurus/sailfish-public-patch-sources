@@ -16,26 +16,28 @@
 # Release, License, Description, CompatibleVersions
 #
 
-SourcePackages:
-- jolla-keyboard >= 0.7.1
+# SourcePackages: none required
 
 Prefix: /usr/share/maliit/plugins/com/jolla/layouts
-DisplayName: Swiss German keyboard layout
-PackageName: sfos-patch-keyboard-swiss-german-layout
+DisplayName: Georgian keyboard layout
+PackageName: sfos-patch-keyboard-georgian-layout
 Category: Keyboard
+
 Keywords:
 - Patch
 - Keyboard
 - Keyboard layout
 - layout
-- Swiss German
+- Georgian
 
 Maintainer: ichthyosaurus
-Summary: Patch adding a new Swiss German keyboard layout
+Summary: Patch adding a new Georgian keyboard layout
 Description:
-- This patch adds a new Swiss German keyboard layout.
+- This patch adds a new Georgian (Mchedruli) keyboard layout.
 -
-- Many special characters are available if you long-press a key.
+- A full Latin layout is availble on the second and third keyboard pages to
+- allow mixing Georgian and Latin scripts more quickly. Many special characters
+- are available if you long-press a key.
 -
 - The new layout includes an extra row of keys. Therefore I recommend installing
 - the [smaller keyboard patch](https://openrepos.net/content/ichthyosaurus/patch-smaller-keyboard)
@@ -47,25 +49,27 @@ Description:
 - to be able to use all emojis with skin tone variations, etc. If no emoji
 - keyboard is enabled, the key lets you quickly switch between the current and
 - the last used character keyboard.
+-
+- Credits: the keyboard layout was originally written by [gamag](https://openrepos.net/users/gamag)
+- and gets occasionally updates from [ichthyosaurus](https://openrepos.net/users/ichthyosaurus).
 
 DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
 DonationsLink: https://liberapay.com/ichthyosaurus
 SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
-Version: 1.1.1
+Version: 2.0.0
 Release: 1
 License: GPL-3.0-or-later
 
 Requires:
 - sailfish-version >= 3.4.0
-- @sources
+- jolla-keyboard >= 0.7.1
 
 Screenshots:
 - screenshot-1.png
 - screenshot-2.png
 - screenshot-3.png
 - screenshot-4.png
-- screenshot-5.png
 
 CompatibleVersions:
 - 3.4.0.22
@@ -87,33 +91,23 @@ CompatibleVersions:
 - 4.5.0.19
 
 Changelog:
-- 1.1.1 (2023-04-17):
-- - packaging fixes to minimize conflicts
-- - make the "switch to emojis" button more robust and always switch to the last character layout if the emoji layout is not available
+- 2.0.0 (2023-04-17):
+- - refactor pages to remove duplicate characters and switch quickly between Georgian and Latin:
+- - 1. Georgian (Mchedruli) layout as default
+- - 2. symbols on shift (no capslock)
+- - 3. full Latin layout on the "symbols" view (plus umlauts because there is space)
+- - 4. Latin capital letters on the second page of the "symbols" view
+- - add button to quickly switch between emojis and characters
+- - packaging fixes
 -
-- 1.1.0 (2023-04-13):
+- 1.1.0 (2023-04-11):
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 4.5.0.19
-- - you may have to install an older release for older SailfishOS versions
-- - add donations link and feedback forum
+- - you may have to install an earlier version of this patch on older system versions
 -
-- 1.0.5 (2020-12-06):
+- 1.0.1 (2020-12-06):
 - - update compatibility info: the patch is compatible with all versions of SailfishOS up to 3.4.0.24
 -
-- 1.0.4 (2019-12-27):
-- - update compatibility info: the patch is compatible with all versions of SailfishOS 3
--
-- 1.0.3 (2019-09-04):
-- - add a few more accents to the following keys: 1, 2, 3, ?, r, c
-- - add a few more symbol keys at the following positions: 7, 8, ü, s, x
--
-- 1.0.2 (2019-09-04):
-- - fix compatibility with SFOS 3.1.0.11
--
-- 1.0.1 (2019-07-30):
-- - rename to "Deutsch (Schweiz)" in list of available keyboards
-- - make file names internally less ambiguous
--
-- 1.0.0 (2019-07-13):
+- 1.0.0 (2019-08-20):
 - - initial public release
 
 # kate: syntax SailfishOS Patch

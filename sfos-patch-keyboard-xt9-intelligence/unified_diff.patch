@@ -1,5 +1,5 @@
 diff --git a/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml b/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
-index 38bf609..9ef0289 100644
+index 5e923a5..70a7c0f 100644
 --- a/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
 +++ b/usr/share/maliit/plugins/com/jolla/Xt9InputHandler.qml
 @@ -319,16 +319,33 @@ InputHandler {
