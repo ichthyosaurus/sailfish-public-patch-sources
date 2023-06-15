@@ -1,0 +1,109 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release, License
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts, TestCommands
+#   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
+
+SourcePackages:
+- jolla-settings >= 1.1.21
+# -1.6.1.jolla.armv7hl
+
+Prefix: /usr
+DisplayName: Reduce settings app lag
+PackageName: sfos-patch-settings-fix-startup-lag
+Category: Settings
+# Category must be one of:
+#     Homescreen
+#     Browser
+#     Camera
+#     Calendar
+#     Clock
+#     Contacts
+#     Email
+#     Gallery
+#     Media
+#     Messages
+#     Phone
+#     Silica
+#     Settings
+#     Keyboard
+#     Others
+Keywords:
+- Patch
+- Settings
+- Lag
+- Slow
+- Fix
+- Reduce
+
+Maintainer: ichthyosaurus
+Summary: Reduce the time needed until the settings app becomes responsive
+Description:
+- This patch reduces the startup time of the settings app, which is painfully
+- slow without the patch.
+-
+- The lag is not actually fixed but rather delayed and split up. This doesn't
+- make the app more beautiful but it makes it much less annoying to open it.
+-
+- This patch is one in a series of patches that make it more bearable that I
+- have to restart the network all the time since SFOS 4.x. Without the patch,
+- I had to wait up to ten seconds until I could push the "restart network" button
+- on the utilities settings page. With the patch and a shortcut in the top menu,
+- the page becomes interactive almost immediately.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+License: GPL-3.0-or-later
+
+# These commands can be run after deployment. They are for testing only and will
+# not be run when users install the patch.
+TestCommands:
+- killall jolla-settings
+- jolla-settings
+
+# Use @sources to mark all entries of SourcePackages as required.
+Requires:
+- sailfish-version >= 4.5.0
+- @sources
+
+# When renaming a patch or creating a patch that replaces another one, add
+# all old names into this list. Make sure to define the next higher version
+# number than the last released one.
+# Obsoletes:
+# - an-old-name < x.y.z
+# - replaced-package < x.y.z
+
+Screenshots:
+- screenshot-1.png
+- screenshot-2.png
+
+CompatibleVersions:
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+# Entries should be in descending order (most recent at the top), formatted like this:
+# - x.y.z-r (yyyy-mm-dd):
+# - - short summary of a change
+# - - further summary of another change
+Changelog:
+- 1.0.0 (2023-06-15):
+- - initial public release
+
+# kate: syntax SailfishOS Patch
