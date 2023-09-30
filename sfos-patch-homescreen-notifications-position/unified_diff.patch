@@ -1,0 +1,15 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
+index a78ce71..8cf847a 100644
+--- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
++++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
+@@ -171,7 +171,9 @@ SystemWindow {
+         objectName: "NotificationPreview_popupArea"
+ 
+         _showPress: false
+-        y: Theme.paddingMedium
++        y: Theme.paddingMedium + (Lipstick.compositor.homeLayer.active ? Lipstick.compositor.homeLayer.statusBar.height : 0)
++        Behavior on y { NumberAnimation { duration: 50; easing.type: Easing.InOutQuad } }
++
+         width: displayWidth
+         swipeDistance: notificationWindow.width
+         height: expanded

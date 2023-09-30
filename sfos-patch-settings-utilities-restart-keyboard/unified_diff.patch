@@ -1,0 +1,43 @@
+diff --git a/usr/share/sailfish-utilities/ActionList.qml b/usr/share/sailfish-utilities/ActionList.qml
+index e640329..b8fd14a 100644
+--- a/usr/share/sailfish-utilities/ActionList.qml
++++ b/usr/share/sailfish-utilities/ActionList.qml
+@@ -28,7 +28,7 @@ Column {
+             var info = { name: name, path: "plugins/" + name + ".qml" }
+             plugins.append(info)
+         }
+-        var names = [ "RestartNetwork", "RestartUI",
++        var names = [ "RestartNetwork", "RestartKeyboard", "RestartUI",
+                       "RestartFingerprint", "RestartBluetooth",
+                       "CleanPackageCache", "CleanTracker"
+                     ]
+diff --git a/usr/share/sailfish-utilities/plugins/RestartKeyboard.qml b/usr/share/sailfish-utilities/plugins/RestartKeyboard.qml
+new file mode 100644
+index 0000000..40aea27
+--- /dev/null
++++ b/usr/share/sailfish-utilities/plugins/RestartKeyboard.qml
+@@ -0,0 +1,24 @@
++import QtQuick 2.0
++import Sailfish.Silica 1.0
++import Sailfish.Utilities 1.0
++import Nemo.DBus 2.0
++
++ActionItem {
++    title: "Keyboard"
++    actionName: qsTrId("sailfish-tools-bt-restart")
++    deviceLockRequired: false
++    description: "Restart the keyboard if it becomes unresponsive, keys are missing, " +
++                 "or if it behaves otherwise incorrectly."
++
++    DBusInterface {
++        id: service
++        bus: DBus.SessionBus
++        service: 'org.freedesktop.systemd1'
++        path: '/org/freedesktop/systemd1/unit/maliit_2dserver_2eservice'
++        iface: 'org.freedesktop.systemd1.Unit'
++    }
++
++    function action(on_reply, on_error) {
++        service.call("Restart", ["replace"], on_reply, on_error)
++    }
++}

@@ -1,0 +1,104 @@
+#
+# SailfishOS Patch Configuration File
+# for sailfish-patch
+#
+# Fields:
+# - one line: Prefix, DisplayName, PackageName, Category,
+#             Maintainer, Summary, DiscussionLink, DonationsLink,
+#             SourcesLink, Version, Release, License
+# - multiple lines: Keywords, Description, Screenshots,
+#             CompatibleVersions, Changelog, Requires,
+#             Obsoletes, Conflicts, TestCommands
+#   (each line in a multiline field must start with '- ')
+#
+# Required:
+# DisplayName, PackageName, Category, Maintainer, Summary, Version,
+# Release, License, Description, CompatibleVersions
+#
+
+SourcePackages:
+- sailfish-utilities >= 0.1.17
+# 1.6.2.jolla.src
+
+Prefix: /usr
+DisplayName: Restart keyboard from “Utilities” page
+PackageName: sfos-patch-settings-utilities-restart-keyboard
+Category: Settings
+# Category must be one of:
+#     Homescreen
+#     Browser
+#     Camera
+#     Calendar
+#     Clock
+#     Contacts
+#     Email
+#     Gallery
+#     Media
+#     Messages
+#     Phone
+#     Silica
+#     Settings
+#     Keyboard
+#     Others
+Keywords:
+- Patch
+- Settings
+- Utilities
+- Keyboard
+- Restart
+
+Maintainer: ichthyosaurus
+Summary: Adds a “restart keyboard” option to the utilities settings page
+Description:
+- This patch adds a new option to the "Utilities" settings
+- page that allows to restart the keyboard.
+-
+- Note: a pull request is pending
+- [on Github](https://github.com/sailfishos/sailfish-utilities)
+- to merge this patch upstream.
+
+DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
+DonationsLink: https://liberapay.com/ichthyosaurus
+SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+
+Version: 1.0.0
+Release: 1
+License: GPL-3.0-or-later
+
+# These commands can be run after deployment. They are for testing only and will
+# not be run when users install the patch.
+TestCommands:
+- killall jolla-settings
+- jolla-settings
+
+# Use @sources to mark all entries of SourcePackages as required.
+Requires:
+- sailfish-version >= 4.5.0
+- jolla-settings >= 1.1.21
+- @sources
+# -1.6.1.jolla.armv7hl
+
+# When renaming a patch or creating a patch that replaces another one, add
+# all old names into this list. Make sure to define the next higher version
+# number than the last released one.
+# Obsoletes:
+# - an-old-name < x.y.z
+# - replaced-package < x.y.z
+
+Screenshots:
+- screenshot-1.png
+
+CompatibleVersions:
+- 4.5.0.16
+- 4.5.0.18
+- 4.5.0.19
+
+# Entries should be in descending order (most recent at the top), formatted like this:
+# - x.y.z-r (yyyy-mm-dd):
+# - - short summary of a change
+# - - further summary of another change
+Changelog:
+- 1.0.0 (2023-06-15):
+- - initial public release
+
+# kate: syntax SailfishOS Patch

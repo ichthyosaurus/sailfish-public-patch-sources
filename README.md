@@ -6,7 +6,7 @@ or from [Openrepos](https://openrepos.net/user/14094/programs).
 
 Discussions and feedback are invited in the [dedicated thread](https://forum.sailfishos.org/t/patches-by-ichthyosaurus/15387)
 on the SailfishOS forum. If you like my work, you can buy me a coffee through
-[Liberapay](https://liberapay.com/ichthyosaurus) or Paypal.
+[Liberapay](https://liberapay.com/ichthyosaurus).
 
 ## Using patches
 

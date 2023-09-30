@@ -1,0 +1,32 @@
+diff --git a/usr/lib/qt5/qml/com/jolla/settings/SettingsTabItem.qml b/usr/lib/qt5/qml/com/jolla/settings/SettingsTabItem.qml
+index e630fbf..c47473c 100644
+--- a/usr/lib/qt5/qml/com/jolla/settings/SettingsTabItem.qml
++++ b/usr/lib/qt5/qml/com/jolla/settings/SettingsTabItem.qml
+@@ -13,9 +13,14 @@ TabItem {
+         }
+     }
+ 
++    PageBusyIndicator {
++        running: loader.status !== Loader.Ready
++    }
++
+     Loader {
+         id: loader
+ 
++        asynchronous: true
+         anchors.fill: parent
+         sourceComponent: type === "section" ? sectionComponent : null
+         source: {
+diff --git a/usr/share/jolla-settings/pages/MainPage.qml b/usr/share/jolla-settings/pages/MainPage.qml
+index 4ff59c8..a1f9716 100644
+--- a/usr/share/jolla-settings/pages/MainPage.qml
++++ b/usr/share/jolla-settings/pages/MainPage.qml
+@@ -34,7 +34,7 @@ Page {
+         anchors.fill: parent
+         signal moveToSection(string path)
+ 
+-        cacheSize: 3
++        cacheSize: 1  // don't preload all 3 items because it causes massive lag on startup
+         model: settingsModel
+         header: TabBar {
+             model: settingsModel

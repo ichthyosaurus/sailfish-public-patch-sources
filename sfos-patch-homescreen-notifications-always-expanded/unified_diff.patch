@@ -1,0 +1,49 @@
+diff --git a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
+index a78ce71..335a02a 100644
+--- a/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
++++ b/usr/share/lipstick-jolla-home-qt5/notifications/NotificationPreview.qml
+@@ -105,7 +105,7 @@ SystemWindow {
+         Lipstick.compositor.unlock()
+     }
+ 
+-    onVisibleChanged: if (!visible) popupArea.expanded = false
++    onVisibleChanged: if (!visible) popupArea.expanded = true
+ 
+     opacity: 0
+     visible: false
+@@ -114,7 +114,7 @@ SystemWindow {
+         id: outsideArea
+ 
+         anchors.fill: popupArea
+-        enabled: false
++        enabled: false  // patch: this is kept disabled because otherwise it's too easy to lose a notification by accident
+ 
+         onPressedOutside: {
+             if (popupArea.expanded) {
+@@ -156,7 +156,7 @@ SystemWindow {
+ 
+         readonly property int baseX: Theme.paddingSmall
+ 
+-        property bool expanded
++        property bool expanded: true
+         property real textOpacity: 0
+         property color textColor: down ? palette.highlightColor : palette.primaryColor
+         readonly property int displayWidth: transpose ? Math.max(Screen.width, Screen.height/2)
+@@ -492,7 +492,7 @@ SystemWindow {
+         id: notificationTimer
+         property int duration
+         paused: running && (popupArea.swipeActive || popupArea.showSwipeHint
+-                            || (notificationWindow.state === "showPopup" && popupArea.expanded))
++                            ) // || (notificationWindow.state === "showPopup" && popupArea.expanded))
+         PauseAnimation {
+             duration: notificationTimer.duration
+         }
+@@ -670,7 +670,7 @@ SystemWindow {
+                 PropertyAction {
+                     target: popupArea
+                     property: "expanded"
+-                    value: false
++                    value: true
+                 }
+                 NumberAnimation {
+                     target: popupArea
