@@ -15,7 +15,7 @@
 SourcePackages:
 - jolla-keyboard >= 0.7.1
 
-Prefix: /usr/share/maliit/plugins/com/jolla
+Prefix: /usr
 DisplayName: Stock emoji keyboard with colors
 PackageName: sfos-patch-keyboard-color-stock-emojis
 Category: Keyboard
@@ -43,7 +43,7 @@ SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
 # NOTE don't forget to update the version in
 # <...>/patched/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
-Version: 1.4.0
+Version: 1.5.0
 Release: 1
 License: GPL-3.0-or-later
 
@@ -78,8 +78,32 @@ CompatibleVersions:
 - 4.5.0.16
 - 4.5.0.18
 - 4.5.0.19
+- 4.5.0.21
+- 4.5.0.24
+- 4.5.0.25
 
+
+#
+# WARNING Don't forget to update the current version number in EmojiConfigOverlay.qml!
+#
 Changelog:
+- 1.5.0:
+- - Added full support for Emoji 15.1, you can finally type the "shaking my head" emoji
+- - Added support for translating the settings page, contributions are welcome!
+- - Added support for searching emojis by name and description in English and the current system language
+- - Added a note to the settings page asking for support: you can now donate on Liberapay if you like my work
+- - Supported search languages: Spanish, Swedish, Norwegian Bokmal, French, German (new translations added on request)
+- - Squashed a bunch of bugs and improved general stability
+- - Note: this release might be incompatible with SFOS 4.6 / SFOS 5.x, testers wanted!
+-
+- 1.4.2:
+- - Update compatibility info: the patch is compatible with all versions of SailfishOS up to 4.5.0.25
+- - You may have to install an earlier version of this patch on older system versions
+-
+- 1.4.1:
+- - Add support for Apple 16.4 emojis in the backend (but the new emojis will not yet show up in the keyboard)
+- - Packaging fixes
+-
 - 1.4.0:
 - - Added troubleshooting option in emoji keyboard settings: easily restart the keyboard service if no keys are being shown
 - - Fixed skin tone variations not being shown as images on SFOS 4
