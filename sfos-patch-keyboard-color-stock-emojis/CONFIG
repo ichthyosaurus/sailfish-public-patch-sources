@@ -43,7 +43,7 @@ SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
 
 # NOTE don't forget to update the version in
 # <...>/patched/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
-Version: 1.5.0
+Version: 1.5.2
 Release: 1
 License: GPL-3.0-or-later
 
@@ -81,12 +81,24 @@ CompatibleVersions:
 - 4.5.0.21
 - 4.5.0.24
 - 4.5.0.25
+- 4.6.0.13
+- 4.6.0.15
 
 
 #
 # WARNING Don't forget to update the current version number in EmojiConfigOverlay.qml!
 #
 Changelog:
+- 1.5.2:
+- - Fixed compatibility with SFOS 4.5
+- - The patch should now work on SFOS 3.4 to 4.6
+- - compatibility with SFOS < 4.5 and > 4.6 has not been tested
+- - You may have to install an earlier version of this patch on older system versions
+- - Fixed a typo in the German translation, don't hesitate to contact me if you want to add a translation for your language!
+-
+- 1.5.1:
+- - Add support for SFOS 4.6, breaking compatibility with 4.5
+-
 - 1.5.0:
 - - Added full support for Emoji 15.1, you can finally type the "shaking my head" emoji
 - - Added support for translating the settings page, contributions are welcome!

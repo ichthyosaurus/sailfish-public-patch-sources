@@ -23,7 +23,7 @@ index 0000000..dc52b17
 +module com.jolla.keyboard.ichthyo_color_emojis
 +singleton EmojiSearch 1.0 EmojiSearch.qml
 diff --git a/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml b/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
-index 6f6ffc6..a1f1ffa 100644
+index 0383081..ea27b40 100644
 --- a/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
 +++ b/usr/share/maliit/plugins/com/jolla/HorizontalPredictionListView.qml
 @@ -3,10 +3,13 @@
@@ -40,7 +40,19 @@ index 6f6ffc6..a1f1ffa 100644
      property real _buttonMargin: showRemoveButton ? Theme.itemSizeExtraSmall : Theme.paddingLarge
      readonly property real _maximumLabelWidth: width - (2 * Theme.paddingLarge)
  
-@@ -27,8 +30,10 @@ PredictionListView {
+@@ -14,6 +17,11 @@ PredictionListView {
+ 
+     Behavior on _buttonMargin { NumberAnimation { id: marginAnimation; duration: 100 } }
+ 
++    EmojiConfig {
++        // NOTE: Jolla added a blank line below "id: removeButton" in 4.6, breaking compatibility with 4.5
++        id: emojiConfig
++    }
++
+     onPredictionsChanged: {
+         view.positionViewAtBeginning()
+     }
+@@ -27,8 +35,10 @@ PredictionListView {
  
      delegate: BackgroundItem {
          id: delegate
@@ -53,7 +65,7 @@ index 6f6ffc6..a1f1ffa 100644
          height: view.height
  
          clip: marginAnimation.running
-@@ -37,7 +42,13 @@ PredictionListView {
+@@ -37,7 +47,13 @@ PredictionListView {
              if (view.showRemoveButton) {
                  view.showRemoveButton = false
              } else {
@@ -68,7 +80,7 @@ index 6f6ffc6..a1f1ffa 100644
              }
          }
  
-@@ -51,8 +62,25 @@ PredictionListView {
+@@ -51,8 +67,25 @@ PredictionListView {
              }
          }
  
@@ -94,17 +106,6 @@ index 6f6ffc6..a1f1ffa 100644
  
              x: Theme.paddingLarge
              width: Math.min(implicitWidth, view._maximumLabelWidth + Theme.paddingLarge - view._buttonMargin)
-@@ -85,6 +113,10 @@ PredictionListView {
-         }
-     }
- 
-+    EmojiConfig {
-+        id: emojiConfig
-+    }
-+
-     Connections {
-         target: Clipboard
-         onTextChanged: {
 diff --git a/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml b/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml
 index f5447b5..fd09672 100644
 --- a/usr/share/maliit/plugins/com/jolla/PasteInputHandler.qml
@@ -325,7 +326,7 @@ index 72fe32b..1176995 100644
          // position content row so that the base character is visible and centered
          contentRow.x = popper.radius -
 diff --git a/usr/share/maliit/plugins/com/jolla/PopperCell.qml b/usr/share/maliit/plugins/com/jolla/PopperCell.qml
-index ac5a30c..6acdb39 100644
+index a8be589..4f9052a 100644
 --- a/usr/share/maliit/plugins/com/jolla/PopperCell.qml
 +++ b/usr/share/maliit/plugins/com/jolla/PopperCell.qml
 @@ -1,6 +1,8 @@
@@ -337,13 +338,27 @@ index ac5a30c..6acdb39 100644
  import QtQuick 2.0
  import Sailfish.Silica 1.0
  import com.jolla.keyboard 1.0
-@@ -12,10 +14,42 @@ SilicaItem {
+@@ -13,7 +15,6 @@ SilicaItem {
  
      property bool active
      property alias character: textItem.text
 -    property alias textVisible: textItem.visible
+ 
+     Label {
+         id: textItem
+@@ -32,5 +33,43 @@ SilicaItem {
+         // emoji are already bold enough by such, and qtquick would break the rendering.
+         font.bold: popperCell.active && !KeyboardSupport.isEmoji(character)
+         fontSizeMode: Text.Fit
++
++        // NOTE Jolla added a blank line below "id: textItem" in 4.6, breaking compatibility with 4.5
++        visible: textVisible && (!isEmoji || image.source === '')
++    }
 +
 +    // emojis --->
++    // NOTE Jolla added a blank line below "id: popperCell" in 4.6, breaking compatibility with 4.5
++    // To keep compatibility with 4.5, all modifications must stay grouped below the differing
++    // lines. Then the patch successfully applies with fuzzy matching (offset -1 and -2 lines).
 +    property bool textVisible
 +    property bool isEmoji: false
 +
@@ -372,15 +387,9 @@ index ac5a30c..6acdb39 100644
 +        visible: textVisible && isEmoji && status === Image.Ready
 +        opacity: visible ? (popperCell.active ? 1.0 : 0.4) : 0.0
 +        Behavior on opacity { FadeAnimator { } }
-+    }
+     }
 +    // <--- emojis
- 
-     Label {
-         id: textItem
-+        visible: textVisible && (!isEmoji || image.source === '')
-         anchors.top: parent.top
-         anchors.bottom: parent.bottom
-         anchors.horizontalCenter: parent.horizontalCenter
+ }
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfig.qml
 new file mode 100644
 index 0000000..17dd97d
@@ -579,7 +588,7 @@ index 0000000..b4f9788
 +}
 diff --git a/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
 new file mode 100644
-index 0000000..c3c6475
+index 0000000..42dd9e7
 --- /dev/null
 +++ b/usr/share/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml
 @@ -0,0 +1,462 @@
@@ -603,7 +612,7 @@ index 0000000..c3c6475
 +    enabled: height === _openedHeight
 +    Behavior on height { SmoothedAnimation { duration: 300 } }
 +
-+    readonly property string patchVersion: "1.5.0 (e%1)".arg(Emoji.version) // <-- change on update
++    readonly property string patchVersion: "1.5.2 (e%1)".arg(Emoji.version) // <-- change on update
 +    property bool open: false // <-- change to show
 +    property EmojiConfig emojiConfig: null // <-- set from outside
 +    property real _closedHeight: 0.01
