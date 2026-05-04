@@ -46,7 +46,7 @@ Description:
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-overloaded-spacebar-row-keys
 # DonationsLink: https://example.org/donations
-SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+SourcesLink: https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources
 
 Version: 1.0.2
 Release: 1

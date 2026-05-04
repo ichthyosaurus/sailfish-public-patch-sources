@@ -1037,7 +1037,7 @@ index 0000000..42dd9e7
 +                text: "Copyright 2021-%1 Mirian Margiani<br>".arg(new Date().getFullYear()) +
 +                      "The emoji keyboard patch is currently released under the terms of the " +
 +                      "GNU GPL version 3 or later. The source code is available " +
-+                      "<a href='https://github.com/ichthyosaurus/sailfish-public-patch-sources'>on Github</a>. " +
++                      "<a href='https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources'>on Codeberg</a>. " +
 +                      "This is free software: you are free to change and redistribute it. " +
 +                      "There is no warranty, to the extent permitted by law."
 +            }

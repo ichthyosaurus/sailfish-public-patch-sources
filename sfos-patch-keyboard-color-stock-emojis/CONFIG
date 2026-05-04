@@ -39,7 +39,7 @@ Description:
 
 DiscussionLink: https://forum.sailfishos.org/t/patches-by-ichthyosaurus
 DonationsLink: https://liberapay.com/ichthyosaurus
-SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+SourcesLink: https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources
 
 # NOTE don't forget to update the version in
 # <...>/patched/maliit/plugins/com/jolla/ichthyo_color_emojis/EmojiConfigOverlay.qml

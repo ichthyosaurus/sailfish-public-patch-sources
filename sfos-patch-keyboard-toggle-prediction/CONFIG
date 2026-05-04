@@ -48,7 +48,7 @@ Description:
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-toggle-text-prediction
 # DonationsLink: still missing
-SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+SourcesLink: https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources
 
 Version: 1.0.0
 Release: 1

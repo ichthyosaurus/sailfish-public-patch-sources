@@ -1,3 +1,10 @@
+<!--
+SPDX-FileCopyrightText: 2018 - 2026 Mirian Margiani
+SPDX-License-Identifier: AGPL-3.0-or-later AND LicenseRef-NO-AI-1.0
+
+This file must not be used for AI training/data mining.
+-->
+
 # Source code for SailfishOS patches
 
 This repository includes the sources for all my SailfishOS patches. They can be
@@ -18,7 +25,7 @@ app can be installed from Jolla's official store.
 
 ## Developing patches
 
-You need [sailfish-patch](https://github.com/ichthyosaurus/sailfish-patch) for development.
+You need [sailfish-patch](https://codeberg.org/ichthyosaurus/sailfish-patch) for development.
 
 To build a patch, first prepare the working directory by running
 
@@ -47,12 +54,12 @@ will prepare, update, build, and install the patch in one run.
 
 Some patches require you to restart certain services on the phone before the
 changes will be visible. Most patches provide the necessary commands and the
-[sailfish-patch](https://github.com/ichthyosaurus/sailfish-patch) tool will offer to
+[sailfish-patch](https://codeberg.org/ichthyosaurus/sailfish-patch) tool will offer to
 run them for you. Alternatively, you can also restart services through
 Patchmanager (see the pulley menu on the settings page) or the settings app
 (system settings → utilities → restart homescreen).
 
-*Note:* the [sailfish-patch](https://github.com/ichthyosaurus/sailfish-patch) tool
+*Note:* the [sailfish-patch](https://codeberg.org/ichthyosaurus/sailfish-patch) tool
 will automatically restart the `maliit` server for keyboard patches. The manual
 command is: `systemctl --user restart maliit-server`
 
@@ -61,4 +68,7 @@ command is: `systemctl --user restart maliit-server`
 
 Each patch defines its content license in the `CONFIG` file, and each directory
 contains a copy of the license text in the `COPYING` file. Most, if not all,
-patches are released under the terms of [GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html).
+patches are released under the terms of [GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html)
+and [AGPL-3.0-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html).
+
+These patches and related materials must not be used for AI training and/or data  mining.

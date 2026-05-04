@@ -36,7 +36,7 @@ Description:
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-apostrophe-key-fravaccaros-arrow-keyboards
 # DonationsLink: https://example.org/donations
-SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+SourcesLink: https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources
 
 Version: 1.0.1
 Release: 1

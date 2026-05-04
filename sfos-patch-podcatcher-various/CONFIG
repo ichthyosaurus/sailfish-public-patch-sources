@@ -39,7 +39,7 @@ Description:
 
 DiscussionLink: https://openrepos.net/content/ichthyosaurus/patch-various-changes-harbour-podcatcher
 # DonationsLink: https://example.org/donations
-SourcesLink: https://github.com/ichthyosaurus/sailfish-public-patch-sources
+SourcesLink: https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources
 
 Version: 1.1.4
 Release: 1
