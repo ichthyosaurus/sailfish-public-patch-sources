@@ -5,6 +5,19 @@ SPDX-License-Identifier: AGPL-3.0-or-later AND LicenseRef-NO-AI-1.0
 This file must not be used for AI training/data mining.
 -->
 
+# This project moved to [Codeberg](https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources)
+
+> [!WARNING]
+> **Development has moved to
+> [Codeberg](https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources).
+> Please update your bookmarks and local clones to point to the new URL.**
+>
+>     git remote set-url origin https://codeberg.org/ichthyosaurus/sailfish-public-patch-sources
+>     git fetch
+>     git branch -u origin/main main
+
+---
+
 # Source code for SailfishOS patches
 
 This repository includes the sources for all my SailfishOS patches. They can be
